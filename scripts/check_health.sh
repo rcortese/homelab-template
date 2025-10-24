@@ -114,7 +114,28 @@ parse_services() {
   printf '%s\n' "${tokens[@]}"
 }
 
-mapfile -t LOG_TARGETS < <(parse_services "${HEALTH_SERVICES:-${SERVICE_NAME:-}}")
+mapfile -t LOG_TARGETS < <(parse_services "${HEALTH_SERVICES:-${SERVICE_NAME:-}}") || true
+
+declare -A __log_targets_seen=()
+for __service in "${LOG_TARGETS[@]}"; do
+  __log_targets_seen["$__service"]=1
+done
+
+if compose_services_output="$("${COMPOSE_CMD[@]}" config --services 2>/dev/null)"; then
+  while IFS= read -r compose_service; do
+    if [[ -z "$compose_service" ]]; then
+      continue
+    fi
+    if [[ -n "${__log_targets_seen["$compose_service"]:-}" ]]; then
+      continue
+    fi
+    LOG_TARGETS+=("$compose_service")
+    __log_targets_seen["$compose_service"]=1
+  done <<< "$compose_services_output"
+fi
+
+unset __log_targets_seen
+unset __service
 
 if [[ ${#LOG_TARGETS[@]} -eq 0 ]]; then
   LOG_TARGETS=(app)

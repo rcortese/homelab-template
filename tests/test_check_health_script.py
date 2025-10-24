@@ -54,6 +54,17 @@ def test_invokes_ps_and_logs_with_custom_files(docker_stub: DockerStub) -> None:
             "compose/base.yml",
             "-f",
             "compose/extra.yml",
+            "config",
+            "--services",
+        ],
+        [
+            "compose",
+            "--env-file",
+            "env/custom.env",
+            "-f",
+            "compose/base.yml",
+            "-f",
+            "compose/extra.yml",
             "ps",
         ],
         [
@@ -71,7 +82,7 @@ def test_invokes_ps_and_logs_with_custom_files(docker_stub: DockerStub) -> None:
     ]
 
 
-def test_logs_fallback_through_alternative_services(
+def test_logs_fallback_through_real_service_name(
     docker_stub: DockerStub,
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -89,6 +100,10 @@ log_path = pathlib.Path(os.environ["DOCKER_STUB_LOG"])
 with log_path.open("a", encoding="utf-8") as handle:
     json.dump(sys.argv[1:], handle)
     handle.write("\\n")
+
+args = sys.argv[1:]
+if "config" in args and "--services" in args:
+    print("app")
 
 exit_code_file = os.environ.get("DOCKER_STUB_EXIT_CODE_FILE")
 base_exit_code = 0
@@ -128,8 +143,8 @@ sys.exit(exit_code)
     stub_script.chmod(0o755)
 
     state_file = tmp_path / "fail_once_state"
-    monkeypatch.setenv("HEALTH_SERVICES", "app app-core app-media")
-    monkeypatch.setenv("DOCKER_STUB_FAIL_ONCE_FOR", "app,app-core")
+    monkeypatch.setenv("HEALTH_SERVICES", "app-core")
+    monkeypatch.setenv("DOCKER_STUB_FAIL_ONCE_FOR", "app-core")
     monkeypatch.setenv("DOCKER_STUB_FAIL_ONCE_STATE", str(state_file))
 
     result = run_check_health()
@@ -138,10 +153,10 @@ sys.exit(exit_code)
 
     calls = docker_stub.read_calls()
     assert calls == [
+        ["compose", "config", "--services"],
         ["compose", "ps"],
-        ["compose", "logs", "--tail=50", "app"],
         ["compose", "logs", "--tail=50", "app-core"],
-        ["compose", "logs", "--tail=50", "app-media"],
+        ["compose", "logs", "--tail=50", "app"],
     ]
 
 
@@ -161,6 +176,8 @@ with log_path.open("a", encoding="utf-8") as handle:
     handle.write("\\n")
 
 args = sys.argv[1:]
+if "config" in args and "--services" in args:
+    print("app")
 if "logs" in args:
     sys.exit(1)
 
@@ -177,6 +194,7 @@ sys.exit(0)
 
     calls = docker_stub.read_calls()
     assert calls == [
+        ["compose", "config", "--services"],
         ["compose", "ps"],
         ["compose", "logs", "--tail=50", "app"],
         ["compose", "logs", "--tail=50", "app-core"],
@@ -200,6 +218,17 @@ def test_infers_compose_files_and_env_from_instance(
     calls = docker_stub.read_calls()
     env_file = str(repo_copy / "env" / "local" / "core.env")
     assert calls == [
+        [
+            "compose",
+            "--env-file",
+            env_file,
+            "-f",
+            "compose/base.yml",
+            "-f",
+            "compose/core.yml",
+            "config",
+            "--services",
+        ],
         [
             "compose",
             "--env-file",

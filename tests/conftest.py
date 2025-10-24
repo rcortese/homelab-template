@@ -45,6 +45,10 @@ with log_path.open(\"a\", encoding=\"utf-8\") as handle:
     json.dump(sys.argv[1:], handle)
     handle.write(\"\\n\")
 
+args = sys.argv[1:]
+if \"config\" in args and \"--services\" in args:
+    print(\"app\")
+
 exit_code_file = os.environ.get(\"DOCKER_STUB_EXIT_CODE_FILE\")
 exit_code = 0
 if exit_code_file:
