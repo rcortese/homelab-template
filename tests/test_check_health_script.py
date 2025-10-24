@@ -71,6 +71,20 @@ def test_invokes_ps_and_logs_with_custom_files(docker_stub: DockerStub) -> None:
     ]
 
 
+def test_respects_docker_compose_bin_override(docker_stub: DockerStub) -> None:
+    env = {"DOCKER_COMPOSE_BIN": "docker --context remote compose"}
+
+    result = run_check_health(env=env)
+
+    assert result.returncode == 0, result.stderr
+
+    calls = docker_stub.read_calls()
+    assert calls == [
+        ["--context", "remote", "compose", "ps"],
+        ["--context", "remote", "compose", "logs", "--tail=50", "app"],
+    ]
+
+
 def test_logs_fallback_through_alternative_services(
     docker_stub: DockerStub,
     tmp_path: Path,

@@ -81,3 +81,18 @@ def test_preserves_existing_environment(repo_copy: Path) -> None:
     assert compose_cmd.count("-f") == 2
     assert compose_cmd[compose_cmd.index("-f") + 1] == "compose/base.yml"
     assert compose_cmd[compose_cmd.index("-f", compose_cmd.index("-f") + 1) + 1] == "compose/custom.yml"
+
+
+def test_respects_docker_compose_bin_override(repo_copy: Path) -> None:
+    script_path = repo_copy / SCRIPT_RELATIVE
+    env = os.environ.copy()
+    env.update({"DOCKER_COMPOSE_BIN": "docker --context remote compose"})
+
+    stdout = _run_script(script_path, "core", str(repo_copy), env=env)
+
+    compose_cmd = _extract_compose_cmd(stdout)
+    assert compose_cmd[:4] == ["docker", "--context", "remote", "compose"]
+
+    env_file = str(repo_copy / "env" / "local" / "core.env")
+    assert "--env-file" in compose_cmd
+    assert env_file in compose_cmd
