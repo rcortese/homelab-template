@@ -87,62 +87,10 @@ def test_logs_fallback_through_real_service_name(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    stub_dir = Path(os.environ["PATH"].split(os.pathsep)[0])
-    stub_script = stub_dir / "docker"
-    stub_script.write_text(
-        """#!/usr/bin/env python3
-import json
-import os
-import pathlib
-import sys
-
-log_path = pathlib.Path(os.environ["DOCKER_STUB_LOG"])
-with log_path.open("a", encoding="utf-8") as handle:
-    json.dump(sys.argv[1:], handle)
-    handle.write("\\n")
-
-args = sys.argv[1:]
-if "config" in args and "--services" in args:
-    print("app")
-
-exit_code_file = os.environ.get("DOCKER_STUB_EXIT_CODE_FILE")
-base_exit_code = 0
-if exit_code_file:
-    try:
-        base_exit_code = int(pathlib.Path(exit_code_file).read_text().strip() or "0")
-    except FileNotFoundError:
-        base_exit_code = 0
-
-exit_code = base_exit_code
-fail_targets = [
-    entry.strip()
-    for entry in os.environ.get("DOCKER_STUB_FAIL_ONCE_FOR", "").split(",")
-    if entry.strip()
-]
-state_file = os.environ.get("DOCKER_STUB_FAIL_ONCE_STATE")
-if fail_targets and state_file:
-    args = sys.argv[1:]
-    service = args[-1] if "logs" in args else None
-    if service and service in fail_targets:
-        state_path = pathlib.Path(state_file)
-        if state_path.exists():
-            already = {entry for entry in state_path.read_text().split(",") if entry}
-        else:
-            already = set()
-        if service not in already:
-            already.add(service)
-            state_path.write_text(",".join(sorted(already)), encoding="utf-8")
-            exit_code = 1
-        else:
-            exit_code = base_exit_code
-
-sys.exit(exit_code)
-""",
-        encoding="utf-8",
-    )
-    stub_script.chmod(0o755)
-
     state_file = tmp_path / "fail_once_state"
+    docker_stub.reset_fail_once_state()
+    if state_file.exists():
+        state_file.unlink()
     monkeypatch.setenv("HEALTH_SERVICES", "app-core")
     monkeypatch.setenv("DOCKER_STUB_FAIL_ONCE_FOR", "app-core")
     monkeypatch.setenv("DOCKER_STUB_FAIL_ONCE_STATE", str(state_file))
@@ -160,32 +108,10 @@ sys.exit(exit_code)
     ]
 
 
-def test_logs_reports_failure_when_all_services_fail(docker_stub: DockerStub) -> None:
-    stub_dir = Path(os.environ["PATH"].split(os.pathsep)[0])
-    stub_script = stub_dir / "docker"
-    stub_script.write_text(
-        """#!/usr/bin/env python3
-import json
-import os
-import pathlib
-import sys
-
-log_path = pathlib.Path(os.environ["DOCKER_STUB_LOG"])
-with log_path.open("a", encoding="utf-8") as handle:
-    json.dump(sys.argv[1:], handle)
-    handle.write("\\n")
-
-args = sys.argv[1:]
-if "config" in args and "--services" in args:
-    print("app")
-if "logs" in args:
-    sys.exit(1)
-
-sys.exit(0)
-""",
-        encoding="utf-8",
-    )
-    stub_script.chmod(0o755)
+def test_logs_reports_failure_when_all_services_fail(
+    docker_stub: DockerStub, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("DOCKER_STUB_ALWAYS_FAIL_LOGS", "1")
 
     result = run_check_health(env={"HEALTH_SERVICES": "app app-core app-media"})
 
