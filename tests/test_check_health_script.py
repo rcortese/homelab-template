@@ -85,6 +85,19 @@ def test_respects_docker_compose_bin_override(docker_stub: DockerStub) -> None:
     ]
 
 
+@pytest.mark.parametrize("arg", ["-h", "--help"])
+def test_help_flags_exit_early_and_show_usage(
+    docker_stub: DockerStub, arg: str
+) -> None:
+    result = run_check_health(args=[arg])
+
+    assert result.returncode == 0, result.stderr
+    assert "Uso: scripts/check_health.sh" in result.stdout
+
+    calls = docker_stub.read_calls()
+    assert calls == []
+
+
 def test_logs_fallback_through_alternative_services(
     docker_stub: DockerStub,
     tmp_path: Path,
