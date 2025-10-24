@@ -54,6 +54,17 @@ def test_invokes_ps_and_logs_with_custom_files(docker_stub: DockerStub) -> None:
             "compose/base.yml",
             "-f",
             "compose/extra.yml",
+            "config",
+            "--services",
+        ],
+        [
+            "compose",
+            "--env-file",
+            "env/custom.env",
+            "-f",
+            "compose/base.yml",
+            "-f",
+            "compose/extra.yml",
             "ps",
         ],
         [
@@ -103,60 +114,12 @@ def test_logs_fallback_through_alternative_services(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    stub_dir = Path(os.environ["PATH"].split(os.pathsep)[0])
-    stub_script = stub_dir / "docker"
-    stub_script.write_text(
-        """#!/usr/bin/env python3
-import json
-import os
-import pathlib
-import sys
-
-log_path = pathlib.Path(os.environ["DOCKER_STUB_LOG"])
-with log_path.open("a", encoding="utf-8") as handle:
-    json.dump(sys.argv[1:], handle)
-    handle.write("\\n")
-
-exit_code_file = os.environ.get("DOCKER_STUB_EXIT_CODE_FILE")
-base_exit_code = 0
-if exit_code_file:
-    try:
-        base_exit_code = int(pathlib.Path(exit_code_file).read_text().strip() or "0")
-    except FileNotFoundError:
-        base_exit_code = 0
-
-exit_code = base_exit_code
-fail_targets = [
-    entry.strip()
-    for entry in os.environ.get("DOCKER_STUB_FAIL_ONCE_FOR", "").split(",")
-    if entry.strip()
-]
-state_file = os.environ.get("DOCKER_STUB_FAIL_ONCE_STATE")
-if fail_targets and state_file:
-    args = sys.argv[1:]
-    service = args[-1] if "logs" in args else None
-    if service and service in fail_targets:
-        state_path = pathlib.Path(state_file)
-        if state_path.exists():
-            already = {entry for entry in state_path.read_text().split(",") if entry}
-        else:
-            already = set()
-        if service not in already:
-            already.add(service)
-            state_path.write_text(",".join(sorted(already)), encoding="utf-8")
-            exit_code = 1
-        else:
-            exit_code = base_exit_code
-
-sys.exit(exit_code)
-""",
-        encoding="utf-8",
-    )
-    stub_script.chmod(0o755)
-
     state_file = tmp_path / "fail_once_state"
-    monkeypatch.setenv("HEALTH_SERVICES", "app app-core app-media")
-    monkeypatch.setenv("DOCKER_STUB_FAIL_ONCE_FOR", "app,app-core")
+    docker_stub.reset_fail_once_state()
+    if state_file.exists():
+        state_file.unlink()
+    monkeypatch.setenv("HEALTH_SERVICES", "app-core")
+    monkeypatch.setenv("DOCKER_STUB_FAIL_ONCE_FOR", "app-core")
     monkeypatch.setenv("DOCKER_STUB_FAIL_ONCE_STATE", str(state_file))
 
     result = run_check_health()
@@ -165,37 +128,17 @@ sys.exit(exit_code)
 
     calls = docker_stub.read_calls()
     assert calls == [
+        ["compose", "config", "--services"],
         ["compose", "ps"],
-        ["compose", "logs", "--tail=50", "app"],
         ["compose", "logs", "--tail=50", "app-core"],
-        ["compose", "logs", "--tail=50", "app-media"],
+        ["compose", "logs", "--tail=50", "app"],
     ]
 
 
-def test_logs_reports_failure_when_all_services_fail(docker_stub: DockerStub) -> None:
-    stub_dir = Path(os.environ["PATH"].split(os.pathsep)[0])
-    stub_script = stub_dir / "docker"
-    stub_script.write_text(
-        """#!/usr/bin/env python3
-import json
-import os
-import pathlib
-import sys
-
-log_path = pathlib.Path(os.environ["DOCKER_STUB_LOG"])
-with log_path.open("a", encoding="utf-8") as handle:
-    json.dump(sys.argv[1:], handle)
-    handle.write("\\n")
-
-args = sys.argv[1:]
-if "logs" in args:
-    sys.exit(1)
-
-sys.exit(0)
-""",
-        encoding="utf-8",
-    )
-    stub_script.chmod(0o755)
+def test_logs_reports_failure_when_all_services_fail(
+    docker_stub: DockerStub, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("DOCKER_STUB_ALWAYS_FAIL_LOGS", "1")
 
     result = run_check_health(env={"HEALTH_SERVICES": "app app-core app-media"})
 
@@ -204,6 +147,7 @@ sys.exit(0)
 
     calls = docker_stub.read_calls()
     assert calls == [
+        ["compose", "config", "--services"],
         ["compose", "ps"],
         ["compose", "logs", "--tail=50", "app"],
         ["compose", "logs", "--tail=50", "app-core"],
@@ -227,6 +171,17 @@ def test_infers_compose_files_and_env_from_instance(
     calls = docker_stub.read_calls()
     env_file = str(repo_copy / "env" / "local" / "core.env")
     assert calls == [
+        [
+            "compose",
+            "--env-file",
+            env_file,
+            "-f",
+            "compose/base.yml",
+            "-f",
+            "compose/core.yml",
+            "config",
+            "--services",
+        ],
         [
             "compose",
             "--env-file",
