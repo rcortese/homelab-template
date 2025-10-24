@@ -56,6 +56,7 @@ for i in 1..MAX_ITERS:
 
 - **Ubuntu (core):** Compose v2 available; install `shellcheck`, `shfmt` if running locally.
 - **Unraid (media):** Compose v2 available; do not change container networks/IPs; volumes under `/mnt/user/...`; respect `PUID/PGID`. If tooling is absent locally, rely on CI; still validate Compose syntax.
+- **Tooling availability:** If you have internet access within the execution environment, install both `shellcheck` and `shfmt` before running shell linting commands to ensure they are available.
 
 ## 8) Do’s / Don’ts
 

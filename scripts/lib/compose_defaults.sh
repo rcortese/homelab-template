@@ -44,7 +44,12 @@ setup_compose_defaults() {
     fi
   fi
 
-  COMPOSE_CMD=(docker compose)
+  if [[ -n "${DOCKER_COMPOSE_BIN:-}" ]]; then
+    # shellcheck disable=SC2206
+    COMPOSE_CMD=(${DOCKER_COMPOSE_BIN})
+  else
+    COMPOSE_CMD=(docker compose)
+  fi
 
   if [[ -n "${COMPOSE_ENV_FILE:-}" ]]; then
     COMPOSE_CMD+=(--env-file "$COMPOSE_ENV_FILE")
