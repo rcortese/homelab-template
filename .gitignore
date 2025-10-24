@@ -1,0 +1,18 @@
+# n8n
+**/n8n_data/
+**/backups/
+**/.env
+**/.env.*
+*.local
+env/local/
+
+# editor/OS
+.DS_Store
+Thumbs.db
+
+# logs
+logs/
+*.log
+
+# node/npm (se usar algo adicional no futuro)
+node_modules/
