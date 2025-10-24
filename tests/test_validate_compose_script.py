@@ -115,6 +115,21 @@ def test_unknown_instance_returns_error(docker_stub: DockerStub) -> None:
     assert docker_stub.read_calls() == []
 
 
+def test_reports_failure_when_compose_command_fails_with_docker_stub(
+    docker_stub: DockerStub,
+) -> None:
+    docker_stub.set_exit_code(1)
+
+    result = run_validate_compose({"COMPOSE_INSTANCES": "core"})
+
+    assert result.returncode != 0
+    assert "✖ instância=\"core\"" in result.stderr
+    assert f"files: {BASE_COMPOSE} {CORE_COMPOSE}" in result.stderr
+
+    calls = docker_stub.read_calls()
+    assert len(calls) == 1
+
+
 def test_prefers_local_env_when_available(repo_copy: Path, docker_stub: DockerStub) -> None:
     docker_stub.set_exit_code(0)
 
