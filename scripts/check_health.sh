@@ -17,41 +17,8 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-load_env_pairs() {
-  local env_file="$1"
-  shift || return 0
-
-  if [[ ! -f "$env_file" ]]; then
-    return 1
-  fi
-
-  if [[ $# -eq 0 ]]; then
-    return 2
-  fi
-
-  local output=""
-  if ! output="$("$SCRIPT_DIR/lib/env_loader.sh" "$env_file" "$@")"; then
-    return $?
-  fi
-
-  local line key value
-  while IFS= read -r line; do
-    if [[ -z "$line" ]]; then
-      continue
-    fi
-    key="${line%%=*}"
-    if [[ -z "$key" ]]; then
-      continue
-    fi
-    if [[ -n "${!key+x}" ]]; then
-      continue
-    fi
-    value="${line#*=}"
-    export "$key=$value"
-  done <<<"$output"
-
-  return 0
-}
+# shellcheck source=lib/env_helpers.sh
+source "$SCRIPT_DIR/lib/env_helpers.sh"
 
 print_help() {
   cat <<'EOF'
