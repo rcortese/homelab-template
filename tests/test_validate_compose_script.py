@@ -158,6 +158,106 @@ def test_prefers_local_env_when_available(repo_copy: Path, docker_stub: DockerSt
     ]
 
 
+def test_includes_extra_files_from_env_file(repo_copy: Path, docker_stub: DockerStub) -> None:
+    docker_stub.set_exit_code(0)
+
+    overlay_dir = repo_copy / "compose" / "overlays"
+    overlay_dir.mkdir(parents=True, exist_ok=True)
+    extra_files = ["metrics.yml", "logging.yml"]
+    for name in extra_files:
+        (overlay_dir / name).write_text(
+            "version: '3.9'\nservices:\n  placeholder:\n    image: busybox:latest\n",
+            encoding="utf-8",
+        )
+
+    env_file = repo_copy / "env" / "local" / "core.env"
+    env_file.write_text(
+        env_file.read_text(encoding="utf-8")
+        + "COMPOSE_EXTRA_FILES=compose/overlays/metrics.yml compose/overlays/logging.yml\n",
+        encoding="utf-8",
+    )
+
+    result = subprocess.run(
+        [str(repo_copy / "scripts" / "validate_compose.sh")],
+        capture_output=True,
+        text=True,
+        check=False,
+        cwd=repo_copy,
+        env={**os.environ, "COMPOSE_INSTANCES": "core"},
+    )
+
+    assert result.returncode == 0, result.stderr
+    calls = docker_stub.read_calls()
+    assert len(calls) == 1
+    (call,) = calls
+    assert call == [
+        "compose",
+        "--env-file",
+        str(repo_copy / "env" / "local" / "core.env"),
+        "-f",
+        str(repo_copy / "compose" / "base.yml"),
+        "-f",
+        str(repo_copy / "compose" / "core.yml"),
+        "-f",
+        str(repo_copy / "compose" / "overlays" / "metrics.yml"),
+        "-f",
+        str(repo_copy / "compose" / "overlays" / "logging.yml"),
+        "config",
+    ]
+
+
+def test_env_override_for_extra_files(repo_copy: Path, docker_stub: DockerStub) -> None:
+    docker_stub.set_exit_code(0)
+
+    overlay_dir = repo_copy / "compose" / "overlays"
+    overlay_dir.mkdir(parents=True, exist_ok=True)
+    (overlay_dir / "custom.yml").write_text(
+        "version: '3.9'\nservices:\n  custom:\n    image: busybox:latest\n",
+        encoding="utf-8",
+    )
+    (overlay_dir / "metrics.yml").write_text(
+        "version: '3.9'\nservices:\n  metrics:\n    image: busybox:latest\n",
+        encoding="utf-8",
+    )
+
+    env_file = repo_copy / "env" / "local" / "core.env"
+    env_file.write_text(
+        env_file.read_text(encoding="utf-8")
+        + "COMPOSE_EXTRA_FILES=compose/overlays/metrics.yml\n",
+        encoding="utf-8",
+    )
+
+    result = subprocess.run(
+        [str(repo_copy / "scripts" / "validate_compose.sh")],
+        capture_output=True,
+        text=True,
+        check=False,
+        cwd=repo_copy,
+        env={
+            **os.environ,
+            "COMPOSE_INSTANCES": "core",
+            "COMPOSE_EXTRA_FILES": "compose/overlays/custom.yml",
+        },
+    )
+
+    assert result.returncode == 0, result.stderr
+    calls = docker_stub.read_calls()
+    assert len(calls) == 1
+    (call,) = calls
+    assert call == [
+        "compose",
+        "--env-file",
+        str(repo_copy / "env" / "local" / "core.env"),
+        "-f",
+        str(repo_copy / "compose" / "base.yml"),
+        "-f",
+        str(repo_copy / "compose" / "core.yml"),
+        "-f",
+        str(repo_copy / "compose" / "overlays" / "custom.yml"),
+        "config",
+    ]
+
+
 def test_missing_compose_file_in_temporary_copy(tmp_path: Path, docker_stub: DockerStub) -> None:
     repo_copy = tmp_path / "repo"
     shutil.copytree(REPO_ROOT / "compose", repo_copy / "compose")

@@ -83,6 +83,38 @@ def test_preserves_existing_environment(repo_copy: Path) -> None:
     assert compose_cmd[compose_cmd.index("-f", compose_cmd.index("-f") + 1) + 1] == "compose/custom.yml"
 
 
+def test_appends_extra_files_when_defined(repo_copy: Path) -> None:
+    script_path = repo_copy / SCRIPT_RELATIVE
+    env = os.environ.copy()
+    env.update(
+        {
+            "COMPOSE_FILES": "compose/base.yml compose/core.yml",
+            "COMPOSE_EXTRA_FILES": "compose/overlays/metrics.yml compose/overlays/logging.yml",
+        }
+    )
+
+    stdout = _run_script(script_path, "core", str(repo_copy), env=env)
+
+    compose_files = _extract_value(r'COMPOSE_FILES="([^"]+)"', stdout)
+    assert (
+        compose_files
+        == "compose/base.yml compose/core.yml compose/overlays/metrics.yml compose/overlays/logging.yml"
+    )
+
+    compose_cmd = _extract_compose_cmd(stdout)
+    file_args = [
+        compose_cmd[index + 1]
+        for index, token in enumerate(compose_cmd)
+        if token == "-f"
+    ]
+    assert file_args == [
+        "compose/base.yml",
+        "compose/core.yml",
+        "compose/overlays/metrics.yml",
+        "compose/overlays/logging.yml",
+    ]
+
+
 def test_respects_docker_compose_bin_override(repo_copy: Path) -> None:
     script_path = repo_copy / SCRIPT_RELATIVE
     env = os.environ.copy()

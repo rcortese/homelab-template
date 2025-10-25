@@ -91,6 +91,7 @@ def test_respects_docker_compose_bin_override(docker_stub: DockerStub) -> None:
 
     calls = docker_stub.read_calls()
     assert calls == [
+        ["--context", "remote", "compose", "config", "--services"],
         ["--context", "remote", "compose", "ps"],
         ["--context", "remote", "compose", "logs", "--tail=50", "app"],
     ]

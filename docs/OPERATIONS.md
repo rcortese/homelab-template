@@ -25,10 +25,12 @@ Este documento apresenta um ponto de partida para descrever processos operaciona
 - **Parâmetros úteis:**
   - `COMPOSE_INSTANCES` — lista de ambientes a validar (separados por espaço ou vírgula).
   - `DOCKER_COMPOSE_BIN` — caminho alternativo para o binário.
+  - `COMPOSE_EXTRA_FILES` — lista opcional de overlays extras aplicados após o override padrão (aceita espaços ou vírgulas).
 - **Exemplo:**
   ```bash
   scripts/validate_compose.sh
   COMPOSE_INSTANCES="prod staging" scripts/validate_compose.sh
+  COMPOSE_EXTRA_FILES="compose/overlays/metrics.yml" scripts/validate_compose.sh
   ```
 
 ## scripts/deploy_instance.sh
@@ -41,6 +43,7 @@ Este documento apresenta um ponto de partida para descrever processos operaciona
   scripts/deploy_instance.sh <alvo> --dry-run
   ```
 - **Flags principais:** `--force`, `--skip-structure`, `--skip-validate`, `--skip-health`.
+- **Dica:** defina `COMPOSE_EXTRA_FILES` no `.env` da instância para incluir overlays específicos (ex.: `compose/overlays/observability.yml`).
 
 ## scripts/compose.sh
 
@@ -59,6 +62,7 @@ Este documento apresenta um ponto de partida para descrever processos operaciona
 - **Diretórios persistentes:** ajuste `APP_DATA_DIR`, `APP_DATA_UID` e `APP_DATA_GID` no `.env` correspondente para alinhar permissões e caminhos ao seu ambiente.
 - **Serviços monitorados:** defina `HEALTH_SERVICES` ou `SERVICE_NAME` nos arquivos `.env` para que `scripts/check_health.sh` use os alvos corretos de log.
 - **Volumes extras:** utilize overrides específicos (`compose/<instância>.yml`) para montar diretórios adicionais ou expor portas distintas por ambiente.
+- **Overlays por configuração:** registre overlays opcionais em `compose/overlays/*.yml` e habilite-os por ambiente via `COMPOSE_EXTRA_FILES`. Isso mantém diffs de templates restritos a arquivos de configuração, sem editar scripts.
 
 ## Fluxos operacionais sugeridos
 
