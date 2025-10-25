@@ -10,8 +10,9 @@ executar `docker compose` ou os scripts em `scripts/*.sh`.
 
 | Tipo de arquivo | Localização | Papel |
 | --------------- | ----------- | ----- |
-| **Base** | `compose/base.yml` | Define imagem padrão da aplicação, volumes compartilhados (`../${APP_DATA_DIR:-data}`, `../backups`), variáveis comuns (`TZ`, `APP_SECRET`, `APP_RETENTION_HOURS`) e política de restart. É carregado em **todas** as combinações. |
-| **Overrides de instância** | `compose/<instância>.yml` | Ajustam o container para cada ambiente (nome, porta exposta, URLs públicas e variáveis específicas como `MEDIA_ROOT`). Devem ser combinados exatamente com uma instância (ex.: `core` ou `media`). |
+| **Base** | `compose/base.yml` | Mantém apenas anchors e volumes compartilhados reutilizados pelas aplicações. Deve ser carregado **sempre** como primeiro manifesto. |
+| **Aplicação** | `compose/apps/<app>/base.yml` | Declara os serviços adicionais que compõem uma aplicação (ex.: `app`). Usa os anchors definidos em `compose/base.yml`. É incluído automaticamente para todas as instâncias. |
+| **Overrides de instância** | `compose/apps/<app>/<instância>.yml` | Especializa os serviços da aplicação para cada ambiente (nome do container, portas, variáveis específicas como `APP_PUBLIC_URL` ou `MEDIA_ROOT`). Cada instância possui um arquivo por aplicação (ex.: `compose/apps/app/core.yml`). |
 
 ## Exemplos de comando
 
@@ -21,7 +22,8 @@ executar `docker compose` ou os scripts em `scripts/*.sh`.
 docker compose \
   --env-file env/local/core.env \
   -f compose/base.yml \
-  -f compose/core.yml \
+  -f compose/apps/app/base.yml \
+  -f compose/apps/app/core.yml \
   up -d
 ```
 
@@ -31,14 +33,15 @@ docker compose \
 docker compose \
   --env-file env/local/media.env \
   -f compose/base.yml \
-  -f compose/media.yml \
+  -f compose/apps/app/base.yml \
+  -f compose/apps/app/media.yml \
   up -d
 ```
 
 ### Combinação ad-hoc com `COMPOSE_FILES`
 
 ```bash
-export COMPOSE_FILES="compose/base.yml compose/media.yml"
+export COMPOSE_FILES="compose/base.yml compose/apps/app/base.yml compose/apps/app/media.yml"
 docker compose \
   --env-file env/local/media.env \
   $(for file in $COMPOSE_FILES; do printf ' -f %s' "$file"; done) \
@@ -48,6 +51,7 @@ docker compose \
 ## Boas práticas
 
 - Sempre carregue `compose/base.yml` em primeiro lugar.
-- Combine o override `compose/<instância>.yml` correspondente logo após a base.
+- Inclua todos os arquivos `compose/apps/<app>/base.yml` antes dos overrides por instância.
+- Combine o override `compose/apps/<app>/<instância>.yml` correspondente logo após o `base.yml` da aplicação.
 - Sincronize a combinação de arquivos com as variáveis de ambiente (`env/local/<instância>.env`).
 - Revalide as combinações com [`scripts/validate_compose.sh`](./OPERATIONS.md#scriptsvalidate_composesh) ao alterar qualquer arquivo em `compose/`.

@@ -20,6 +20,13 @@ def run_deploy(
     )
 
 
+def _extract_compose_files(stdout: str) -> list[str]:
+    for line in stdout.splitlines():
+        if line.startswith("[*] COMPOSE_FILES="):
+            return line.split("=", 1)[1].split()
+    raise AssertionError(f"COMPOSE_FILES not found in output: {stdout!r}")
+
+
 def test_unknown_instance_shows_available_options(repo_copy: Path) -> None:
     before_dirs = {
         path.relative_to(repo_copy)
@@ -30,7 +37,7 @@ def test_unknown_instance_shows_available_options(repo_copy: Path) -> None:
     result = run_deploy(repo_copy, "unknown")
 
     assert result.returncode == 1
-    assert "compose/unknown.yml" in result.stderr
+    assert "Instância 'unknown' inválida." in result.stderr
     assert "Disponíveis:" in result.stderr
 
     after_dirs = {
@@ -71,10 +78,14 @@ def test_dry_run_includes_extra_files_from_env_file(repo_copy: Path) -> None:
     result = run_deploy(repo_copy, "core", "--dry-run")
 
     assert result.returncode == 0, result.stderr
-    assert (
-        "COMPOSE_FILES=compose/base.yml compose/core.yml compose/overlays/metrics.yml "
-        "compose/overlays/logging.yml"
-    ) in result.stdout
+    compose_files = _extract_compose_files(result.stdout)
+    assert compose_files == [
+        "compose/base.yml",
+        "compose/apps/app/base.yml",
+        "compose/apps/app/core.yml",
+        "compose/overlays/metrics.yml",
+        "compose/overlays/logging.yml",
+    ]
 
 
 def test_dry_run_skip_health_outputs_skip_message(repo_copy: Path) -> None:
@@ -107,9 +118,13 @@ def test_env_override_takes_precedence_for_extra_files(repo_copy: Path) -> None:
     )
 
     assert result.returncode == 0, result.stderr
-    assert (
-        "COMPOSE_FILES=compose/base.yml compose/core.yml compose/overlays/custom.yml"
-    ) in result.stdout
+    compose_files = _extract_compose_files(result.stdout)
+    assert compose_files == [
+        "compose/base.yml",
+        "compose/apps/app/base.yml",
+        "compose/apps/app/core.yml",
+        "compose/overlays/custom.yml",
+    ]
 
 
 def test_missing_local_env_file_fails(repo_copy: Path) -> None:

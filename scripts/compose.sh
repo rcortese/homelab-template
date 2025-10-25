@@ -9,7 +9,8 @@ Wrapper para montar comandos docker compose reutilizando convenções do reposit
 
 Argumentos posicionais:
   instancia        Nome da instância (ex.: core). Quando informado, carrega compose/base.yml
-                   + compose/<instancia>.yml e busca env/local/<instancia>.env.
+                   + manifests da aplicação (ex.: compose/apps/app/base.yml e
+                   compose/apps/app/<instancia>.yml) e busca env/local/<instancia>.env.
 
 Flags:
   -h, --help       Exibe esta ajuda e sai.
@@ -27,6 +28,9 @@ Exemplos:
   scripts/compose.sh core -- down app
 USAGE
 }
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 INSTANCE_NAME=""
 COMPOSE_ARGS=()
@@ -71,7 +75,26 @@ if [[ -n "${COMPOSE_FILES:-}" ]]; then
   # shellcheck disable=SC2206
   COMPOSE_FILES_LIST=(${COMPOSE_FILES})
 elif [[ -n "$INSTANCE_NAME" ]]; then
-  COMPOSE_FILES_LIST=("compose/base.yml" "compose/${INSTANCE_NAME}.yml")
+  if ! compose_metadata="$("$SCRIPT_DIR/lib/compose_instances.sh" "$REPO_ROOT")"; then
+    echo "Error: não foi possível carregar metadados das instâncias." >&2
+    exit 1
+  fi
+
+  eval "$compose_metadata"
+
+  if [[ -z "${COMPOSE_INSTANCE_FILES[$INSTANCE_NAME]:-}" ]]; then
+    echo "Error: instância desconhecida '$INSTANCE_NAME'." >&2
+    echo "Disponíveis: ${COMPOSE_INSTANCE_NAMES[*]}" >&2
+    exit 1
+  fi
+
+  mapfile -t instance_compose_files < <(printf '%s\n' "${COMPOSE_INSTANCE_FILES[$INSTANCE_NAME]}")
+  COMPOSE_FILES_LIST=("$BASE_COMPOSE_FILE")
+
+  for compose_file in "${instance_compose_files[@]}"; do
+    [[ -z "$compose_file" ]] && continue
+    COMPOSE_FILES_LIST+=("$compose_file")
+  done
 fi
 
 if [[ -z "${COMPOSE_ENV_FILE:-}" && -n "$INSTANCE_NAME" ]]; then

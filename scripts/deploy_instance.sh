@@ -142,10 +142,13 @@ if [[ -z "$INSTANCE" ]]; then
 fi
 
 if [[ -z "${COMPOSE_INSTANCE_FILES[$INSTANCE]:-}" ]]; then
-  candidate_rel="compose/${INSTANCE}.yml"
-  candidate_abs="$REPO_ROOT/$candidate_rel"
-  if [[ ! -f "$candidate_abs" ]]; then
-    echo "[!] Arquivo esperado ${candidate_rel} não encontrado para instância '$INSTANCE'." >&2
+  candidate_files=()
+  shopt -s nullglob
+  candidate_files=($REPO_ROOT/compose/apps/*/${INSTANCE}.yml)
+  shopt -u nullglob
+
+  if [[ ${#candidate_files[@]} -gt 0 ]]; then
+    echo "[!] Metadados ausentes para instância '$INSTANCE'." >&2
   else
     echo "[!] Instância '$INSTANCE' inválida." >&2
   fi
@@ -198,7 +201,13 @@ if [[ -n "${COMPOSE_EXTRA_FILES:-}" ]]; then
   IFS=$' \t\n' read -r -a extra_compose_files <<<"${COMPOSE_EXTRA_FILES//,/ }"
 fi
 
-COMPOSE_FILES_LIST=("$BASE_COMPOSE_FILE" "${COMPOSE_INSTANCE_FILES[$INSTANCE]}")
+mapfile -t INSTANCE_COMPOSE_FILES < <(printf '%s\n' "${COMPOSE_INSTANCE_FILES[$INSTANCE]}")
+COMPOSE_FILES_LIST=("$BASE_COMPOSE_FILE")
+
+for compose_file in "${INSTANCE_COMPOSE_FILES[@]}"; do
+  [[ -z "$compose_file" ]] && continue
+  COMPOSE_FILES_LIST+=("$compose_file")
+done
 
 if [[ ${#extra_compose_files[@]} -gt 0 ]]; then
   COMPOSE_FILES_LIST+=("${extra_compose_files[@]}")

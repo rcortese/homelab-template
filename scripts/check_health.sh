@@ -2,8 +2,9 @@
 # Usage: scripts/check_health.sh [instancia]
 #
 # Arguments:
-#   instancia (opcional): nome do arquivo compose/<instancia>.yml usado para montar os comandos.
-#                         Quando informado, o script procura também env/local/<instancia>.env.
+#   instancia (opcional): identificador usado nos manifests compose/apps/<app>/<instancia>.yml
+#                         carregados a partir de compose/base.yml. Quando informado, o script
+#                         procura também env/local/<instancia>.env.
 # Environment:
 #   COMPOSE_FILES        Lista de manifests Compose adicionais a serem aplicados (separados por espaço).
 #   COMPOSE_ENV_FILE     Caminho alternativo para o arquivo de variáveis do docker compose.
