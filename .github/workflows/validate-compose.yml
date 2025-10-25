@@ -3,8 +3,22 @@ name: Validate Docker Compose
 on:
   push:
     branches: [ main ]
+    paths:
+      - '.github/**'
+      - 'compose/**'
+      - 'env/**'
+      - 'scripts/**'
+      - 'tests/**'
+      - 'requirements-dev.txt'
   pull_request:
     branches: [ main ]
+    paths:
+      - '.github/**'
+      - 'compose/**'
+      - 'env/**'
+      - 'scripts/**'
+      - 'tests/**'
+      - 'requirements-dev.txt'
   workflow_dispatch:
 
 permissions:
