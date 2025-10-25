@@ -1,6 +1,7 @@
 # Compose base compartilhado. Combine com overrides de instância (ex.: core/media).
 # Define os defaults comuns para cada serviço "app"; os arquivos das aplicações
-# apenas extendem/ajustam o que for necessário.
+# apenas extendem/ajustam o que for necessário. O volume persistente aponta para
+# `data/<app>-<instancia>`, resolvido automaticamente pelos scripts de deploy.
 
 services:
   app:
@@ -10,6 +11,6 @@ services:
       APP_SECRET: ${APP_SECRET}
       APP_RETENTION_HOURS: ${APP_RETENTION_HOURS:-168}
     volumes:
-      - ../${APP_DATA_DIR:-data}:/var/lib/app
+      - ../${APP_DATA_DIR}:/var/lib/app
       - ../backups:/var/backups
     restart: unless-stopped

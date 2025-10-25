@@ -59,7 +59,7 @@ Este documento apresenta um ponto de partida para descrever processos operaciona
 
 ## Personalizações sugeridas
 
-- **Diretórios persistentes:** ajuste `APP_DATA_DIR`, `APP_DATA_UID` e `APP_DATA_GID` no `.env` correspondente para alinhar permissões e caminhos ao seu ambiente.
+- **Diretórios persistentes:** o caminho `data/<app>-<instância>` é calculado automaticamente; ajuste `APP_DATA_UID` e `APP_DATA_GID` no `.env` correspondente para alinhar permissões ao seu ambiente.
 - **Serviços monitorados:** defina `HEALTH_SERVICES` ou `SERVICE_NAME` nos arquivos `.env` para que `scripts/check_health.sh` use os alvos corretos de log.
 - **Volumes extras:** utilize overrides específicos (`compose/apps/<app>/<instância>.yml`) para montar diretórios adicionais ou expor portas distintas por ambiente.
 - **Overlays por configuração:** registre overlays opcionais em `compose/overlays/*.yml` e habilite-os por ambiente via `COMPOSE_EXTRA_FILES`. Isso mantém diffs de templates restritos a arquivos de configuração, sem editar scripts.

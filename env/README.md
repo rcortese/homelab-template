@@ -25,10 +25,11 @@ Monte uma tabela semelhante à abaixo para cada arquivo `env/<alvo>.example.env`
 | `APP_RETENTION_HOURS` | Opcional | Controla a retenção de registros/processos. | `compose/base.yml` e runbooks. |
 | `APP_PUBLIC_URL` | Opcional | Define URL pública para links e cookies. | `compose/apps/<app>/<instância>.yml` (ex.: `compose/apps/app/core.yml`). |
 | `SERVICE_NAME` | Opcional | Personaliza o nome do container ou alvo de logs. | `compose/apps/<app>/<instância>.yml`, `scripts/check_health.sh`. |
-| `APP_DATA_DIR` | Opcional | Escolhe o diretório persistente utilizado nos volumes. | `compose/base.yml`, `scripts/deploy_instance.sh`. |
 | `COMPOSE_EXTRA_FILES` | Opcional | Lista overlays adicionais aplicados após o override da instância (separados por espaço ou vírgula). | `scripts/deploy_instance.sh`, `scripts/validate_compose.sh`, `scripts/lib/compose_defaults.sh`. |
 
 > Substitua a tabela pelos campos reais da sua stack. Utilize a coluna **Referência** para apontar onde a variável é consumida (manifests, scripts, infraestrutura externa, etc.).
+
+> **Nota:** o diretório persistente principal segue a convenção `data/<app>-<instância>`, definida automaticamente pelos scripts do template. Ajuste apenas `APP_DATA_UID` e `APP_DATA_GID` para alinhar permissões.
 
 ## Boas práticas
 

@@ -183,11 +183,11 @@ def test_deploy_without_privileges_skips_chown(repo_copy: Path) -> None:
         in result.stdout
     )
 
-    for directory in (repo_copy / "data", repo_copy / "backups"):
+    for directory in (repo_copy / "data" / "app-core", repo_copy / "backups"):
         assert directory.exists()
 
 
-def test_deploy_creates_custom_data_dir(repo_copy: Path) -> None:
+def test_deploy_uses_convention_for_data_dir(repo_copy: Path) -> None:
     env_file = repo_copy / "env" / "local" / "core.env"
     env_file.write_text(
         "TZ=UTC\n"
@@ -231,5 +231,7 @@ def test_deploy_creates_custom_data_dir(repo_copy: Path) -> None:
     )
 
     assert result.returncode == 0, result.stderr
-    assert (repo_copy / "custom-storage").exists()
+    data_dir = repo_copy / "data" / "app-core"
+    assert data_dir.exists()
+    assert not (repo_copy / "custom-storage").exists()
     assert (repo_copy / "backups").exists()
