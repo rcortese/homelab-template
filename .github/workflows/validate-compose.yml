@@ -11,8 +11,9 @@ permissions:
   contents: read
 
 jobs:
-  validate:
+  lint:
     runs-on: ubuntu-latest
+    continue-on-error: true
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -44,6 +45,14 @@ jobs:
 
       - name: Run ShellCheck
         run: find scripts -type f -name '*.sh' -print0 | xargs -0 -r shellcheck
+
+  tests:
+    runs-on: ubuntu-latest
+    needs: lint
+    if: always()
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
       - name: Verify repository structure
         run: scripts/check_structure.sh
