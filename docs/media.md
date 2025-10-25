@@ -11,12 +11,13 @@
 ## Checklist de deploy
 
 1. Atualize `env/local/<ambiente>.env` com valores específicos (paths, quotas, flags experimentais).
-2. Valide as combinações de Compose correspondentes (`compose/base.yml`, `compose/apps/<app>/<ambiente>.yml`, etc.).
-3. Execute o deploy guiado ou comandos equivalentes:
+2. Revise a seção [Stacks com múltiplas aplicações](./COMPOSE_GUIDE.md#stacks-com-múltiplas-aplicações) para determinar quais aplicações serão ativadas nesta instância.
+3. Valide as combinações de Compose correspondentes (`compose/base.yml`, `compose/apps/<app>/<ambiente>.yml`, etc.).
+4. Execute o deploy guiado ou comandos equivalentes:
    ```bash
    scripts/deploy_instance.sh <ambiente>
    ```
-4. Documente quaisquer passos adicionais (migrações, carregamento de dados de teste, ativação de feature flags).
+5. Documente quaisquer passos adicionais (migrações, carregamento de dados de teste, ativação de feature flags).
 
 ## Checklist de recuperação
 
@@ -34,6 +35,7 @@
 ## Referências
 
 - `compose/base.yml` + `compose/apps/<app>/<ambiente>.yml`
+- [Guia de combinações do Docker Compose](./COMPOSE_GUIDE.md#stacks-com-múltiplas-aplicações) para planejar a ativação/desativação de aplicações auxiliares.
 - `env/<ambiente>.example.env`
 - Scripts adicionais necessários (ex.: seeds de dados, conversores)
 - ADRs que justificam a existência deste ambiente

@@ -12,6 +12,7 @@
 
 1. **Preparação**
    - Atualize `env/local/<ambiente>.env` com as variáveis mais recentes.
+   - Revise a seção [Stacks com múltiplas aplicações](./COMPOSE_GUIDE.md#stacks-com-múltiplas-aplicações) para decidir quais manifests ativar ou desativar para esta instância.
    - Valide manifests com `scripts/validate_compose.sh` (ou comando equivalente).
 2. **Execução**
    - Rode o fluxo guiado:
@@ -41,6 +42,7 @@
 ## Referências
 
 - `compose/base.yml` + `compose/apps/<app>/<ambiente>.yml`
+- [Guia de combinações do Docker Compose](./COMPOSE_GUIDE.md#stacks-com-múltiplas-aplicações) para orientar a ativação/desativação de aplicações.
 - `env/<ambiente>.example.env`
 - ADRs relacionados à criação/manutenção deste ambiente
 - Scripts personalizados e dashboards principais

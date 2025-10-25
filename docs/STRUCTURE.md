@@ -8,9 +8,9 @@ Este guia descreve a estrutura mínima esperada para qualquer repositório que h
 
 | Caminho | Descrição | Itens esperados |
 | --- | --- | --- |
-| `compose/` | Manifests Docker Compose base e variações por ambiente ou função. | `base.yml`, sobreposições nomeadas (`<alvo>.yml`). |
+| `compose/` | Manifests Docker Compose base e variações por ambiente ou função. | `base.yml`, sobreposições nomeadas (`<alvo>.yml`) e diretórios em `compose/apps/`. |
 | `docs/` | Documentação local, runbooks, guias operacionais e ADRs. | `README.md`, `STRUCTURE.md`, `OPERATIONS.md`, subpastas temáticas e [`local/`](./local/README.md). |
-| `env/` | Modelos de variáveis, arquivos de exemplo e orientações de preenchimento. | `*.example.env`, `README.md`, `local/` ignorado no Git. |
+| `env/` | Modelos de variáveis, arquivos de exemplo e orientações de preenchimento. | `*.example.env`, `README.md`, `local/` ignorado no Git. Expanda com variáveis necessárias para todas as aplicações ativadas. |
 | `scripts/` | Automação reutilizável (deploy, validação, backups, health-check). | Scripts shell (ou equivalentes) referenciados pela documentação. |
 
 ## Arquivos de referência
@@ -22,6 +22,18 @@ Este guia descreve a estrutura mínima esperada para qualquer repositório que h
 | `docs/OPERATIONS.md` | Documenta como executar scripts e fluxos operacionais do projeto.
 | `docs/ADR/` | Reúne decisões arquiteturais. Cada arquivo deve seguir a convenção `AAAA-sequência-titulo.md`.
 | `.github/workflows/` | Pipelines de validação opcionais. Ajuste para refletir verificações e linters do projeto.
+
+## Componentes por aplicação
+
+Cada aplicação adicional precisa seguir o padrão abaixo para manter a compatibilidade com os scripts e runbooks do template:
+
+| Caminho | Obrigatório? | Descrição |
+| --- | --- | --- |
+| `compose/apps/<app>/` | Sim | Diretório próprio com manifests da aplicação. |
+| `compose/apps/<app>/base.yml` | Sim | Serviços base reutilizáveis por todas as instâncias. |
+| `compose/apps/<app>/<instância>.yml` | Um por instância | Override com nomes de serviços, portas e variáveis específicas. |
+| `docs/apps/<app>.md` | Recomendado | Documento de apoio descrevendo responsabilidades e requisitos da aplicação. |
+| `env/<instância>.example.env` | Um por instância | Deve incluir todas as variáveis consumidas pelos manifests das aplicações habilitadas para a instância. |
 
 ## Validações sugeridas
 
