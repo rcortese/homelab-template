@@ -12,8 +12,8 @@
 set -euo pipefail
 
 case "${1:-}" in
-  -h | --help)
-    cat <<'EOF'
+-h | --help)
+  cat <<'EOF'
 Uso: scripts/validate_compose.sh
 
 Valida as instâncias definidas para o repositório garantindo que `docker compose config`
@@ -30,13 +30,13 @@ Exemplos:
   scripts/validate_compose.sh
   COMPOSE_INSTANCES="media" scripts/validate_compose.sh
 EOF
-    exit 0
-    ;;
-  "") ;; # continuar execução normal
-  *)
-    echo "Argumento não reconhecido: $1" >&2
-    exit 1
-    ;;
+  exit 0
+  ;;
+"") ;; # continuar execução normal
+*)
+  echo "Argumento não reconhecido: $1" >&2
+  exit 1
+  ;;
 esac
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

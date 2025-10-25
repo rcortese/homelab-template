@@ -59,37 +59,37 @@ dry_run=false
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    -h | --help)
-      usage
-      exit 0
-      ;;
-    --dry-run)
-      dry_run=true
-      shift
-      ;;
-    --remote)
-      [[ $# -lt 2 ]] && error "--remote requer um argumento."
-      template_remote="$2"
-      shift 2
-      ;;
-    --original-commit)
-      [[ $# -lt 2 ]] && error "--original-commit requer um argumento."
-      original_commit="$2"
-      shift 2
-      ;;
-    --first-local-commit)
-      [[ $# -lt 2 ]] && error "--first-local-commit requer um argumento."
-      first_local_commit="$2"
-      shift 2
-      ;;
-    --target-branch)
-      [[ $# -lt 2 ]] && error "--target-branch requer um argumento."
-      target_branch="$2"
-      shift 2
-      ;;
-    *)
-      error "argumento desconhecido: $1"
-      ;;
+  -h | --help)
+    usage
+    exit 0
+    ;;
+  --dry-run)
+    dry_run=true
+    shift
+    ;;
+  --remote)
+    [[ $# -lt 2 ]] && error "--remote requer um argumento."
+    template_remote="$2"
+    shift 2
+    ;;
+  --original-commit)
+    [[ $# -lt 2 ]] && error "--original-commit requer um argumento."
+    original_commit="$2"
+    shift 2
+    ;;
+  --first-local-commit)
+    [[ $# -lt 2 ]] && error "--first-local-commit requer um argumento."
+    first_local_commit="$2"
+    shift 2
+    ;;
+  --target-branch)
+    [[ $# -lt 2 ]] && error "--target-branch requer um argumento."
+    target_branch="$2"
+    shift 2
+    ;;
+  *)
+    error "argumento desconhecido: $1"
+    ;;
   esac
 done
 

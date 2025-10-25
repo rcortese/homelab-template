@@ -42,30 +42,30 @@ fi
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    -h | --help)
-      print_help
-      exit 0
-      ;;
-    --)
-      shift
-      while [[ $# -gt 0 ]]; do
-        COMPOSE_ARGS+=("$1")
-        shift
-      done
-      break
-      ;;
-    -*)
+  -h | --help)
+    print_help
+    exit 0
+    ;;
+  --)
+    shift
+    while [[ $# -gt 0 ]]; do
       COMPOSE_ARGS+=("$1")
       shift
-      ;;
-    *)
-      if [[ -z "$INSTANCE_NAME" ]]; then
-        INSTANCE_NAME="$1"
-      else
-        COMPOSE_ARGS+=("$1")
-      fi
-      shift
-      ;;
+    done
+    break
+    ;;
+  -*)
+    COMPOSE_ARGS+=("$1")
+    shift
+    ;;
+  *)
+    if [[ -z "$INSTANCE_NAME" ]]; then
+      INSTANCE_NAME="$1"
+    else
+      COMPOSE_ARGS+=("$1")
+    fi
+    shift
+    ;;
   esac
 done
 
