@@ -34,6 +34,16 @@ def run_check_health(
     )
 
 
+def _expected_compose_call(env_file: str | None, files: list[str], *args: str) -> list[str]:
+    cmd = ["compose"]
+    if env_file:
+        cmd.extend(["--env-file", env_file])
+    for path in files:
+        cmd.extend(["-f", path])
+    cmd.extend(args)
+    return cmd
+
+
 def test_invokes_ps_and_logs_with_custom_files(docker_stub: DockerStub) -> None:
     env = {
         "COMPOSE_FILES": "compose/base.yml compose/extra.yml",
@@ -46,39 +56,9 @@ def test_invokes_ps_and_logs_with_custom_files(docker_stub: DockerStub) -> None:
 
     calls = docker_stub.read_calls()
     assert calls == [
-        [
-            "compose",
-            "--env-file",
-            "env/custom.env",
-            "-f",
-            "compose/base.yml",
-            "-f",
-            "compose/extra.yml",
-            "config",
-            "--services",
-        ],
-        [
-            "compose",
-            "--env-file",
-            "env/custom.env",
-            "-f",
-            "compose/base.yml",
-            "-f",
-            "compose/extra.yml",
-            "ps",
-        ],
-        [
-            "compose",
-            "--env-file",
-            "env/custom.env",
-            "-f",
-            "compose/base.yml",
-            "-f",
-            "compose/extra.yml",
-            "logs",
-            "--tail=50",
-            "app",
-        ],
+        _expected_compose_call("env/custom.env", ["compose/base.yml", "compose/extra.yml"], "config", "--services"),
+        _expected_compose_call("env/custom.env", ["compose/base.yml", "compose/extra.yml"], "ps"),
+        _expected_compose_call("env/custom.env", ["compose/base.yml", "compose/extra.yml"], "logs", "--tail=50", "app"),
     ]
 
 
@@ -171,38 +151,13 @@ def test_infers_compose_files_and_env_from_instance(
 
     calls = docker_stub.read_calls()
     env_file = str(repo_copy / "env" / "local" / "core.env")
+    expected_files = [
+        "compose/base.yml",
+        "compose/apps/app/base.yml",
+        "compose/apps/app/core.yml",
+    ]
     assert calls == [
-        [
-            "compose",
-            "--env-file",
-            env_file,
-            "-f",
-            "compose/base.yml",
-            "-f",
-            "compose/core.yml",
-            "config",
-            "--services",
-        ],
-        [
-            "compose",
-            "--env-file",
-            env_file,
-            "-f",
-            "compose/base.yml",
-            "-f",
-            "compose/core.yml",
-            "ps",
-        ],
-        [
-            "compose",
-            "--env-file",
-            env_file,
-            "-f",
-            "compose/base.yml",
-            "-f",
-            "compose/core.yml",
-            "logs",
-            "--tail=50",
-            "app-core",
-        ],
+        _expected_compose_call(env_file, expected_files, "config", "--services"),
+        _expected_compose_call(env_file, expected_files, "ps"),
+        _expected_compose_call(env_file, expected_files, "logs", "--tail=50", "app-core"),
     ]

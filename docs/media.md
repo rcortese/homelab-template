@@ -11,7 +11,7 @@
 ## Checklist de deploy
 
 1. Atualize `env/local/<ambiente>.env` com valores específicos (paths, quotas, flags experimentais).
-2. Valide as combinações de Compose correspondentes (`compose/base.yml`, `compose/<ambiente>.yml`, etc.).
+2. Valide as combinações de Compose correspondentes (`compose/base.yml`, `compose/apps/<app>/<ambiente>.yml`, etc.).
 3. Execute o deploy guiado ou comandos equivalentes:
    ```bash
    scripts/deploy_instance.sh <ambiente>
@@ -33,7 +33,7 @@
 
 ## Referências
 
-- `compose/<ambiente>.yml`
+- `compose/base.yml` + `compose/apps/<app>/<ambiente>.yml`
 - `env/<ambiente>.example.env`
 - Scripts adicionais necessários (ex.: seeds de dados, conversores)
 - ADRs que justificam a existência deste ambiente

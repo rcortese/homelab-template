@@ -40,7 +40,7 @@
 
 ## Referências
 
-- `compose/<ambiente>.yml`
+- `compose/base.yml` + `compose/apps/<app>/<ambiente>.yml`
 - `env/<ambiente>.example.env`
 - ADRs relacionados à criação/manutenção deste ambiente
 - Scripts personalizados e dashboards principais

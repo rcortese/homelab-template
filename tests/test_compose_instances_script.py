@@ -33,7 +33,21 @@ def parse_indexed_values(line: str) -> list[str]:
 
 
 def parse_mapping(line: str) -> dict[str, str]:
-    return {key: value for key, value in re.findall(r"\[([^\]]+)\]=\"([^\"]*)\"", line)}
+    pattern = re.compile(r"\[([^\]]+)\]=(\$'[^']*'|\"[^\"]*\"|'[^']*')")
+    mapping: dict[str, str] = {}
+
+    for key, raw_value in pattern.findall(line):
+        value = raw_value
+        if value.startswith("$'"):
+            inner = value[2:-1]
+            value = bytes(inner, "utf-8").decode("unicode_escape")
+        elif value.startswith("'") and value.endswith("'"):
+            value = value[1:-1]
+        elif value.startswith('"') and value.endswith('"'):
+            value = value[1:-1]
+        mapping[key] = value
+
+    return mapping
 
 
 def test_compose_instances_outputs_expected_metadata(repo_copy: Path) -> None:
@@ -50,9 +64,10 @@ def test_compose_instances_outputs_expected_metadata(repo_copy: Path) -> None:
     assert parse_indexed_values(names_line) == ["core", "media"]
 
     files_line = find_declare_line(result.stdout, "COMPOSE_INSTANCE_FILES")
-    assert parse_mapping(files_line) == {
-        "core": "compose/core.yml",
-        "media": "compose/media.yml",
+    files_map = parse_mapping(files_line)
+    assert files_map == {
+        "core": "compose/apps/app/base.yml\ncompose/apps/app/core.yml",
+        "media": "compose/apps/app/base.yml\ncompose/apps/app/media.yml",
     }
 
     env_files_line = find_declare_line(result.stdout, "COMPOSE_INSTANCE_ENV_FILES")

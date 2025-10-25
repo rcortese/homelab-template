@@ -129,13 +129,23 @@ for instance in "${instances_to_validate[@]}"; do
   fi
   seen[$instance]=1
 
-  instance_file_rel="${COMPOSE_INSTANCE_FILES[$instance]:-}"
-  if [[ -z "$instance_file_rel" ]]; then
-    candidate_abs="$REPO_ROOT/compose/${instance}.yml"
+  instance_files_raw="${COMPOSE_INSTANCE_FILES[$instance]:-}"
+  if [[ -z "$instance_files_raw" ]]; then
+    potential_matches=()
+    shopt -s nullglob
+    potential_matches=($REPO_ROOT/compose/apps/*/${instance}.yml)
+    shopt -u nullglob
+
+    if [[ ${#potential_matches[@]} -gt 0 ]]; then
+      echo "✖ instância=\"$instance\" (combinação de arquivos ausente nos metadados)" >&2
+      status=1
+      continue
+    fi
+
     local_candidate="$REPO_ROOT/env/local/${instance}.env"
     template_candidate="$REPO_ROOT/env/${instance}.example.env"
     if [[ -f "$local_candidate" || -f "$template_candidate" ]]; then
-      echo "✖ instância=\"$instance\" (arquivo ausente: $candidate_abs)" >&2
+      echo "✖ instância=\"$instance\" (arquivo ausente: compose/apps/*/${instance}.yml)" >&2
       status=1
       continue
     fi
@@ -144,7 +154,7 @@ for instance in "${instances_to_validate[@]}"; do
     exit 1
   fi
 
-  instance_file="$REPO_ROOT/$instance_file_rel"
+  mapfile -t instance_file_list < <(printf '%s\n' "$instance_files_raw")
   env_file_rel="${COMPOSE_INSTANCE_ENV_FILES[$instance]:-}"
   env_file=""
 
@@ -152,7 +162,7 @@ for instance in "${instances_to_validate[@]}"; do
     env_file="$REPO_ROOT/$env_file_rel"
   fi
 
-  files=("$base_file" "$instance_file")
+  files=("$base_file")
   args=()
   missing=0
 
@@ -174,19 +184,25 @@ for instance in "${instances_to_validate[@]}"; do
     done < <(parse_compose_file_list "$extra_files_source")
   fi
 
+  for rel in "${instance_file_list[@]}"; do
+    [[ -z "$rel" ]] && continue
+    files+=("$(resolve_compose_file "$rel")")
+  done
+
   if [[ ${#extra_files[@]} -gt 0 ]]; then
     for extra in "${extra_files[@]}"; do
       files+=("$(resolve_compose_file "$extra")")
     done
   fi
+
   for file in "${files[@]}"; do
     if [[ ! -f "$file" ]]; then
       echo "✖ instância=\"$instance\" (arquivo ausente: $file)" >&2
       missing=1
       status=1
-    else
-      args+=("-f" "$file")
+      continue
     fi
+    args+=("-f" "$file")
   done
 
   ((missing == 1)) && continue

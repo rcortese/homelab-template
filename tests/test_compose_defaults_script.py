@@ -33,12 +33,25 @@ def _extract_compose_cmd(stdout: str) -> list[str]:
     return re.findall(r'"([^"]+)"', line_match.group(1))
 
 
+def _extract_file_args(compose_cmd: list[str]) -> list[str]:
+    return [
+        compose_cmd[index + 1]
+        for index, token in enumerate(compose_cmd)
+        if token == "-f"
+    ]
+
+
 def test_defaults_for_core_instance(repo_copy: Path) -> None:
     script_path = repo_copy / SCRIPT_RELATIVE
     stdout = _run_script(script_path, "core", str(repo_copy), env=os.environ.copy())
 
     compose_files = _extract_value(r'COMPOSE_FILES="([^"]+)"', stdout)
-    assert compose_files == "compose/base.yml compose/core.yml"
+    expected_files = [
+        "compose/base.yml",
+        "compose/apps/app/base.yml",
+        "compose/apps/app/core.yml",
+    ]
+    assert compose_files == " ".join(expected_files)
 
     env_file = _extract_value(r'COMPOSE_ENV_FILE="([^"]*)"', stdout)
     expected_env_file = repo_copy / "env" / "local" / "core.env"
@@ -48,9 +61,7 @@ def test_defaults_for_core_instance(repo_copy: Path) -> None:
     assert compose_cmd[:2] == ["docker", "compose"]
     assert "--env-file" in compose_cmd
     assert str(expected_env_file) in compose_cmd
-    assert compose_cmd.count("-f") == 2
-    assert "compose/base.yml" in compose_cmd
-    assert "compose/core.yml" in compose_cmd
+    assert _extract_file_args(compose_cmd) == expected_files
 
 
 def test_preserves_existing_environment(repo_copy: Path) -> None:
@@ -78,9 +89,7 @@ def test_preserves_existing_environment(repo_copy: Path) -> None:
     assert compose_cmd[:2] == ["docker", "compose"]
     assert compose_cmd.count("--env-file") == 1
     assert compose_cmd[compose_cmd.index("--env-file") + 1] == str(custom_env_file)
-    assert compose_cmd.count("-f") == 2
-    assert compose_cmd[compose_cmd.index("-f") + 1] == "compose/base.yml"
-    assert compose_cmd[compose_cmd.index("-f", compose_cmd.index("-f") + 1) + 1] == "compose/custom.yml"
+    assert _extract_file_args(compose_cmd) == ["compose/base.yml", "compose/custom.yml"]
 
 
 def test_appends_extra_files_when_defined(repo_copy: Path) -> None:
@@ -88,7 +97,7 @@ def test_appends_extra_files_when_defined(repo_copy: Path) -> None:
     env = os.environ.copy()
     env.update(
         {
-            "COMPOSE_FILES": "compose/base.yml compose/core.yml",
+            "COMPOSE_FILES": "compose/base.yml compose/apps/app/base.yml compose/apps/app/core.yml",
             "COMPOSE_EXTRA_FILES": "compose/overlays/metrics.yml compose/overlays/logging.yml",
         }
     )
@@ -96,23 +105,17 @@ def test_appends_extra_files_when_defined(repo_copy: Path) -> None:
     stdout = _run_script(script_path, "core", str(repo_copy), env=env)
 
     compose_files = _extract_value(r'COMPOSE_FILES="([^"]+)"', stdout)
-    assert (
-        compose_files
-        == "compose/base.yml compose/core.yml compose/overlays/metrics.yml compose/overlays/logging.yml"
-    )
-
-    compose_cmd = _extract_compose_cmd(stdout)
-    file_args = [
-        compose_cmd[index + 1]
-        for index, token in enumerate(compose_cmd)
-        if token == "-f"
-    ]
-    assert file_args == [
+    expected_files = [
         "compose/base.yml",
-        "compose/core.yml",
+        "compose/apps/app/base.yml",
+        "compose/apps/app/core.yml",
         "compose/overlays/metrics.yml",
         "compose/overlays/logging.yml",
     ]
+    assert compose_files == " ".join(expected_files)
+
+    compose_cmd = _extract_compose_cmd(stdout)
+    assert _extract_file_args(compose_cmd) == expected_files
 
 
 def test_respects_docker_compose_bin_override(repo_copy: Path) -> None:

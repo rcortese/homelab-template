@@ -1,4 +1,3 @@
-# Overrides específicos para a instância "media" (plano de dados em host interno).
 services:
   app:
     container_name: ${SERVICE_NAME:-app-media}

@@ -18,8 +18,9 @@ if TYPE_CHECKING:
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SCRIPT_PATH = REPO_ROOT / "scripts" / "validate_compose.sh"
 BASE_COMPOSE = REPO_ROOT / "compose" / "base.yml"
-CORE_COMPOSE = REPO_ROOT / "compose" / "core.yml"
-MEDIA_COMPOSE = REPO_ROOT / "compose" / "media.yml"
+APP_BASE_COMPOSE = REPO_ROOT / "compose" / "apps" / "app" / "base.yml"
+CORE_COMPOSE = REPO_ROOT / "compose" / "apps" / "app" / "core.yml"
+MEDIA_COMPOSE = REPO_ROOT / "compose" / "apps" / "app" / "media.yml"
 CORE_ENV = REPO_ROOT / "env" / "core.example.env"
 MEDIA_ENV = REPO_ROOT / "env" / "media.example.env"
 CORE_ENV_LOCAL = REPO_ROOT / "env" / "local" / "core.env"
@@ -35,6 +36,14 @@ def run_validate_compose(env: dict[str, str], cwd: Path | None = None) -> subpro
         cwd=cwd or REPO_ROOT,
         env={**os.environ, **env},
     )
+
+
+def expected_compose_call(env_file: Path, files: list[Path], *args: str) -> list[str]:
+    cmd = ["compose", "--env-file", str(env_file)]
+    for file in files:
+        cmd.extend(["-f", str(file)])
+    cmd.extend(args)
+    return cmd
 
 
 @pytest.mark.parametrize("flag", ["-h", "--help"])
@@ -85,26 +94,16 @@ def test_accepts_mixed_separators_and_invokes_compose_for_each_instance(docker_s
     core_call, media_call = calls
     expected_core_env = CORE_ENV_LOCAL if CORE_ENV_LOCAL.exists() else CORE_ENV
     expected_media_env = MEDIA_ENV_LOCAL if MEDIA_ENV_LOCAL.exists() else MEDIA_ENV
-    assert core_call == [
-        "compose",
-        "--env-file",
-        str(expected_core_env),
-        "-f",
-        str(BASE_COMPOSE),
-        "-f",
-        str(CORE_COMPOSE),
+    assert core_call == expected_compose_call(
+        expected_core_env,
+        [BASE_COMPOSE, APP_BASE_COMPOSE, CORE_COMPOSE],
         "config",
-    ]
-    assert media_call == [
-        "compose",
-        "--env-file",
-        str(expected_media_env),
-        "-f",
-        str(BASE_COMPOSE),
-        "-f",
-        str(MEDIA_COMPOSE),
+    )
+    assert media_call == expected_compose_call(
+        expected_media_env,
+        [BASE_COMPOSE, APP_BASE_COMPOSE, MEDIA_COMPOSE],
         "config",
-    ]
+    )
 
 
 def test_unknown_instance_returns_error(docker_stub: DockerStub) -> None:
@@ -124,7 +123,8 @@ def test_reports_failure_when_compose_command_fails_with_docker_stub(
 
     assert result.returncode != 0
     assert "✖ instância=\"core\"" in result.stderr
-    assert f"files: {BASE_COMPOSE} {CORE_COMPOSE}" in result.stderr
+    assert str(BASE_COMPOSE) in result.stderr
+    assert str(CORE_COMPOSE) in result.stderr
 
     calls = docker_stub.read_calls()
     assert len(calls) == 1
@@ -146,16 +146,15 @@ def test_prefers_local_env_when_available(repo_copy: Path, docker_stub: DockerSt
     calls = docker_stub.read_calls()
     assert len(calls) == 1
     (call,) = calls
-    assert call == [
-        "compose",
-        "--env-file",
-        str(repo_copy / "env" / "local" / "core.env"),
-        "-f",
-        str(repo_copy / "compose" / "base.yml"),
-        "-f",
-        str(repo_copy / "compose" / "core.yml"),
+    assert call == expected_compose_call(
+        repo_copy / "env" / "local" / "core.env",
+        [
+            repo_copy / "compose" / "base.yml",
+            repo_copy / "compose" / "apps" / "app" / "base.yml",
+            repo_copy / "compose" / "apps" / "app" / "core.yml",
+        ],
         "config",
-    ]
+    )
 
 
 def test_includes_extra_files_from_env_file(repo_copy: Path, docker_stub: DockerStub) -> None:
@@ -190,20 +189,17 @@ def test_includes_extra_files_from_env_file(repo_copy: Path, docker_stub: Docker
     calls = docker_stub.read_calls()
     assert len(calls) == 1
     (call,) = calls
-    assert call == [
-        "compose",
-        "--env-file",
-        str(repo_copy / "env" / "local" / "core.env"),
-        "-f",
-        str(repo_copy / "compose" / "base.yml"),
-        "-f",
-        str(repo_copy / "compose" / "core.yml"),
-        "-f",
-        str(repo_copy / "compose" / "overlays" / "metrics.yml"),
-        "-f",
-        str(repo_copy / "compose" / "overlays" / "logging.yml"),
+    assert call == expected_compose_call(
+        repo_copy / "env" / "local" / "core.env",
+        [
+            repo_copy / "compose" / "base.yml",
+            repo_copy / "compose" / "apps" / "app" / "base.yml",
+            repo_copy / "compose" / "apps" / "app" / "core.yml",
+            repo_copy / "compose" / "overlays" / "metrics.yml",
+            repo_copy / "compose" / "overlays" / "logging.yml",
+        ],
         "config",
-    ]
+    )
 
 
 def test_env_override_for_extra_files(repo_copy: Path, docker_stub: DockerStub) -> None:
@@ -244,18 +240,16 @@ def test_env_override_for_extra_files(repo_copy: Path, docker_stub: DockerStub) 
     calls = docker_stub.read_calls()
     assert len(calls) == 1
     (call,) = calls
-    assert call == [
-        "compose",
-        "--env-file",
-        str(repo_copy / "env" / "local" / "core.env"),
-        "-f",
-        str(repo_copy / "compose" / "base.yml"),
-        "-f",
-        str(repo_copy / "compose" / "core.yml"),
-        "-f",
-        str(repo_copy / "compose" / "overlays" / "custom.yml"),
+    assert call == expected_compose_call(
+        repo_copy / "env" / "local" / "core.env",
+        [
+            repo_copy / "compose" / "base.yml",
+            repo_copy / "compose" / "apps" / "app" / "base.yml",
+            repo_copy / "compose" / "apps" / "app" / "core.yml",
+            repo_copy / "compose" / "overlays" / "custom.yml",
+        ],
         "config",
-    ]
+    )
 
 
 def test_missing_compose_file_in_temporary_copy(tmp_path: Path, docker_stub: DockerStub) -> None:
@@ -264,7 +258,7 @@ def test_missing_compose_file_in_temporary_copy(tmp_path: Path, docker_stub: Doc
     shutil.copytree(REPO_ROOT / "scripts", repo_copy / "scripts")
     shutil.copytree(REPO_ROOT / "env", repo_copy / "env")
 
-    missing_instance = repo_copy / "compose" / "media.yml"
+    missing_instance = repo_copy / "compose" / "apps" / "app" / "media.yml"
     missing_instance.unlink()
 
     result = subprocess.run(

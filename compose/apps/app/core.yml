@@ -1,4 +1,3 @@
-# Overrides específicos para a instância "core" (plano de controle exposto via túnel/proxy).
 services:
   app:
     container_name: ${SERVICE_NAME:-app-core}
