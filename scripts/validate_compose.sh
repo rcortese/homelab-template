@@ -12,7 +12,7 @@
 set -euo pipefail
 
 case "${1:-}" in
-  -h|--help)
+  -h | --help)
     cat <<'EOF'
 Uso: scripts/validate_compose.sh
 
@@ -32,8 +32,7 @@ Exemplos:
 EOF
     exit 0
     ;;
-  "")
-    ;; # continuar execução normal
+  "") ;; # continuar execução normal
   *)
     echo "Argumento não reconhecido: $1" >&2
     exit 1
@@ -42,6 +41,7 @@ esac
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+ENV_LOADER="$SCRIPT_DIR/lib/env_loader.sh"
 
 if ! compose_metadata="$("$SCRIPT_DIR/lib/compose_instances.sh" "$REPO_ROOT")"; then
   echo "Error: não foi possível carregar metadados das instâncias." >&2
@@ -53,7 +53,7 @@ eval "$compose_metadata"
 if [[ -n "${DOCKER_COMPOSE_BIN:-}" ]]; then
   # Allow overriding the docker compose binary (e.g., "docker-compose").
   # shellcheck disable=SC2206
-  compose_cmd=( ${DOCKER_COMPOSE_BIN} )
+  compose_cmd=(${DOCKER_COMPOSE_BIN})
 else
   compose_cmd=(docker compose)
 fi
@@ -72,6 +72,29 @@ trim() {
   value="${value#"${value%%[![:space:]]*}"}"
   value="${value%"${value##*[![:space:]]}"}"
   printf '%s' "$value"
+}
+
+parse_compose_file_list() {
+  local raw="$1"
+  local entry
+
+  raw="${raw//,/ }"
+
+  for entry in $raw; do
+    entry="$(trim "$entry")"
+    [[ -z "$entry" ]] && continue
+    printf '%s\n' "$entry"
+  done
+}
+
+resolve_compose_file() {
+  local candidate="$1"
+
+  if [[ "$candidate" == /* ]]; then
+    printf '%s\n' "$candidate"
+  else
+    printf '%s\n' "$REPO_ROOT/${candidate#./}"
+  fi
 }
 
 declare -a instances_to_validate
@@ -132,6 +155,30 @@ for instance in "${instances_to_validate[@]}"; do
   files=("$base_file" "$instance_file")
   args=()
   missing=0
+
+  extra_files_source=""
+  extra_files=()
+
+  if [[ -n "${COMPOSE_EXTRA_FILES+x}" ]]; then
+    extra_files_source="$COMPOSE_EXTRA_FILES"
+  elif [[ -n "$env_file_rel" && -f "$env_file" ]]; then
+    if extra_output="$("$ENV_LOADER" "$env_file" COMPOSE_EXTRA_FILES)" && [[ -n "$extra_output" ]]; then
+      extra_files_source="${extra_output#COMPOSE_EXTRA_FILES=}"
+    fi
+  fi
+
+  if [[ -n "$extra_files_source" ]]; then
+    while IFS= read -r entry; do
+      [[ -z "$entry" ]] && continue
+      extra_files+=("$entry")
+    done < <(parse_compose_file_list "$extra_files_source")
+  fi
+
+  if [[ ${#extra_files[@]} -gt 0 ]]; then
+    for extra in "${extra_files[@]}"; do
+      files+=("$(resolve_compose_file "$extra")")
+    done
+  fi
   for file in "${files[@]}"; do
     if [[ ! -f "$file" ]]; then
       echo "✖ instância=\"$instance\" (arquivo ausente: $file)" >&2
@@ -142,7 +189,7 @@ for instance in "${instances_to_validate[@]}"; do
     fi
   done
 
-  (( missing == 1 )) && continue
+  ((missing == 1)) && continue
 
   env_args=()
   if [[ -n "$env_file_rel" && -f "$env_file" ]]; then

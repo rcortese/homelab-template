@@ -55,9 +55,24 @@ setup_compose_defaults() {
     COMPOSE_CMD+=(--env-file "$COMPOSE_ENV_FILE")
   fi
 
+  local compose_files_entries=()
+  local extra_files_entries=()
+
   if [[ -n "${COMPOSE_FILES:-}" ]]; then
-    # shellcheck disable=SC2086
-    for file in ${COMPOSE_FILES}; do
+    IFS=$' \t\n' read -r -a compose_files_entries <<<"${COMPOSE_FILES}"
+  fi
+
+  if [[ -n "${COMPOSE_EXTRA_FILES:-}" ]]; then
+    IFS=$' \t\n' read -r -a extra_files_entries <<<"${COMPOSE_EXTRA_FILES//,/ }"
+  fi
+
+  if [[ ${#extra_files_entries[@]} -gt 0 ]]; then
+    compose_files_entries+=("${extra_files_entries[@]}")
+  fi
+
+  if [[ ${#compose_files_entries[@]} -gt 0 ]]; then
+    COMPOSE_FILES="${compose_files_entries[*]}"
+    for file in "${compose_files_entries[@]}"; do
       COMPOSE_CMD+=(-f "$file")
     done
   fi
@@ -78,4 +93,3 @@ main() {
 if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
   main "$@"
 fi
-

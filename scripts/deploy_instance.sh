@@ -64,7 +64,7 @@ load_env_pairs() {
     fi
     value="${line#*=}"
     export "$key=$value"
-  done <<< "$output"
+  done <<<"$output"
 
   return 0
 }
@@ -85,7 +85,7 @@ RUN_HEALTH=1
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    -h|--help)
+    -h | --help)
       print_help
       exit 0
       ;;
@@ -185,7 +185,24 @@ if [[ ! -f "$ENV_FILE_ABS" ]]; then
   exit 1
 fi
 
+if [[ -n "$ENV_FILE_ABS" ]]; then
+  load_env_pairs "$ENV_FILE_ABS" \
+    COMPOSE_EXTRA_FILES \
+    APP_DATA_DIR \
+    APP_DATA_UID \
+    APP_DATA_GID
+fi
+
+extra_compose_files=()
+if [[ -n "${COMPOSE_EXTRA_FILES:-}" ]]; then
+  IFS=$' \t\n' read -r -a extra_compose_files <<<"${COMPOSE_EXTRA_FILES//,/ }"
+fi
+
 COMPOSE_FILES_LIST=("$BASE_COMPOSE_FILE" "${COMPOSE_INSTANCE_FILES[$INSTANCE]}")
+
+if [[ ${#extra_compose_files[@]} -gt 0 ]]; then
+  COMPOSE_FILES_LIST+=("${extra_compose_files[@]}")
+fi
 
 COMPOSE_ENV_FILE="$ENV_FILE"
 COMPOSE_FILES="${COMPOSE_FILES_LIST[*]}"
@@ -264,17 +281,12 @@ fi
 if [[ $FORCE -ne 1 && -z "${CI:-}" ]]; then
   read -r -p "Prosseguir com o deploy? [y/N] " answer
   case "$answer" in
-    [yY][eE][sS]|[yY])
-      ;;
+    [yY][eE][sS] | [yY]) ;;
     *)
       echo "[!] Execução cancelada pelo usuário." >&2
       exit 1
       ;;
   esac
-fi
-
-if [[ -n "$ENV_FILE_ABS" ]]; then
-  load_env_pairs "$ENV_FILE_ABS" APP_DATA_DIR APP_DATA_UID APP_DATA_GID
 fi
 
 DATA_DIR_NAME="${APP_DATA_DIR:-data}"

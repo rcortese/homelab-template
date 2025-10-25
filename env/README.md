@@ -26,6 +26,7 @@ Monte uma tabela semelhante à abaixo para cada arquivo `env/<alvo>.example.env`
 | `APP_PUBLIC_URL` | Opcional | Define URL pública para links e cookies. | `compose/core.yml` (ou equivalente). |
 | `SERVICE_NAME` | Opcional | Personaliza o nome do container ou alvo de logs. | `compose/<alvo>.yml`, `scripts/check_health.sh`. |
 | `APP_DATA_DIR` | Opcional | Escolhe o diretório persistente utilizado nos volumes. | `compose/base.yml`, `scripts/deploy_instance.sh`. |
+| `COMPOSE_EXTRA_FILES` | Opcional | Lista overlays adicionais aplicados após o override da instância (separados por espaço ou vírgula). | `scripts/deploy_instance.sh`, `scripts/validate_compose.sh`, `scripts/lib/compose_defaults.sh`. |
 
 > Substitua a tabela pelos campos reais da sua stack. Utilize a coluna **Referência** para apontar onde a variável é consumida (manifests, scripts, infraestrutura externa, etc.).
 
@@ -38,4 +39,10 @@ Monte uma tabela semelhante à abaixo para cada arquivo `env/<alvo>.example.env`
 
 ## Integração com scripts
 
-Os scripts fornecidos pelo template aceitam `COMPOSE_ENV_FILE` para selecionar qual arquivo `.env` será utilizado. Documente, no runbook correspondente, como combinar variáveis e manifests para cada ambiente.
+Os scripts fornecidos pelo template aceitam `COMPOSE_ENV_FILE` para selecionar qual arquivo `.env` será utilizado. Documente, no runbook correspondente, como combinar variáveis e manifests para cada ambiente. Quando precisar ativar overlays específicos sem modificar scripts, adicione no `.env` algo como:
+
+```env
+COMPOSE_EXTRA_FILES=compose/overlays/observability.yml compose/overlays/metrics.yml
+```
+
+Esse padrão mantém as diferenças entre template e fork confinadas aos arquivos de configuração.
