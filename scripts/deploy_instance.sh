@@ -188,7 +188,7 @@ fi
 if [[ -n "$ENV_FILE_ABS" ]]; then
   load_env_pairs "$ENV_FILE_ABS" \
     COMPOSE_EXTRA_FILES \
-    APP_DATA_DIR \
+    SERVICE_NAME \
     APP_DATA_UID \
     APP_DATA_GID
 fi
@@ -211,6 +211,7 @@ export COMPOSE_ENV_FILE
 export COMPOSE_FILES
 
 COMPOSE_EXEC_CMD=("$REPO_ROOT/scripts/compose.sh" "$INSTANCE" -- up -d)
+COMPOSE_CONFIG_CMD=("$REPO_ROOT/scripts/compose.sh" "$INSTANCE" -- config --services)
 
 cat <<EOF
 [*] Instância: $INSTANCE
@@ -289,12 +290,43 @@ if [[ $FORCE -ne 1 && -z "${CI:-}" ]]; then
   esac
 fi
 
-DATA_DIR_NAME="${APP_DATA_DIR:-data}"
+DATA_ROOT="$REPO_ROOT/data"
 DATA_UID="${APP_DATA_UID:-1000}"
 DATA_GID="${APP_DATA_GID:-1000}"
-
-PERSISTENT_DIRS=("$REPO_ROOT/$DATA_DIR_NAME" "$REPO_ROOT/backups")
 APP_DATA_UID_GID="${DATA_UID}:${DATA_GID}"
+
+declare -a compose_services=()
+if ! mapfile -t compose_services < <("${COMPOSE_CONFIG_CMD[@]}"); then
+  echo "[!] Falha ao enumerar serviços via docker compose config --services." >&2
+  exit 1
+fi
+
+declare -A seen_names=()
+declare -a resolved_names=()
+fallback_service="${SERVICE_NAME:-app}"
+
+if [[ -n "$fallback_service" && -z "${seen_names[$fallback_service]:-}" ]]; then
+  resolved_names+=("$fallback_service")
+  seen_names["$fallback_service"]=1
+fi
+
+  for service_name in "${compose_services[@]}"; do
+    if [[ -z "$service_name" ]]; then
+      continue
+    fi
+    if [[ -n "${seen_names[$service_name]:-}" ]]; then
+      continue
+    fi
+    resolved_names+=("$service_name")
+    seen_names["$service_name"]=1
+  done
+
+  PERSISTENT_DIRS=("$DATA_ROOT")
+  for service_name in "${resolved_names[@]}"; do
+    PERSISTENT_DIRS+=("$DATA_ROOT/$service_name")
+  done
+PERSISTENT_DIRS+=("$REPO_ROOT/backups")
+
 mkdir -p "${PERSISTENT_DIRS[@]}"
 
 if [[ "$(id -u)" -eq 0 ]]; then

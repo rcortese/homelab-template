@@ -10,7 +10,7 @@ executar `docker compose` ou os scripts em `scripts/*.sh`.
 
 | Tipo de arquivo | Localização | Papel |
 | --------------- | ----------- | ----- |
-| **Base** | `compose/base.yml` | Define imagem padrão da aplicação, volumes compartilhados (`../${APP_DATA_DIR:-data}`, `../backups`), variáveis comuns (`TZ`, `APP_SECRET`, `APP_RETENTION_HOURS`) e política de restart. É carregado em **todas** as combinações. |
+| **Base** | `compose/base.yml` | Define imagem padrão da aplicação, volumes compartilhados (`../data/${SERVICE_NAME:-app}`, `../backups`), variáveis comuns (`TZ`, `APP_SECRET`, `APP_RETENTION_HOURS`) e política de restart. É carregado em **todas** as combinações. |
 | **Overrides de instância** | `compose/<instância>.yml` | Ajustam o container para cada ambiente (nome, porta exposta, URLs públicas e variáveis específicas como `MEDIA_ROOT`). Devem ser combinados exatamente com uma instância (ex.: `core` ou `media`). |
 
 ## Exemplos de comando

@@ -24,11 +24,12 @@ Monte uma tabela semelhante à abaixo para cada arquivo `env/<alvo>.example.env`
 | `APP_SECRET` | Sim | Chave utilizada para criptografar dados sensíveis. | `compose/base.yml`. |
 | `APP_RETENTION_HOURS` | Opcional | Controla a retenção de registros/processos. | `compose/base.yml` e runbooks. |
 | `APP_PUBLIC_URL` | Opcional | Define URL pública para links e cookies. | `compose/core.yml` (ou equivalente). |
-| `SERVICE_NAME` | Opcional | Personaliza o nome do container ou alvo de logs. | `compose/<alvo>.yml`, `scripts/check_health.sh`. |
-| `APP_DATA_DIR` | Opcional | Escolhe o diretório persistente utilizado nos volumes. | `compose/base.yml`, `scripts/deploy_instance.sh`. |
+| `SERVICE_NAME` | Opcional | Personaliza o nome do container/logs e define o subdiretório persistente (`data/<service>`). | `compose/<alvo>.yml`, `compose/base.yml`, `scripts/check_health.sh`, `scripts/deploy_instance.sh`. |
 | `COMPOSE_EXTRA_FILES` | Opcional | Lista overlays adicionais aplicados após o override da instância (separados por espaço ou vírgula). | `scripts/deploy_instance.sh`, `scripts/validate_compose.sh`, `scripts/lib/compose_defaults.sh`. |
 
 > Substitua a tabela pelos campos reais da sua stack. Utilize a coluna **Referência** para apontar onde a variável é consumida (manifests, scripts, infraestrutura externa, etc.).
+
+> O diretório raiz de persistência é fixado em `data/`. Cada instância cria subpastas `data/<serviço>` para os nomes retornados por `docker compose config --services` e para o valor opcional de `SERVICE_NAME`.
 
 ## Boas práticas
 

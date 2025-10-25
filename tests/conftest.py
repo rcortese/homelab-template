@@ -172,11 +172,15 @@ def repo_copy(
     local_env_dir = copy_root / "env" / "local"
     local_env_dir.mkdir(parents=True, exist_ok=True)
     (local_env_dir / "core.env").write_text(
-        "TZ=UTC\n"
-        "APP_SECRET=test-secret-1234567890123456\n"
-        "APP_RETENTION_HOURS=24\n"
-        "SERVICE_NAME=app-core\n"
-        "APP_DATA_DIR=data\n",
+        "\n".join(
+            [
+                "TZ=UTC",
+                "APP_SECRET=test-secret-1234567890123456",
+                "APP_RETENTION_HOURS=24",
+                "SERVICE_NAME=app-core",
+            ]
+        )
+        + "\n",
         encoding="utf-8",
     )
 
