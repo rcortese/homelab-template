@@ -158,10 +158,18 @@ fi
 if [[ -n "$ENV_FILE_ABS" ]]; then
   load_env_pairs "$ENV_FILE_ABS" \
     COMPOSE_EXTRA_FILES \
-    APP_DATA_DIR \
     APP_DATA_UID \
     APP_DATA_GID
 fi
+
+app_name="${COMPOSE_INSTANCE_APP_NAMES[$INSTANCE]:-}"
+if [[ -z "$app_name" ]]; then
+  echo "[!] Aplicação correspondente à instância '$INSTANCE' não encontrada." >&2
+  exit 1
+fi
+
+APP_DATA_DIR="data/${app_name}-${INSTANCE}"
+export APP_DATA_DIR
 
 extra_compose_files=()
 if [[ -n "${COMPOSE_EXTRA_FILES:-}" ]]; then
@@ -265,11 +273,10 @@ if [[ $FORCE -ne 1 && -z "${CI:-}" ]]; then
   esac
 fi
 
-DATA_DIR_NAME="${APP_DATA_DIR:-data}"
 DATA_UID="${APP_DATA_UID:-1000}"
 DATA_GID="${APP_DATA_GID:-1000}"
 
-PERSISTENT_DIRS=("$REPO_ROOT/$DATA_DIR_NAME" "$REPO_ROOT/backups")
+PERSISTENT_DIRS=("$REPO_ROOT/$APP_DATA_DIR" "$REPO_ROOT/backups")
 APP_DATA_UID_GID="${DATA_UID}:${DATA_GID}"
 mkdir -p "${PERSISTENT_DIRS[@]}"
 

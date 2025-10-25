@@ -175,8 +175,7 @@ def repo_copy(
         "TZ=UTC\n"
         "APP_SECRET=test-secret-1234567890123456\n"
         "APP_RETENTION_HOURS=24\n"
-        "SERVICE_NAME=app-core\n"
-        "APP_DATA_DIR=data\n",
+        "SERVICE_NAME=app-core\n",
         encoding="utf-8",
     )
 

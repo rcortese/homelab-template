@@ -8,6 +8,7 @@
 #   COMPOSE_INSTANCE_ENV_LOCAL Associative array mapping instance -> relative env/local file (empty if absent)
 #   COMPOSE_INSTANCE_ENV_TEMPLATES Associative array mapping instance -> relative env template file (empty if absent)
 #   COMPOSE_INSTANCE_ENV_FILES Associative array mapping instance -> resolved env file (prefers env/local)
+#   COMPOSE_INSTANCE_APP_NAMES Associative array mapping instance -> application directory name
 
 append_instance_file() {
   local instance="$1"
@@ -65,6 +66,7 @@ load_compose_instances() {
   declare -gA COMPOSE_INSTANCE_ENV_LOCAL=()
   declare -gA COMPOSE_INSTANCE_ENV_TEMPLATES=()
   declare -gA COMPOSE_INSTANCE_ENV_FILES=()
+  declare -gA COMPOSE_INSTANCE_APP_NAMES=()
   declare -ga COMPOSE_INSTANCE_NAMES=()
 
   shopt -s nullglob
@@ -118,6 +120,12 @@ load_compose_instances() {
         return 1
       fi
 
+      if [[ -n "${COMPOSE_INSTANCE_APP_NAMES[$instance]:-}" && "${COMPOSE_INSTANCE_APP_NAMES[$instance]}" != "$app_name" ]]; then
+        echo "[!] Instância '$instance' encontrada em múltiplas aplicações ('$app_name' e '${COMPOSE_INSTANCE_APP_NAMES[$instance]}')." >&2
+        return 1
+      fi
+
+      COMPOSE_INSTANCE_APP_NAMES[$instance]="$app_name"
       seen_instances[$instance]=1
       append_instance_file "$instance" "$app_base_rel"
       append_instance_file "$instance" "$instance_rel"
@@ -195,7 +203,8 @@ print_compose_instances() {
     COMPOSE_INSTANCE_FILES \
     COMPOSE_INSTANCE_ENV_LOCAL \
     COMPOSE_INSTANCE_ENV_TEMPLATES \
-    COMPOSE_INSTANCE_ENV_FILES
+    COMPOSE_INSTANCE_ENV_FILES \
+    COMPOSE_INSTANCE_APP_NAMES
 }
 
 if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
