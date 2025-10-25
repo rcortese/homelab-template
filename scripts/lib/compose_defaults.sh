@@ -108,7 +108,7 @@ main() {
 
   setup_compose_defaults "$instance" "$base_dir"
 
-  declare -p     COMPOSE_FILES     COMPOSE_ENV_FILE     COMPOSE_CMD
+  declare -p COMPOSE_FILES COMPOSE_ENV_FILE COMPOSE_CMD
 }
 
 if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then

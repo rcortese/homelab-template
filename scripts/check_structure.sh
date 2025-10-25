@@ -10,8 +10,8 @@
 set -euo pipefail
 
 case "${1:-}" in
-  -h | --help)
-    cat <<'EOF'
+-h | --help)
+  cat <<'EOF'
 Uso: scripts/check_structure.sh
 
 Valida se os diretórios e arquivos obrigatórios do repositório existem.
@@ -25,8 +25,8 @@ Variáveis de ambiente relevantes:
 Exemplo:
   scripts/check_structure.sh
 EOF
-    exit 0
-    ;;
+  exit 0
+  ;;
 esac
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

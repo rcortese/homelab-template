@@ -85,52 +85,52 @@ RUN_HEALTH=1
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    -h | --help)
-      print_help
-      exit 0
-      ;;
-    --force)
-      FORCE=1
-      shift
-      continue
-      ;;
-    --dry-run)
-      DRY_RUN=1
-      shift
-      continue
-      ;;
-    --skip-structure)
-      RUN_STRUCTURE=0
-      shift
-      continue
-      ;;
-    --skip-validate)
-      RUN_VALIDATE=0
-      shift
-      continue
-      ;;
-    --skip-health)
-      RUN_HEALTH=0
-      shift
-      continue
-      ;;
-    -*)
-      echo "[!] Flag desconhecida: $1" >&2
+  -h | --help)
+    print_help
+    exit 0
+    ;;
+  --force)
+    FORCE=1
+    shift
+    continue
+    ;;
+  --dry-run)
+    DRY_RUN=1
+    shift
+    continue
+    ;;
+  --skip-structure)
+    RUN_STRUCTURE=0
+    shift
+    continue
+    ;;
+  --skip-validate)
+    RUN_VALIDATE=0
+    shift
+    continue
+    ;;
+  --skip-health)
+    RUN_HEALTH=0
+    shift
+    continue
+    ;;
+  -*)
+    echo "[!] Flag desconhecida: $1" >&2
+    echo >&2
+    print_help >&2
+    exit 1
+    ;;
+  *)
+    if [[ -z "$INSTANCE" ]]; then
+      INSTANCE="$1"
+    else
+      echo "[!] Parâmetro inesperado: $1" >&2
       echo >&2
       print_help >&2
       exit 1
-      ;;
-    *)
-      if [[ -z "$INSTANCE" ]]; then
-        INSTANCE="$1"
-      else
-        echo "[!] Parâmetro inesperado: $1" >&2
-        echo >&2
-        print_help >&2
-        exit 1
-      fi
-      shift
-      ;;
+    fi
+    shift
+    ;;
   esac
 done
 
@@ -290,11 +290,11 @@ fi
 if [[ $FORCE -ne 1 && -z "${CI:-}" ]]; then
   read -r -p "Prosseguir com o deploy? [y/N] " answer
   case "$answer" in
-    [yY][eE][sS] | [yY]) ;;
-    *)
-      echo "[!] Execução cancelada pelo usuário." >&2
-      exit 1
-      ;;
+  [yY][eE][sS] | [yY]) ;;
+  *)
+    echo "[!] Execução cancelada pelo usuário." >&2
+    exit 1
+    ;;
   esac
 fi
 

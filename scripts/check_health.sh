@@ -74,10 +74,10 @@ EOF
 }
 
 case "${1:-}" in
-  -h | --help)
-    print_help
-    exit 0
-    ;;
+-h | --help)
+  print_help
+  exit 0
+  ;;
 esac
 
 INSTANCE_NAME="${1:-}"
