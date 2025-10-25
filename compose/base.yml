@@ -1,13 +1,15 @@
 # Compose base compartilhado. Combine com overrides de instância (ex.: core/media).
-# Contém apenas anchors e definições comuns reutilizadas pelos serviços das aplicações.
+# Define os defaults comuns para cada serviço "app"; os arquivos das aplicações
+# apenas extendem/ajustam o que for necessário.
 
-x-app-service: &app_service
-  image: example/app:latest
-  environment:
-    TZ: ${TZ}
-    APP_SECRET: ${APP_SECRET}
-    APP_RETENTION_HOURS: ${APP_RETENTION_HOURS:-168}
-  volumes:
-    - ../${APP_DATA_DIR:-data}:/var/lib/app
-    - ../backups:/var/backups
-  restart: unless-stopped
+services:
+  app:
+    image: example/app:latest
+    environment:
+      TZ: ${TZ}
+      APP_SECRET: ${APP_SECRET}
+      APP_RETENTION_HOURS: ${APP_RETENTION_HOURS:-168}
+    volumes:
+      - ../${APP_DATA_DIR:-data}:/var/lib/app
+      - ../backups:/var/backups
+    restart: unless-stopped
