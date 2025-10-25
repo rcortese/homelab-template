@@ -25,11 +25,16 @@ jobs:
       - name: Check shell formatting with shfmt
         run: |
           set -euo pipefail
-          if ! find scripts -type f -name '*.sh' -print -quit >/dev/null; then
+          mapfile -d '' scripts < <(find scripts -type f -name '*.sh' -print0)
+          if [ "${#scripts[@]}" -eq 0 ]; then
             echo "No shell scripts found for shfmt."
             exit 0
           fi
-          find scripts -type f -name '*.sh' -print0 | xargs -0 shfmt -d
+          if ! shfmt -d "${scripts[@]}"; then
+            echo
+            echo "shfmt detected formatting differences. Run 'shfmt -w' locally to fix them."
+            exit 1
+          fi
 
       - name: Run checkbashisms on POSIX shell scripts
         run: |
