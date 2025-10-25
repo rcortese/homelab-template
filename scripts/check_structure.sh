@@ -10,7 +10,7 @@
 set -euo pipefail
 
 case "${1:-}" in
-  -h|--help)
+  -h | --help)
     cat <<'EOF'
 Uso: scripts/check_structure.sh
 
