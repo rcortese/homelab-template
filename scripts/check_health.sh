@@ -47,7 +47,7 @@ load_env_pairs() {
     fi
     value="${line#*=}"
     export "$key=$value"
-  done <<< "$output"
+  done <<<"$output"
 
   return 0
 }
@@ -73,7 +73,7 @@ EOF
 }
 
 case "${1:-}" in
-  -h|--help)
+  -h | --help)
     print_help
     exit 0
     ;;
@@ -135,7 +135,7 @@ append_real_service_targets() {
       fi
       LOG_TARGETS+=("$compose_service")
       __log_targets_seen["$compose_service"]=1
-    done <<< "$compose_services_output"
+    done <<<"$compose_services_output"
   fi
 
   unset __log_targets_seen

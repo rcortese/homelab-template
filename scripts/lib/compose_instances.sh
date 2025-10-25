@@ -55,7 +55,7 @@ load_compose_instances() {
       continue
     fi
 
-    ((found+=1))
+    ((found += 1))
     env_local_rel="$env_local_dir_rel/${name}.env"
     env_local_abs="$repo_root/$env_local_rel"
     env_template_rel="$env_dir_rel/${name}.example.env"
