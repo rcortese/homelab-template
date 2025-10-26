@@ -358,8 +358,10 @@ fi
 
 compose_ps_output="$("${COMPOSE_CMD[@]}" ps)"
 compose_ps_json=""
-if compose_ps_json_candidate="$("${COMPOSE_CMD[@]}" ps --format json 2>/dev/null)"; then
-  compose_ps_json="$compose_ps_json_candidate"
+if [[ "$OUTPUT_FORMAT" == "json" ]]; then
+  if compose_ps_json_candidate="$("${COMPOSE_CMD[@]}" ps --format json 2>/dev/null)"; then
+    compose_ps_json="$compose_ps_json_candidate"
+  fi
 fi
 
 if [[ "$OUTPUT_FORMAT" == "text" ]]; then
