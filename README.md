@@ -25,8 +25,7 @@ Os scripts abaixo pressupõem que os arquivos `.env` locais já estejam configur
 
    ```bash
    pip install -r requirements-dev.txt
-   scripts/check_structure.sh
-   scripts/validate_compose.sh
+   scripts/check_all.sh
    ```
 
 ## Conteúdo obrigatório
@@ -49,7 +48,7 @@ Pipelines de CI/CD, testes e scripts adicionais podem ser adicionados, mas estes
 3. Revise os arquivos de `compose/` e `env/` para alinhar serviços, portas e variáveis às suas necessidades.
 4. Ajuste a documentação em `docs/` seguindo as orientações de personalização descritas neste template (com foco em
    [`docs/local/`](docs/local/README.md) para registrar detalhes específicos da sua stack).
-5. Execute os scripts de validação (`scripts/check_structure.sh`, `scripts/validate_compose.sh`) antes do primeiro commit.
+5. Execute o fluxo de validação (`scripts/check_all.sh`) antes do primeiro commit.
 
 ## Fluxo sugerido para novos repositórios
 
