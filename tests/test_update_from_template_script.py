@@ -220,6 +220,47 @@ def test_script_errors_when_remote_missing(tmp_path):
     assert "remote 'missing' não está configurado" in result.stderr
 
 
+def test_script_errors_when_target_branch_missing(tmp_path):
+    template_remote = tmp_path / "template.git"
+    run(["git", "init", "--bare", str(template_remote)], cwd=tmp_path)
+
+    consumer = create_consumer_repo(tmp_path)
+    script = consumer / "scripts" / "update_from_template.sh"
+    os.chmod(script, 0o755)
+
+    head_commit = (
+        subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=consumer,
+            text=True,
+            capture_output=True,
+            check=True,
+        ).stdout.strip()
+    )
+
+    run(["git", "remote", "add", "template", str(template_remote)], cwd=consumer)
+
+    env = {
+        **os.environ,
+        "TEMPLATE_REMOTE": "template",
+        "ORIGINAL_COMMIT_ID": head_commit,
+        "FIRST_COMMIT_ID": head_commit,
+        "TARGET_BRANCH": "nonexistent",
+    }
+
+    result = subprocess.run(
+        [str(script)],
+        cwd=consumer,
+        capture_output=True,
+        text=True,
+        env=env,
+        check=False,
+    )
+
+    assert result.returncode != 0
+    assert "branch 'nonexistent' não encontrado no remote 'template'" in result.stderr
+
+
 def test_script_errors_when_original_commit_is_invalid(tmp_path):
     consumer = create_consumer_repo(tmp_path)
     script = consumer / "scripts" / "update_from_template.sh"
