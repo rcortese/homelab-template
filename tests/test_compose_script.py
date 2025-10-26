@@ -107,6 +107,16 @@ def test_fallback_to_docker_compose(docker_stub: DockerStub) -> None:
     assert docker_stub.read_calls() == [["compose", "ps"]]
 
 
+def test_respects_multi_word_docker_compose_bin(docker_stub: DockerStub) -> None:
+    result = run_compose(
+        args=["--", "ps"],
+        env={"DOCKER_COMPOSE_BIN": "docker --context remote compose"},
+    )
+
+    assert result.returncode == 0
+    assert docker_stub.read_calls() == [["--context", "remote", "compose", "ps"]]
+
+
 def test_instance_uses_expected_env_and_compose_files(
     repo_copy: Path, docker_stub: DockerStub
 ) -> None:
