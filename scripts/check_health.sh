@@ -195,15 +195,21 @@ echo
 echo "[*] Logs recentes dos serviços monitorados:"
 
 log_success=false
+failed_services=()
 
 for service in "${LOG_TARGETS[@]}"; do
   if "${COMPOSE_CMD[@]}" logs --tail=50 "$service"; then
     log_success=true
-    break
+  else
+    failed_services+=("$service")
   fi
 done
 
 if [[ "$log_success" == false ]]; then
   printf 'Failed to retrieve logs for services: %s\n' "${LOG_TARGETS[*]}" >&2
   exit 1
+fi
+
+if [[ ${#failed_services[@]} -gt 0 ]]; then
+  printf 'Warning: Failed to retrieve logs for services: %s\n' "${failed_services[*]}" >&2
 fi

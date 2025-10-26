@@ -92,13 +92,19 @@ def test_loads_compose_extra_files_from_env_file(
     result = run_check_health(env=env)
 
     assert result.returncode == 0, result.stderr
+    assert "Warning:" not in result.stderr
 
-    expected_files = ["compose/base.yml", "compose/overlays/extra.yml"]
+    expected_files = [
+        "compose/base.yml",
+        "compose/overlays/extra.yml",
+        "compose/overlays/extra.yml",
+    ]
     calls = docker_stub.read_calls()
     assert calls == [
         _expected_compose_call(str(env_file), expected_files, "config", "--services"),
         _expected_compose_call(str(env_file), expected_files, "ps"),
         _expected_compose_call(str(env_file), expected_files, "logs", "--tail=50", "app-extra"),
+        _expected_compose_call(str(env_file), expected_files, "logs", "--tail=50", "app"),
     ]
 
 
@@ -187,12 +193,33 @@ def test_logs_handles_comma_separated_health_services(
     result = run_check_health(env=env)
 
     assert result.returncode == 0, result.stderr
+    assert "Warning: Failed to retrieve logs for services: app-core" in result.stderr
 
     calls = docker_stub.read_calls()
     assert calls == [
         ["compose", "config", "--services"],
         ["compose", "ps"],
         ["compose", "logs", "--tail=50", "app-core"],
+        ["compose", "logs", "--tail=50", "app-extra"],
+        ["compose", "logs", "--tail=50", "app"],
+    ]
+
+
+def test_logs_attempts_all_services_even_after_success(
+    docker_stub: DockerStub,
+) -> None:
+    env = {"HEALTH_SERVICES": "app app-extra"}
+
+    result = run_check_health(env=env)
+
+    assert result.returncode == 0, result.stderr
+    assert "Warning:" not in result.stderr
+
+    calls = docker_stub.read_calls()
+    assert calls == [
+        ["compose", "config", "--services"],
+        ["compose", "ps"],
+        ["compose", "logs", "--tail=50", "app"],
         ["compose", "logs", "--tail=50", "app-extra"],
     ]
 
@@ -246,4 +273,5 @@ def test_executes_from_scripts_directory(docker_stub: DockerStub, repo_copy: Pat
         _expected_compose_call(env_file, expected_files, "config", "--services"),
         _expected_compose_call(env_file, expected_files, "ps"),
         _expected_compose_call(env_file, expected_files, "logs", "--tail=50", "app-core"),
+        _expected_compose_call(env_file, expected_files, "logs", "--tail=50", "app"),
     ]
