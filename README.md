@@ -78,10 +78,6 @@ Repositórios derivados podem reaplicar suas customizações sobre a versão mai
      --dry-run
    ```
 
-   > 💡 O script aceita os mesmos valores via variáveis de ambiente (`TEMPLATE_REMOTE`, `ORIGINAL_COMMIT_ID`, `FIRST_COMMIT_ID`,
-   > `TARGET_BRANCH`). Consulte a seção "Parâmetros obrigatórios" exibida por `scripts/update_from_template.sh --help` para
-   > detalhes adicionais. Quando executado em um terminal, pergunta interativamente pelos campos que não forem informados.
-
 4. Remova `--dry-run` para aplicar o rebase e resolva possíveis conflitos antes de abrir um PR.
 5. Finalize rodando os testes da stack (por exemplo, `python -m pytest` e `scripts/check_structure.sh`; adapte conforme
    descrito em [`docs/OPERATIONS.md`](docs/OPERATIONS.md)).
