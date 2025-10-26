@@ -5,7 +5,7 @@ import re
 import subprocess
 from pathlib import Path
 
-SCRIPT_RELATIVE = Path("scripts") / "compose_defaults.sh"
+SCRIPT_RELATIVE = Path("scripts") / "lib" / "compose_defaults.sh"
 
 
 def _run_script(script_path: Path, *args: str, env: dict[str, str] | None = None) -> str:
