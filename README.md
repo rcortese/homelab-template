@@ -7,6 +7,23 @@ Para uma visão completa da documentação utilize o [índice em `docs/README.md
 Mantemos este arquivo genérico para facilitar a sincronização com novas versões do template. Informações específicas da sua
 stack devem ser descritas nos apontamentos locais indicados em [Customização local](#customização-local).
 
+## Pré-requisitos
+
+Certifique-se de ter as ferramentas abaixo instaladas e atualizadas antes de trabalhar em um fork deste template:
+
+- Docker Engine
+- Docker Compose v2
+- Python 3.x
+- ShellCheck, shfmt ou ferramentas equivalentes para lint/format de shell scripts
+
+### Checklist rápido
+
+```bash
+pip install -r requirements-dev.txt
+scripts/check_structure.sh
+scripts/validate_compose.sh
+```
+
 ## Conteúdo obrigatório
 
 Os diretórios abaixo devem existir em qualquer repositório filho criado a partir deste template:
