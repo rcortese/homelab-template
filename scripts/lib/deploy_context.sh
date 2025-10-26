@@ -2,16 +2,13 @@
 
 _DEPLOY_CONTEXT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# shellcheck source=./env_helpers.sh
-# shellcheck disable=SC1091
+# shellcheck source=./scripts/lib/env_helpers.sh
 source "${_DEPLOY_CONTEXT_DIR}/env_helpers.sh"
 
-# shellcheck source=./compose_plan.sh
-# shellcheck disable=SC1091
+# shellcheck source=./scripts/lib/compose_plan.sh
 source "${_DEPLOY_CONTEXT_DIR}/compose_plan.sh"
 
-# shellcheck source=./env_file_chain.sh
-# shellcheck disable=SC1091
+# shellcheck source=./scripts/lib/env_file_chain.sh
 source "${_DEPLOY_CONTEXT_DIR}/env_file_chain.sh"
 
 load_deploy_metadata() {
@@ -108,10 +105,16 @@ build_deploy_context() {
   fi
 
   declare -a env_files_rel=()
-  env_file_chain__resolve_explicit "$env_files_blob" "" env_files_rel
+  if [[ -n "$env_files_blob" ]]; then
+    mapfile -t env_files_rel < <(
+      env_file_chain__resolve_explicit "$env_files_blob" ""
+    )
+  fi
 
   if ((${#env_files_rel[@]} == 0)); then
-    env_file_chain__defaults "$repo_root" "$instance" env_files_rel
+    mapfile -t env_files_rel < <(
+      env_file_chain__defaults "$repo_root" "$instance"
+    )
   fi
 
   if ((${#env_files_rel[@]} == 0)); then
@@ -124,7 +127,9 @@ build_deploy_context() {
   fi
 
   declare -a env_files_abs=()
-  env_file_chain__to_absolute "$repo_root" env_files_rel env_files_abs
+  mapfile -t env_files_abs < <(
+    env_file_chain__to_absolute "$repo_root" "${env_files_rel[@]}"
+  )
 
   local idx=0
   while ((idx < ${#env_files_rel[@]})); do
@@ -213,8 +218,13 @@ build_deploy_context() {
   fi
 
   local -a extra_compose_files=()
+  local extra_compose_files_string=""
   if [[ -n "${COMPOSE_EXTRA_FILES:-}" ]]; then
     IFS=$' \t\n' read -r -a extra_compose_files <<<"${COMPOSE_EXTRA_FILES//,/ }"
+    if ((${#extra_compose_files[@]} > 0)); then
+      extra_compose_files_string="$(printf '%s\n' "${extra_compose_files[@]}")"
+      extra_compose_files_string="${extra_compose_files_string%$'\n'}"
+    fi
   fi
 
   local -a compose_files_list=()
@@ -248,6 +258,7 @@ build_deploy_context() {
   printf '  [INSTANCE]=%q\n' "$instance"
   printf '  [COMPOSE_ENV_FILE]=%q\n' "$primary_env_file"
   printf '  [COMPOSE_ENV_FILES]=%q\n' "$env_files_string"
+  printf '  [COMPOSE_EXTRA_FILES]=%q\n' "$extra_compose_files_string"
   printf '  [COMPOSE_FILES]=%q\n' "$compose_files_string"
   printf '  [APP_DATA_DIR]=%q\n' "$app_data_dir_value"
   printf '  [PERSISTENT_DIRS]=%q\n' "$persistent_dirs_string"

@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 
 if [[ -z "${COMPOSE_PATHS_LIB_DIR:-}" ]]; then
-  readonly COMPOSE_PATHS_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  COMPOSE_PATHS_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  readonly COMPOSE_PATHS_LIB_DIR
 fi
 
 compose_common__resolve_repo_root() {

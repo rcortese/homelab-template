@@ -235,7 +235,9 @@ fi
 if [[ -z "${HEALTH_SERVICES:-}" ]]; then
   declare -a health_env_files=()
   if [[ -n "${COMPOSE_ENV_FILES:-}" ]]; then
-    env_file_chain__parse_list "${COMPOSE_ENV_FILES}" health_env_files
+    mapfile -t health_env_files < <(
+      env_file_chain__parse_list "${COMPOSE_ENV_FILES}"
+    )
   elif [[ -n "${COMPOSE_ENV_FILE:-}" ]]; then
     health_env_files=("$COMPOSE_ENV_FILE")
   fi

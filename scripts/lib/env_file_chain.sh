@@ -5,11 +5,9 @@
 
 env_file_chain__parse_list() {
   local raw_input="${1:-}"
-  local -n __out_ref="$2"
 
-  __out_ref=()
   if [[ -z "$raw_input" ]]; then
-    return
+    return 0
   fi
 
   local sanitized="${raw_input//$'\n'/ }"
@@ -18,23 +16,18 @@ env_file_chain__parse_list() {
   local token
   for token in $sanitized; do
     [[ -z "$token" ]] && continue
-    __out_ref+=("$token")
+    printf '%s\n' "$token"
   done
 }
 
 env_file_chain__dedupe_preserve_order() {
-  local -n __input_ref="$1"
-  local -n __out_ref="$2"
-
-  declare -A __seen=()
-  __out_ref=()
-
+  declare -A seen=()
   local item
-  for item in "${__input_ref[@]}"; do
+  for item in "$@"; do
     [[ -z "$item" ]] && continue
-    if [[ -z "${__seen[$item]:-}" ]]; then
-      __seen[$item]=1
-      __out_ref+=("$item")
+    if [[ -z "${seen[$item]:-}" ]]; then
+      seen[$item]=1
+      printf '%s\n' "$item"
     fi
   done
 }
@@ -42,61 +35,59 @@ env_file_chain__dedupe_preserve_order() {
 env_file_chain__resolve_explicit() {
   local explicit_raw="${1:-}"
   local metadata_raw="${2:-}"
-  local out_name="$3"
 
-  declare -a __assembled=()
+  local -a assembled=()
 
   if [[ -n "$explicit_raw" ]]; then
-    env_file_chain__parse_list "$explicit_raw" __assembled
+    mapfile -t assembled < <(env_file_chain__parse_list "$explicit_raw")
   elif [[ -n "$metadata_raw" ]]; then
-    env_file_chain__parse_list "$metadata_raw" __assembled
+    mapfile -t assembled < <(env_file_chain__parse_list "$metadata_raw")
   fi
 
-  env_file_chain__dedupe_preserve_order __assembled "$out_name"
+  if ((${#assembled[@]} == 0)); then
+    return 0
+  fi
+
+  env_file_chain__dedupe_preserve_order "${assembled[@]}"
 }
 
 env_file_chain__defaults() {
   local repo_root="$1"
   local instance="$2"
-  local -n __out_ref="$3"
-
-  __out_ref=()
 
   if [[ -f "$repo_root/env/local/common.env" ]]; then
-    __out_ref+=("env/local/common.env")
+    printf '%s\n' "env/local/common.env"
   elif [[ -f "$repo_root/env/common.example.env" ]]; then
-    __out_ref+=("env/common.example.env")
+    printf '%s\n' "env/common.example.env"
   fi
 
   if [[ -z "$instance" ]]; then
-    return
+    return 0
   fi
 
   local instance_local="env/local/${instance}.env"
   if [[ -f "$repo_root/$instance_local" ]]; then
-    __out_ref+=("$instance_local")
-    return
+    printf '%s\n' "$instance_local"
+    return 0
   fi
 
   local instance_template="env/${instance}.example.env"
   if [[ -f "$repo_root/$instance_template" ]]; then
-    __out_ref+=("$instance_template")
+    printf '%s\n' "$instance_template"
   fi
 }
 
 env_file_chain__to_absolute() {
   local repo_root="$1"
-  local -n __rel_ref="$2"
-  local -n __out_ref="$3"
+  shift
 
-  __out_ref=()
   local item
-  for item in "${__rel_ref[@]}"; do
+  for item in "$@"; do
     [[ -z "$item" ]] && continue
     if [[ "$item" != /* ]]; then
-      __out_ref+=("$repo_root/$item")
+      printf '%s\n' "$repo_root/$item"
     else
-      __out_ref+=("$item")
+      printf '%s\n' "$item"
     fi
   done
 }
@@ -104,10 +95,10 @@ env_file_chain__to_absolute() {
 env_file_chain__join() {
   local delimiter="$1"
   shift
-  local -n __input_ref="$1"
+
   local joined=""
   local item
-  for item in "${__input_ref[@]}"; do
+  for item in "$@"; do
     [[ -z "$item" ]] && continue
     if [[ -z "$joined" ]]; then
       joined="$item"
@@ -115,5 +106,6 @@ env_file_chain__join() {
       joined+="$delimiter$item"
     fi
   done
+
   printf '%s' "$joined"
 }

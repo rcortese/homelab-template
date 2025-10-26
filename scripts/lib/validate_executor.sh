@@ -4,8 +4,7 @@
 
 VALIDATE_EXECUTOR_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# shellcheck source=./env_file_chain.sh
-# shellcheck disable=SC1091
+# shellcheck source=./scripts/lib/env_file_chain.sh
 source "$VALIDATE_EXECUTOR_DIR/env_file_chain.sh"
 
 validate_executor_prepare_plan() {
@@ -13,9 +12,9 @@ validate_executor_prepare_plan() {
   local repo_root="$2"
   local base_file="$3"
   local env_loader="$4"
-  local -n files_ref="$5"
-  local -n compose_args_ref="$6"
-  local -n env_args_ref="$7"
+  local -n files_ref=$5
+  local -n compose_args_ref=$6
+  local -n env_args_ref=$7
 
   local instance_files_raw="${COMPOSE_INSTANCE_FILES[$instance]:-}"
 
@@ -66,15 +65,23 @@ validate_executor_prepare_plan() {
 
   local env_files_blob="${COMPOSE_INSTANCE_ENV_FILES[$instance]:-}"
   local -a env_files_rel=()
-  env_file_chain__resolve_explicit "$env_files_blob" "" env_files_rel
+  if [[ -n "$env_files_blob" ]]; then
+    mapfile -t env_files_rel < <(
+      env_file_chain__resolve_explicit "$env_files_blob" ""
+    )
+  fi
 
   if ((${#env_files_rel[@]} == 0)); then
-    env_file_chain__defaults "$repo_root" "$instance" env_files_rel
+    mapfile -t env_files_rel < <(
+      env_file_chain__defaults "$repo_root" "$instance"
+    )
   fi
 
   local -a env_files_abs=()
   if ((${#env_files_rel[@]} > 0)); then
-    env_file_chain__to_absolute "$repo_root" env_files_rel env_files_abs
+    mapfile -t env_files_abs < <(
+      env_file_chain__to_absolute "$repo_root" "${env_files_rel[@]}"
+    )
   fi
 
   files_ref=("$base_file")
@@ -179,7 +186,7 @@ validate_executor_run_instances() {
   local env_loader="$3"
   local instances_array_name="$4"
   shift 4
-  local -n instances_ref="$instances_array_name"
+  local -n instances_ref=$instances_array_name
   local -a compose_cmd=("$@")
 
   local status=0

@@ -33,9 +33,11 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 # shellcheck source=./lib/compose_plan.sh
+# shellcheck disable=SC1091
 source "$SCRIPT_DIR/lib/compose_plan.sh"
 
 # shellcheck source=./lib/env_file_chain.sh
+# shellcheck disable=SC1091
 source "$SCRIPT_DIR/lib/env_file_chain.sh"
 
 INSTANCE_NAME=""
@@ -82,7 +84,7 @@ declare -a EXTRA_COMPOSE_FILES=()
 
 split_env_entries() {
   local raw="${1:-}"
-  local -n __out="$2"
+  local -n __out=$2
 
   __out=()
 
@@ -150,10 +152,18 @@ if [[ -n "$INSTANCE_NAME" && $metadata_loaded -eq 1 && -n "${COMPOSE_INSTANCE_EN
   metadata_env_input="${COMPOSE_INSTANCE_ENV_FILES[$INSTANCE_NAME]}"
 fi
 
-env_file_chain__resolve_explicit "$explicit_env_input" "$metadata_env_input" COMPOSE_ENV_FILES_LIST
+if [[ -n "$explicit_env_input" || -n "$metadata_env_input" ]]; then
+  mapfile -t COMPOSE_ENV_FILES_LIST < <(
+    env_file_chain__resolve_explicit "$explicit_env_input" "$metadata_env_input"
+  )
+else
+  COMPOSE_ENV_FILES_LIST=()
+fi
 
 if ((${#COMPOSE_ENV_FILES_LIST[@]} == 0)) && [[ -n "$INSTANCE_NAME" ]]; then
-  env_file_chain__defaults "$REPO_ROOT" "$INSTANCE_NAME" COMPOSE_ENV_FILES_LIST
+  mapfile -t COMPOSE_ENV_FILES_LIST < <(
+    env_file_chain__defaults "$REPO_ROOT" "$INSTANCE_NAME"
+  )
 fi
 
 if ((${#COMPOSE_ENV_FILES_LIST[@]} > 0)); then
@@ -166,7 +176,9 @@ fi
 
 declare -a COMPOSE_ENV_FILES_RESOLVED=()
 if ((${#COMPOSE_ENV_FILES_LIST[@]} > 0)); then
-  env_file_chain__to_absolute "$REPO_ROOT" COMPOSE_ENV_FILES_LIST COMPOSE_ENV_FILES_RESOLVED
+  mapfile -t COMPOSE_ENV_FILES_RESOLVED < <(
+    env_file_chain__to_absolute "$REPO_ROOT" "${COMPOSE_ENV_FILES_LIST[@]}"
+  )
 fi
 
 compose_env_file_abs=""
