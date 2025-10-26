@@ -187,6 +187,43 @@ def test_handles_comma_and_newline_separated_extra_files(repo_copy: Path) -> Non
     assert _extract_file_args(compose_cmd) == expected_files
 
 
+def test_removes_duplicate_entries(repo_copy: Path) -> None:
+    script_path = repo_copy / SCRIPT_RELATIVE
+    env = os.environ.copy()
+    env.update(
+        {
+            "COMPOSE_FILES": (
+                "compose/base.yml "
+                "compose/apps/app/base.yml "
+                "compose/apps/app/base.yml "
+                "compose/overlays/logging.yml"
+            ),
+            "COMPOSE_EXTRA_FILES": (
+                "compose/overlays/logging.yml "
+                "compose/overlays/metrics.yml "
+                "compose/apps/app/base.yml"
+            ),
+        }
+    )
+
+    stdout = _run_script(script_path, "core", str(repo_copy), env=env)
+
+    compose_files = _extract_value(r'COMPOSE_FILES="([^"]+)"', stdout)
+    expected_relative = [
+        "compose/base.yml",
+        "compose/apps/app/base.yml",
+        "compose/overlays/logging.yml",
+        "compose/overlays/metrics.yml",
+    ]
+    expected_files = [str((repo_copy / path).resolve()) for path in expected_relative]
+    assert compose_files == " ".join(expected_relative)
+
+    compose_cmd = _extract_compose_cmd(stdout)
+    file_args = _extract_file_args(compose_cmd)
+    assert file_args == expected_files
+    assert len(file_args) == len(set(file_args))
+
+
 def test_loads_extra_files_from_env_file(repo_copy: Path) -> None:
     script_path = repo_copy / SCRIPT_RELATIVE
     env_file = repo_copy / "env" / "local" / "core.env"
