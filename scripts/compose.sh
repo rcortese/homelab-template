@@ -144,11 +144,11 @@ fi
 
 env_file_chain__resolve_explicit "$explicit_env_input" "$metadata_env_input" COMPOSE_ENV_FILES_LIST
 
-if (( ${#COMPOSE_ENV_FILES_LIST[@]} == 0 )) && [[ -n "$INSTANCE_NAME" ]]; then
+if ((${#COMPOSE_ENV_FILES_LIST[@]} == 0)) && [[ -n "$INSTANCE_NAME" ]]; then
   env_file_chain__defaults "$REPO_ROOT" "$INSTANCE_NAME" COMPOSE_ENV_FILES_LIST
 fi
 
-if (( ${#COMPOSE_ENV_FILES_LIST[@]} > 0 )); then
+if ((${#COMPOSE_ENV_FILES_LIST[@]} > 0)); then
   COMPOSE_ENV_FILE="${COMPOSE_ENV_FILES_LIST[-1]}"
   COMPOSE_ENV_FILES="$(printf '%s\n' "${COMPOSE_ENV_FILES_LIST[@]}")"
   COMPOSE_ENV_FILES="${COMPOSE_ENV_FILES%$'\n'}"
@@ -157,7 +157,7 @@ else
 fi
 
 declare -a COMPOSE_ENV_FILES_RESOLVED=()
-if (( ${#COMPOSE_ENV_FILES_LIST[@]} > 0 )); then
+if ((${#COMPOSE_ENV_FILES_LIST[@]} > 0)); then
   env_file_chain__to_absolute "$REPO_ROOT" COMPOSE_ENV_FILES_LIST COMPOSE_ENV_FILES_RESOLVED
 fi
 
@@ -204,11 +204,11 @@ if ! command -v "${COMPOSE_CMD[0]}" >/dev/null 2>&1; then
   exit 127
 fi
 
-if (( ${#COMPOSE_ENV_FILES_RESOLVED[@]} > 0 )); then
+if ((${#COMPOSE_ENV_FILES_RESOLVED[@]} > 0)); then
   primary_env_file="${COMPOSE_ENV_FILES_RESOLVED[-1]}"
   COMPOSE_CMD+=(--env-file "$primary_env_file")
 
-  if (( ${#COMPOSE_ENV_FILES_RESOLVED[@]} > 1 )); then
+  if ((${#COMPOSE_ENV_FILES_RESOLVED[@]} > 1)); then
     for env_file_path in "${COMPOSE_ENV_FILES_RESOLVED[@]}"; do
       COMPOSE_CMD+=(--env-file "$env_file_path")
     done
