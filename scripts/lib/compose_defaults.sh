@@ -120,10 +120,27 @@ setup_compose_defaults() {
   fi
 
   if [[ ${#compose_files_entries[@]} -gt 0 ]]; then
-    COMPOSE_FILES="${compose_files_entries[*]}"
+    local unique_entries=()
+    declare -A seen_entries=()
+
     for file in "${compose_files_entries[@]}"; do
+      if [[ -z "$file" ]]; then
+        continue
+      fi
+      if [[ -n "${seen_entries[$file]:-}" ]]; then
+        continue
+      fi
+      unique_entries+=("$file")
+      seen_entries["$file"]=1
+    done
+
+    COMPOSE_FILES="${unique_entries[*]}"
+    for file in "${unique_entries[@]}"; do
       COMPOSE_CMD+=(-f "$file")
     done
+
+    unset seen_entries
+    unset unique_entries
   fi
 }
 
