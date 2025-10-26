@@ -38,4 +38,3 @@ load_env_pairs() {
 
   return 0
 }
-

@@ -33,7 +33,8 @@ USAGE
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-# shellcheck source=lib/env_helpers.sh
+# shellcheck source=./lib/env_helpers.sh
+# shellcheck disable=SC1091
 source "$SCRIPT_DIR/lib/env_helpers.sh"
 
 if ! compose_metadata="$("$SCRIPT_DIR/lib/compose_instances.sh" "$REPO_ROOT")"; then
@@ -109,10 +110,9 @@ if [[ -z "$INSTANCE" ]]; then
 fi
 
 if [[ -z "${COMPOSE_INSTANCE_FILES[$INSTANCE]:-}" ]]; then
-  candidate_files=()
-  shopt -s nullglob
-  candidate_files=($REPO_ROOT/compose/apps/*/${INSTANCE}.yml)
-  shopt -u nullglob
+  mapfile -t candidate_files < <(
+    find "$REPO_ROOT/compose/apps" -mindepth 2 -maxdepth 2 -name "${INSTANCE}.yml" -print 2>/dev/null
+  )
 
   if [[ ${#candidate_files[@]} -gt 0 ]]; then
     echo "[!] Metadados ausentes para instância '$INSTANCE'." >&2

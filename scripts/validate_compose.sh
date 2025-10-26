@@ -131,10 +131,9 @@ for instance in "${instances_to_validate[@]}"; do
 
   instance_files_raw="${COMPOSE_INSTANCE_FILES[$instance]:-}"
   if [[ -z "$instance_files_raw" ]]; then
-    potential_matches=()
-    shopt -s nullglob
-    potential_matches=($REPO_ROOT/compose/apps/*/${instance}.yml)
-    shopt -u nullglob
+    mapfile -t potential_matches < <(
+      find "$REPO_ROOT/compose/apps" -mindepth 2 -maxdepth 2 -name "${instance}.yml" -print 2>/dev/null
+    )
 
     if [[ ${#potential_matches[@]} -gt 0 ]]; then
       echo "✖ instância=\"$instance\" (combinação de arquivos ausente nos metadados)" >&2

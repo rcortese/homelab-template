@@ -44,7 +44,6 @@ load_compose_instances() {
   fi
 
   local compose_dir_rel="compose"
-  local compose_dir="$repo_root/$compose_dir_rel"
   local apps_dir_rel="$compose_dir_rel/apps"
   local apps_dir="$repo_root/$apps_dir_rel"
   local env_dir_rel="env"
@@ -83,8 +82,9 @@ load_compose_instances() {
     return 1
   fi
 
-  IFS=$'\n' app_dirs=($(printf '%s\n' "${app_dirs[@]}" | sort))
-  unset IFS
+  if [[ ${#app_dirs[@]} -gt 0 ]]; then
+    mapfile -t app_dirs < <(printf '%s\n' "${app_dirs[@]}" | sort)
+  fi
 
   local -A seen_instances=()
   local app_name app_base_rel app_base_abs
@@ -147,8 +147,9 @@ load_compose_instances() {
     instance_names+=("$instance")
   done
 
-  IFS=$'\n' instance_names=($(printf '%s\n' "${instance_names[@]}" | sort))
-  unset IFS
+  if [[ ${#instance_names[@]} -gt 0 ]]; then
+    mapfile -t instance_names < <(printf '%s\n' "${instance_names[@]}" | sort)
+  fi
 
   COMPOSE_INSTANCE_NAMES=("${instance_names[@]}")
 
