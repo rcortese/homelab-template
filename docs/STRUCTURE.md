@@ -12,6 +12,7 @@ Este guia descreve a estrutura mínima esperada para qualquer repositório que h
 | `docs/` | Documentação local, runbooks, guias operacionais e ADRs. | `README.md`, `STRUCTURE.md`, `OPERATIONS.md`, subpastas temáticas e [`local/`](./local/README.md). |
 | `env/` | Modelos de variáveis, arquivos de exemplo e orientações de preenchimento. | `*.example.env`, `README.md`, `local/` ignorado no Git. Expanda com variáveis necessárias para todas as aplicações ativadas. |
 | `scripts/` | Automação reutilizável (deploy, validação, backups, health-check). | Scripts shell (ou equivalentes) referenciados pela documentação. |
+| `tests/` | Verificações automatizadas do template que devem ser preservadas nos forks. | Testes base do template; cenários específicos podem viver em diretórios próprios fora de `tests/`, conforme indicado em [`tests/README.md`](../tests/README.md). |
 
 ## Arquivos de referência
 
