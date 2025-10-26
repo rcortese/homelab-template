@@ -81,6 +81,19 @@ Este documento apresenta um ponto de partida para descrever processos operaciona
 
 - **Objetivo:** consultar status de serviços após deploys, restores ou troubleshooting.
 - **Adaptação necessária:** documente quais endpoints, comandos ou logs devem ser verificados para cada ambiente.
+- **Argumentos e variáveis suportadas:**
+  - `HEALTH_SERVICES` — lista de serviços a inspecionar (separada por espaços ou vírgulas). Quando definido, limita a execução apenas aos serviços desejados.
+  - `SERVICE_NAME` — nome de um serviço específico para reduzir o escopo (útil ao investigar incidentes pontuais).
+  - `COMPOSE_ENV_FILE` — caminho para um arquivo `.env` alternativo a ser carregado antes de consultar o `docker compose`.
+- **Notas importantes:** o script complementa automaticamente a lista de serviços ao executar `docker compose config --services`, garantindo que as instâncias definidas nos manifests estejam sempre cobertas mesmo quando `HEALTH_SERVICES` não estiver configurado.
+- **Exemplos práticos:**
+  ```bash
+  # Execução padrão usando os manifests configurados na instância
+  scripts/check_health.sh core
+
+  # Filtra apenas serviços explícitos (separação por vírgulas ou espaços)
+  HEALTH_SERVICES="frontend,worker" scripts/check_health.sh core
+  ```
 
 ## scripts/check_db_integrity.sh
 
