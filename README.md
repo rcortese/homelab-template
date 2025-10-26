@@ -18,11 +18,16 @@ Certifique-se de ter as ferramentas abaixo instaladas e atualizadas antes de tra
 
 ### Checklist rápido
 
-```bash
-pip install -r requirements-dev.txt
-scripts/check_structure.sh
-scripts/validate_compose.sh
-```
+Os scripts abaixo pressupõem que os arquivos `.env` locais já estejam configurados.
+
+1. Copie os modelos de `env/*.example.env` para `env/local/` seguindo o passo a passo em [`env/README.md`](env/README.md).
+2. Em seguida, execute:
+
+   ```bash
+   pip install -r requirements-dev.txt
+   scripts/check_structure.sh
+   scripts/validate_compose.sh
+   ```
 
 ## Conteúdo obrigatório
 
