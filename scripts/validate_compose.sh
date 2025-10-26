@@ -43,12 +43,14 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 ENV_LOADER="$SCRIPT_DIR/lib/env_loader.sh"
 
-if ! compose_metadata="$("$SCRIPT_DIR/lib/compose_instances.sh" "$REPO_ROOT")"; then
+# shellcheck source=./lib/compose_instances.sh
+# shellcheck disable=SC1091
+source "$SCRIPT_DIR/lib/compose_instances.sh"
+
+if ! load_compose_instances "$REPO_ROOT"; then
   echo "Error: não foi possível carregar metadados das instâncias." >&2
   exit 1
 fi
-
-eval "$compose_metadata"
 
 if [[ -n "${DOCKER_COMPOSE_BIN:-}" ]]; then
   # Allow overriding the docker compose binary (e.g., "docker-compose").
@@ -156,16 +158,12 @@ for instance in "${instances_to_validate[@]}"; do
   mapfile -t instance_file_list < <(printf '%s\n' "$instance_files_raw")
   env_file_rel="${COMPOSE_INSTANCE_ENV_FILES[$instance]:-}"
   env_file=""
-  instance_app_name="${COMPOSE_INSTANCE_APP_NAMES[$instance]:-}"
 
   if [[ -n "$env_file_rel" ]]; then
     env_file="$REPO_ROOT/$env_file_rel"
   fi
 
   files=("$base_file")
-  if [[ -n "$instance_app_name" ]]; then
-    files+=("$(resolve_compose_file "compose/apps/${instance_app_name}/base.yml")")
-  fi
   args=()
   missing=0
 

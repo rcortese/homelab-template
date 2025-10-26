@@ -32,6 +32,10 @@ USAGE
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
+# shellcheck source=./lib/compose_instances.sh
+# shellcheck disable=SC1091
+source "$SCRIPT_DIR/lib/compose_instances.sh"
+
 INSTANCE_NAME=""
 COMPOSE_ARGS=()
 
@@ -93,12 +97,10 @@ if [[ -n "${COMPOSE_FILES:-}" ]]; then
   # shellcheck disable=SC2206
   COMPOSE_FILES_LIST=(${COMPOSE_FILES})
 elif [[ -n "$INSTANCE_NAME" ]]; then
-  if ! compose_metadata="$("$SCRIPT_DIR/lib/compose_instances.sh" "$REPO_ROOT")"; then
+  if ! load_compose_instances "$REPO_ROOT"; then
     echo "Error: não foi possível carregar metadados das instâncias." >&2
     exit 1
   fi
-
-  eval "$compose_metadata"
 
   if [[ -z "${COMPOSE_INSTANCE_FILES[$INSTANCE_NAME]:-}" ]]; then
     echo "Error: instância desconhecida '$INSTANCE_NAME'." >&2

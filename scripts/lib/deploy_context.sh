@@ -6,6 +6,10 @@ _DEPLOY_CONTEXT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck disable=SC1091
 source "${_DEPLOY_CONTEXT_DIR}/env_helpers.sh"
 
+# shellcheck source=./compose_instances.sh
+# shellcheck disable=SC1091
+source "${_DEPLOY_CONTEXT_DIR}/compose_instances.sh"
+
 append_unique_file() {
   local -n __target_array="$1"
   local __file="$2"
@@ -31,13 +35,11 @@ load_deploy_metadata() {
     return 0
   fi
 
-  local compose_metadata=""
-  if ! compose_metadata="$("${_DEPLOY_CONTEXT_DIR}/compose_instances.sh" "$repo_root" | sed 's/^declare /declare -g /')"; then
+  if ! load_compose_instances "$repo_root"; then
     echo "[!] Não foi possível carregar metadados das instâncias." >&2
     return 1
   fi
 
-  eval "$compose_metadata"
   DEPLOY_METADATA_LOADED=1
   return 0
 }
