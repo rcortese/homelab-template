@@ -13,6 +13,7 @@
 1. **Preparação**
    - Atualize `env/local/<ambiente>.env` com as variáveis mais recentes.
    - Revise a seção [Stacks com múltiplas aplicações](./COMPOSE_GUIDE.md#stacks-com-múltiplas-aplicações) para decidir quais manifests ativar ou desativar para esta instância.
+   - Gere um resumo com `scripts/describe_instance.sh <ambiente>` para confirmar os `-f` aplicados, overlays extras e volumes críticos antes do deploy (salve a saída `--format json` junto ao checklist quando precisar de trilha de auditoria).
    - Valide manifests com `scripts/validate_compose.sh` (ou comando equivalente).
 2. **Execução**
    - Rode o fluxo guiado:

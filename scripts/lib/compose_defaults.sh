@@ -11,6 +11,10 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=./lib/compose_plan.sh
 source "$SCRIPT_DIR/lib/compose_plan.sh"
 
+# shellcheck source=./lib/env_file_chain.sh
+# shellcheck disable=SC1091
+source "$SCRIPT_DIR/lib/env_file_chain.sh"
+
 split_compose_entries() {
   local raw="${1:-}"
   local -n __out="$2"
@@ -53,12 +57,10 @@ setup_compose_defaults() {
 
   local metadata_loaded=0
   local compose_metadata=""
-  if [[ -n "$instance" ]]; then
+  if [[ -z "${COMPOSE_FILES:-}" && -n "$instance" ]]; then
     if compose_metadata="$("$SCRIPT_DIR/lib/compose_instances.sh" "$base_fs")"; then
       eval "$compose_metadata"
       metadata_loaded=1
-    fi
-  fi
 
       if [[ -n "${COMPOSE_INSTANCE_FILES[$instance]:-}" ]]; then
         local -a files_list=()
@@ -67,10 +69,10 @@ setup_compose_defaults() {
         fi
       fi
     fi
+  fi
 
-    if [[ -z "${COMPOSE_FILES:-}" ]]; then
-      COMPOSE_FILES="compose/base.yml"
-    fi
+  if [[ -z "${COMPOSE_FILES:-}" ]]; then
+    COMPOSE_FILES="compose/base.yml"
   fi
 
   local explicit_env_input="${COMPOSE_ENV_FILES:-}"

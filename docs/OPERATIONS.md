@@ -77,6 +77,23 @@ Este documento apresenta um ponto de partida para descrever processos operaciona
   - Defina `COMPOSE_FILES` e `COMPOSE_ENV_FILE` quando precisar de combinações personalizadas.
   - Registre exemplos específicos da sua stack nesta seção.
 
+## scripts/describe_instance.sh
+
+- **Objetivo:** gerar um relatório consolidado dos serviços, portas e volumes resultantes
+  da combinação de manifests aplicada a uma instância.
+- **Formatações disponíveis:**
+  - `table` (padrão) — ideal para revisões rápidas em terminais ou runbooks.
+  - `json` — voltado para integrações automatizadas e geração de documentação.
+- **Uso típico:**
+  ```bash
+  scripts/describe_instance.sh core
+  scripts/describe_instance.sh media --format json
+  ```
+- **Dica:** o relatório destaca overlays adicionais vindos de `COMPOSE_EXTRA_FILES`,
+  facilitando auditorias sobre customizações temporárias ou específicas do ambiente.
+- **Integração:** ao usar `--format json`, os campos `compose_files`, `extra_overlays` e
+  `services` podem ser consumidos diretamente por geradores de runbooks ou páginas de status.
+
 ## scripts/check_health.sh
 
 - **Objetivo:** consultar status de serviços após deploys, restores ou troubleshooting.

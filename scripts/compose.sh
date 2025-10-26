@@ -35,6 +35,10 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 # shellcheck source=./lib/compose_plan.sh
 source "$SCRIPT_DIR/lib/compose_plan.sh"
 
+# shellcheck source=./lib/env_file_chain.sh
+# shellcheck disable=SC1091
+source "$SCRIPT_DIR/lib/env_file_chain.sh"
+
 INSTANCE_NAME=""
 COMPOSE_ARGS=()
 
@@ -75,6 +79,7 @@ done
 COMPOSE_FILES_LIST=()
 metadata_loaded=0
 declare -a resolved_instance_app_names=()
+declare -a EXTRA_COMPOSE_FILES=()
 
 split_env_entries() {
   local raw="${1:-}"
@@ -95,6 +100,8 @@ split_env_entries() {
     __out+=("$token")
   done
 }
+
+split_env_entries "${COMPOSE_EXTRA_FILES:-}" EXTRA_COMPOSE_FILES
 
 if [[ -n "$INSTANCE_NAME" ]]; then
   if ! compose_metadata="$("$SCRIPT_DIR/lib/compose_instances.sh" "$REPO_ROOT")"; then
@@ -117,16 +124,19 @@ fi
 if [[ -n "${COMPOSE_FILES:-}" ]]; then
   # shellcheck disable=SC2206
   COMPOSE_FILES_LIST=(${COMPOSE_FILES})
+  if (( ${#EXTRA_COMPOSE_FILES[@]} > 0 )); then
+    COMPOSE_FILES_LIST+=("${EXTRA_COMPOSE_FILES[@]}")
+  fi
 elif [[ -n "$INSTANCE_NAME" && $metadata_loaded -eq 1 ]]; then
-  mapfile -t instance_compose_files < <(printf '%s\n' "${COMPOSE_INSTANCE_FILES[$INSTANCE_NAME]}")
+  declare -a plan_files=()
+  declare -A plan_metadata=()
 
-  append_unique_file COMPOSE_FILES_LIST "$BASE_COMPOSE_FILE"
+  if build_compose_file_plan "$INSTANCE_NAME" plan_files EXTRA_COMPOSE_FILES plan_metadata; then
+    COMPOSE_FILES_LIST=("${plan_files[@]}")
 
-  declare -a instance_app_names=()
-  apps_raw="${COMPOSE_INSTANCE_APP_NAMES[$INSTANCE_NAME]:-}"
-  if [[ -n "$apps_raw" ]]; then
-    mapfile -t instance_app_names < <(printf '%s\n' "$apps_raw")
-    resolved_instance_app_names=("${instance_app_names[@]}")
+    if [[ -n "${plan_metadata[app_names]:-}" ]]; then
+      mapfile -t resolved_instance_app_names < <(printf '%s\n' "${plan_metadata[app_names]}")
+    fi
   fi
 fi
 
@@ -203,8 +213,14 @@ if ! command -v "${COMPOSE_CMD[0]}" >/dev/null 2>&1; then
   exit 127
 fi
 
-if [[ -n "$compose_env_file_abs" ]]; then
-  COMPOSE_CMD+=(--env-file "$compose_env_file_abs")
+if (( ${#COMPOSE_ENV_FILES_RESOLVED[@]} > 0 )); then
+  COMPOSE_CMD+=(--env-file "${COMPOSE_ENV_FILES_RESOLVED[-1]}")
+
+  if (( ${#COMPOSE_ENV_FILES_RESOLVED[@]} > 1 )); then
+    for ((idx = 0; idx < ${#COMPOSE_ENV_FILES_RESOLVED[@]} - 1; idx++)); do
+      COMPOSE_CMD+=(--env-file "${COMPOSE_ENV_FILES_RESOLVED[idx]}")
+    done
+  fi
 fi
 
 if [[ ${#COMPOSE_FILES_LIST[@]} -gt 0 ]]; then
