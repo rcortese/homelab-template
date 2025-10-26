@@ -33,6 +33,8 @@ def test_instance_uses_expected_env_and_compose_files(
         "compose/base.yml",
         "compose/apps/app/base.yml",
         "compose/apps/app/core.yml",
+        "compose/apps/monitoring/base.yml",
+        "compose/apps/monitoring/core.yml",
     ]
 
 
@@ -62,4 +64,6 @@ def test_instance_resolves_manifests_when_invoked_from_scripts_dir(
         "compose/base.yml",
         "compose/apps/app/base.yml",
         "compose/apps/app/core.yml",
+        "compose/apps/monitoring/base.yml",
+        "compose/apps/monitoring/core.yml",
     ]

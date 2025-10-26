@@ -29,7 +29,7 @@ Monte uma tabela semelhante à abaixo para cada arquivo `env/<alvo>.example.env`
 
 > Substitua a tabela pelos campos reais da sua stack. Utilize a coluna **Referência** para apontar onde a variável é consumida (manifests, scripts, infraestrutura externa, etc.).
 
-> **Nota:** o diretório persistente principal segue a convenção `data/<app>-<instância>`, definida automaticamente pelos scripts do template. Ajuste apenas `APP_DATA_UID` e `APP_DATA_GID` para alinhar permissões.
+> **Nota:** o diretório persistente principal segue a convenção `data/<app>-<instância>`, considerando a aplicação principal (primeira da lista em `COMPOSE_INSTANCE_APP_NAMES`). Defina `APP_DATA_DIR` no `.env` da instância caso precise sobrepor o caminho padrão; os scripts respeitam esse valor ao preparar o deploy. Ajuste apenas `APP_DATA_UID` e `APP_DATA_GID` para alinhar permissões.
 
 ## Boas práticas
 

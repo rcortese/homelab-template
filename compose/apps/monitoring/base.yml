@@ -1,0 +1,4 @@
+services:
+  monitoring:
+    image: example/monitoring:latest
+    restart: unless-stopped

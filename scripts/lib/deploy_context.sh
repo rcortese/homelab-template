@@ -126,23 +126,42 @@ build_deploy_context() {
     return 1
   fi
 
+  local app_data_dir_was_set=0
+  local previous_app_data_dir=""
+  if [[ -v APP_DATA_DIR ]]; then
+    app_data_dir_was_set=1
+    previous_app_data_dir="$APP_DATA_DIR"
+  fi
+
   if [[ -n "$env_file_abs" ]]; then
     load_env_pairs "$env_file_abs" \
+      APP_DATA_DIR \
       COMPOSE_EXTRA_FILES \
       APP_DATA_UID \
       APP_DATA_GID
   fi
 
-  local app_name=""
+  local -a instance_app_names=()
   if [[ -v COMPOSE_INSTANCE_APP_NAMES["$instance"] ]]; then
-    app_name="${COMPOSE_INSTANCE_APP_NAMES[$instance]}"
+    mapfile -t instance_app_names < <(printf '%s\n' "${COMPOSE_INSTANCE_APP_NAMES[$instance]}")
   fi
-  if [[ -z "$app_name" ]]; then
+  if [[ ${#instance_app_names[@]} -eq 0 ]]; then
     echo "[!] Aplicação correspondente à instância '$instance' não encontrada." >&2
     return 1
   fi
 
-  local app_data_dir="data/${app_name}-${instance}"
+  local primary_app="${instance_app_names[0]}"
+  local app_data_dir_value="${APP_DATA_DIR:-}"
+  if [[ -z "$app_data_dir_value" ]]; then
+    app_data_dir_value="data/${primary_app}-${instance}"
+  fi
+
+  if ((app_data_dir_was_set == 1)); then
+    APP_DATA_DIR="$previous_app_data_dir"
+  else
+    unset APP_DATA_DIR
+  fi
+
   local -a extra_compose_files=()
   if [[ -n "${COMPOSE_EXTRA_FILES:-}" ]]; then
     IFS=$' \t\n' read -r -a extra_compose_files <<<"${COMPOSE_EXTRA_FILES//,/ }"
@@ -154,9 +173,36 @@ build_deploy_context() {
   local -a compose_files_list=()
 
   append_unique_file compose_files_list "$BASE_COMPOSE_FILE"
-  append_unique_file compose_files_list "compose/apps/${app_name}/base.yml"
+  declare -A overrides_by_app=()
+  local compose_file app_for_file
+  for compose_file in "${instance_compose_files[@]}"; do
+    [[ -z "$compose_file" ]] && continue
+    app_for_file="${compose_file#compose/apps/}"
+    app_for_file="${app_for_file%%/*}"
+    if [[ -z "$app_for_file" ]]; then
+      continue
+    fi
+    if [[ -n "${overrides_by_app[$app_for_file]:-}" ]]; then
+      overrides_by_app[$app_for_file]+=$'\n'"$compose_file"
+    else
+      overrides_by_app[$app_for_file]="$compose_file"
+    fi
+  done
 
-  local compose_file
+  local app_name
+  for app_name in "${instance_app_names[@]}"; do
+    append_unique_file compose_files_list "compose/apps/${app_name}/base.yml"
+    if [[ -n "${overrides_by_app[$app_name]:-}" ]]; then
+      mapfile -t instance_compose_files < <(printf '%s\n' "${overrides_by_app[$app_name]}")
+      local override_file
+      for override_file in "${instance_compose_files[@]}"; do
+        append_unique_file compose_files_list "$override_file"
+      done
+    fi
+  done
+
+  # Append overrides that were not matched to a known app, preserving discovery order.
+  mapfile -t instance_compose_files < <(printf '%s\n' "$instance_compose_blob")
   for compose_file in "${instance_compose_files[@]}"; do
     append_unique_file compose_files_list "$compose_file"
   done
@@ -167,7 +213,12 @@ build_deploy_context() {
 
   local compose_files_string="${compose_files_list[*]}"
 
-  local -a persistent_dirs=("$repo_root/$app_data_dir" "$repo_root/backups")
+  local -a persistent_dirs=()
+  if [[ "$app_data_dir_value" == /* ]]; then
+    persistent_dirs=("$app_data_dir_value" "$repo_root/backups")
+  else
+    persistent_dirs=("$repo_root/$app_data_dir_value" "$repo_root/backups")
+  fi
   local persistent_dirs_string
   persistent_dirs_string="$(printf '%s\n' "${persistent_dirs[@]}")"
 
@@ -179,7 +230,7 @@ build_deploy_context() {
   printf '  [INSTANCE]=%q\n' "$instance"
   printf '  [COMPOSE_ENV_FILE]=%q\n' "$env_file"
   printf '  [COMPOSE_FILES]=%q\n' "$compose_files_string"
-  printf '  [APP_DATA_DIR]=%q\n' "$app_data_dir"
+  printf '  [APP_DATA_DIR]=%q\n' "$app_data_dir_value"
   printf '  [PERSISTENT_DIRS]=%q\n' "$persistent_dirs_string"
   printf '  [DATA_UID]=%q\n' "$data_uid"
   printf '  [DATA_GID]=%q\n' "$data_gid"

@@ -112,11 +112,38 @@ elif [[ -n "$INSTANCE_NAME" ]]; then
 
   append_unique_file COMPOSE_FILES_LIST "$BASE_COMPOSE_FILE"
 
-  instance_app_name="${COMPOSE_INSTANCE_APP_NAMES[$INSTANCE_NAME]:-}"
-  if [[ -n "$instance_app_name" ]]; then
-    append_unique_file COMPOSE_FILES_LIST "compose/apps/${instance_app_name}/base.yml"
+  declare -a instance_app_names=()
+  apps_raw="${COMPOSE_INSTANCE_APP_NAMES[$INSTANCE_NAME]:-}"
+  if [[ -n "$apps_raw" ]]; then
+    mapfile -t instance_app_names < <(printf '%s\n' "$apps_raw")
   fi
 
+  declare -A instance_overrides_by_app=()
+  for compose_file in "${instance_compose_files[@]}"; do
+    [[ -z "$compose_file" ]] && continue
+    app_for_file="${compose_file#compose/apps/}"
+    app_for_file="${app_for_file%%/*}"
+    if [[ -z "$app_for_file" ]]; then
+      continue
+    fi
+    if [[ -n "${instance_overrides_by_app[$app_for_file]:-}" ]]; then
+      instance_overrides_by_app[$app_for_file]+=$'\n'"$compose_file"
+    else
+      instance_overrides_by_app[$app_for_file]="$compose_file"
+    fi
+  done
+
+  for app_name in "${instance_app_names[@]}"; do
+    append_unique_file COMPOSE_FILES_LIST "compose/apps/${app_name}/base.yml"
+    if [[ -n "${instance_overrides_by_app[$app_name]:-}" ]]; then
+      mapfile -t instance_compose_files < <(printf '%s\n' "${instance_overrides_by_app[$app_name]}")
+      for override_file in "${instance_compose_files[@]}"; do
+        append_unique_file COMPOSE_FILES_LIST "$override_file"
+      done
+    fi
+  done
+
+  mapfile -t instance_compose_files < <(printf '%s\n' "${COMPOSE_INSTANCE_FILES[$INSTANCE_NAME]}")
   for compose_file in "${instance_compose_files[@]}"; do
     append_unique_file COMPOSE_FILES_LIST "$compose_file"
   done
@@ -125,6 +152,18 @@ fi
 if [[ -z "${COMPOSE_ENV_FILE:-}" && -n "$INSTANCE_NAME" && $metadata_loaded -eq 1 ]]; then
   if [[ -n "${COMPOSE_INSTANCE_ENV_FILES[$INSTANCE_NAME]:-}" ]]; then
     COMPOSE_ENV_FILE="${COMPOSE_INSTANCE_ENV_FILES[$INSTANCE_NAME]}"
+  fi
+fi
+
+if [[ -z "${COMPOSE_ENV_FILE:-}" && -n "$INSTANCE_NAME" ]]; then
+  env_candidate_rel="env/local/${INSTANCE_NAME}.env"
+  if [[ -f "$REPO_ROOT/$env_candidate_rel" ]]; then
+    COMPOSE_ENV_FILE="$env_candidate_rel"
+  else
+    env_template_rel="env/${INSTANCE_NAME}.example.env"
+    if [[ -f "$REPO_ROOT/$env_template_rel" ]]; then
+      COMPOSE_ENV_FILE="$env_template_rel"
+    fi
   fi
 fi
 

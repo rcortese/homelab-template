@@ -50,6 +50,8 @@ def test_defaults_for_core_instance(repo_copy: Path) -> None:
         "compose/base.yml",
         "compose/apps/app/base.yml",
         "compose/apps/app/core.yml",
+        "compose/apps/monitoring/base.yml",
+        "compose/apps/monitoring/core.yml",
     ]
     assert compose_files == " ".join(expected_files)
 
@@ -141,6 +143,8 @@ def test_loads_extra_files_from_env_file(repo_copy: Path) -> None:
         "compose/base.yml",
         "compose/apps/app/base.yml",
         "compose/apps/app/core.yml",
+        "compose/apps/monitoring/base.yml",
+        "compose/apps/monitoring/core.yml",
         *overlays,
     ]
     assert _extract_file_args(compose_cmd) == expected_files

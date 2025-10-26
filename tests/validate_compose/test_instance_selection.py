@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING
 import pytest
 
 from .utils import (
+    APP_BASE_COMPOSE,
     BASE_COMPOSE,
     CORE_COMPOSE,
     CORE_ENV,
@@ -12,6 +13,8 @@ from .utils import (
     MEDIA_COMPOSE,
     MEDIA_ENV,
     MEDIA_ENV_LOCAL,
+    MONITORING_BASE_COMPOSE,
+    MONITORING_CORE_COMPOSE,
     expected_compose_call,
     run_validate_compose,
 )
@@ -37,12 +40,18 @@ def test_accepts_mixed_separators_and_invokes_compose_for_each_instance(
     expected_media_env = MEDIA_ENV_LOCAL if MEDIA_ENV_LOCAL.exists() else MEDIA_ENV
     assert core_call == expected_compose_call(
         expected_core_env,
-        [BASE_COMPOSE, CORE_COMPOSE],
+        [
+            BASE_COMPOSE,
+            APP_BASE_COMPOSE,
+            CORE_COMPOSE,
+            MONITORING_BASE_COMPOSE,
+            MONITORING_CORE_COMPOSE,
+        ],
         "config",
     )
     assert media_call == expected_compose_call(
         expected_media_env,
-        [BASE_COMPOSE, MEDIA_COMPOSE],
+        [BASE_COMPOSE, APP_BASE_COMPOSE, MEDIA_COMPOSE],
         "config",
     )
 
