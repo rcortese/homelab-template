@@ -59,3 +59,15 @@ def test_check_env_sync_detects_missing_template(repo_copy: Path) -> None:
     assert "Instância 'core' não possui arquivo env/<instancia>.example.env documentado." in result.stdout
     assert "Divergências encontradas entre manifests Compose e arquivos .env exemplo." in result.stdout
     assert "Todas as variáveis de ambiente estão sincronizadas." not in result.stdout
+
+
+def test_check_env_sync_reports_metadata_failure(repo_copy: Path) -> None:
+    base_file = repo_copy / "compose" / "base.yml"
+    base_file.unlink()
+
+    result = run_check(repo_copy)
+
+    assert result.returncode == 1
+    assert result.stdout == ""
+    assert "[!]" in result.stderr
+    assert "compose/base.yml" in result.stderr
