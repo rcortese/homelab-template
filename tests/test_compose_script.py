@@ -145,6 +145,35 @@ def test_instance_uses_expected_env_and_compose_files(
     ]
 
 
+def test_instance_resolves_manifests_when_invoked_from_scripts_dir(
+    repo_copy: Path, docker_stub: DockerStub
+) -> None:
+    scripts_dir = repo_copy / "scripts"
+
+    result = run_compose(
+        args=["core"],
+        cwd=scripts_dir,
+        script_path=scripts_dir / "compose.sh",
+    )
+
+    assert result.returncode == 0
+
+    calls = docker_stub.read_calls()
+    assert len(calls) == 1
+    command = calls[0]
+
+    compose_files = [
+        command[index + 1]
+        for index, arg in enumerate(command)
+        if arg == "-f"
+    ]
+    assert compose_files == [
+        "compose/base.yml",
+        "compose/apps/app/base.yml",
+        "compose/apps/app/core.yml",
+    ]
+
+
 def test_custom_compose_files_override(
     repo_copy: Path, docker_stub: DockerStub
 ) -> None:
