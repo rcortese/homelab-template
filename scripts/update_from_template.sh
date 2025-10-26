@@ -184,10 +184,10 @@ if ! template_validate_worktree_clean; then
 fi
 
 if [[ "$dry_run" == true ]]; then
-  template_sync_dry_run "$template_remote" "$target_branch" "$remote_ref" "$original_commit" "$current_branch"
+  template_sync_dry_run "$template_remote" "$target_branch" "$remote_ref" "$first_local_commit" "$current_branch"
   exit 0
 fi
 
-template_sync_execute "$template_remote" "$target_branch" "$remote_ref" "$original_commit" "$first_local_commit" "$current_branch"
+template_sync_execute "$template_remote" "$target_branch" "$remote_ref" "$first_local_commit" "$current_branch"
 
 echo "Atualização concluída. Revise os commits reaplicados e execute os testes da stack."
