@@ -12,9 +12,26 @@
 ## Processo de backup
 
 - Identifique o comando/script responsável pela extração (ex.: `scripts/export_*.sh`, `pg_dump`, `restic`).
+- Utilize `scripts/backup.sh <instancia>` para pausar a stack, copiar os dados persistidos para `backups/` e retomá-la ao final.
 - Documente parâmetros obrigatórios (alvos, datas, diretórios temporários).
 - Registre como versionar ou etiquetar os artefatos resultantes.
 - Explique onde arquivar os relatórios de sucesso/erro.
+
+### Script de backup automatizado
+
+O `scripts/backup.sh` encapsula a sequência padrão de **parar ➜ copiar dados ➜ religar**. Alguns pontos de atenção:
+
+- Pré-requisitos: `env/local/<instancia>.env` configurado, diretórios de dados acessíveis e espaço livre em `backups/`.
+- O diretório final seguirá o padrão `backups/<instancia>-<YYYYMMDD-HHMMSS>`. Utilize `date` com `TZ` apropriado se precisar gerar snapshots em fusos distintos.
+- Logs são emitidos na saída padrão/erro; redirecione para arquivos quando integrar a automações (ex.: `scripts/backup.sh core >> logs/backup.log 2>&1`).
+- Para cenários com dados adicionais, exporte-os antes de executar o script (ex.: dumps de banco) e mova os artefatos para dentro do diretório gerado.
+- Durante a parada, o script identifica automaticamente quais aplicações estavam ativas analisando subdiretórios em `apps/` e `data/`. Somente essas aplicações são religadas ao final, respeitando a lista de serviços conhecida pela instância. Caso nenhum diretório seja encontrado, o script recorre aos serviços definidos na configuração da instância.
+
+#### Testando o fluxo
+
+- Lint do script: `shfmt -d scripts/backup.sh` e `shellcheck scripts/backup.sh`.
+- Testes automatizados que validam a parada, cópia e religamento: `pytest tests/backup_script -q`.
+- Inclua checagens de restauração com frequência definida (ex.: mensal) copiando o snapshot para um ambiente isolado.
 
 ## Processo de restauração
 
