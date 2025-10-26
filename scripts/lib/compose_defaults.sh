@@ -76,14 +76,43 @@ setup_compose_defaults() {
 
         append_unique_file files_list "$BASE_COMPOSE_FILE"
 
-        local instance_app_name="${COMPOSE_INSTANCE_APP_NAMES[$instance]:-}"
-        if [[ -n "$instance_app_name" ]]; then
-          append_unique_file files_list "compose/apps/${instance_app_name}/base.yml"
+        local -a __instance_app_names=()
+        local __apps_raw="${COMPOSE_INSTANCE_APP_NAMES[$instance]:-}"
+        if [[ -n "$__apps_raw" ]]; then
+          mapfile -t __instance_app_names < <(printf '%s\n' "$__apps_raw")
         fi
 
-        local item
-        for item in "${__instance_compose_files[@]}"; do
-          append_unique_file files_list "$item"
+        declare -A __instance_overrides_by_app=()
+        local __compose_entry __app_for_entry
+        for __compose_entry in "${__instance_compose_files[@]}"; do
+          [[ -z "$__compose_entry" ]] && continue
+          __app_for_entry="${__compose_entry#compose/apps/}"
+          __app_for_entry="${__app_for_entry%%/*}"
+          if [[ -z "$__app_for_entry" ]]; then
+            continue
+          fi
+          if [[ -n "${__instance_overrides_by_app[$__app_for_entry]:-}" ]]; then
+            __instance_overrides_by_app[$__app_for_entry]+=$'\n'"$__compose_entry"
+          else
+            __instance_overrides_by_app[$__app_for_entry]="$__compose_entry"
+          fi
+        done
+
+        local __app_name
+        for __app_name in "${__instance_app_names[@]}"; do
+          append_unique_file files_list "compose/apps/${__app_name}/base.yml"
+          if [[ -n "${__instance_overrides_by_app[$__app_name]:-}" ]]; then
+            local -a __app_override_entries=()
+            mapfile -t __app_override_entries < <(printf '%s\n' "${__instance_overrides_by_app[$__app_name]}")
+            local __override_entry
+            for __override_entry in "${__app_override_entries[@]}"; do
+              append_unique_file files_list "$__override_entry"
+            done
+          fi
+        done
+
+        for __compose_entry in "${__instance_compose_files[@]}"; do
+          append_unique_file files_list "$__compose_entry"
         done
 
         COMPOSE_FILES="${files_list[*]}"

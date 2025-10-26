@@ -5,7 +5,7 @@ import subprocess
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from .utils import BASE_COMPOSE, CORE_COMPOSE, expected_compose_call
+from .utils import expected_compose_call
 
 if TYPE_CHECKING:
     from ..conftest import DockerStub
@@ -31,7 +31,10 @@ def test_prefers_local_env_when_available(repo_copy: Path, docker_stub: DockerSt
         repo_copy / "env" / "local" / "core.env",
         [
             repo_copy / "compose" / "base.yml",
+            repo_copy / "compose" / "apps" / "app" / "base.yml",
             repo_copy / "compose" / "apps" / "app" / "core.yml",
+            repo_copy / "compose" / "apps" / "monitoring" / "base.yml",
+            repo_copy / "compose" / "apps" / "monitoring" / "core.yml",
         ],
         "config",
     )
@@ -73,7 +76,10 @@ def test_includes_extra_files_from_env_file(repo_copy: Path, docker_stub: Docker
         repo_copy / "env" / "local" / "core.env",
         [
             repo_copy / "compose" / "base.yml",
+            repo_copy / "compose" / "apps" / "app" / "base.yml",
             repo_copy / "compose" / "apps" / "app" / "core.yml",
+            repo_copy / "compose" / "apps" / "monitoring" / "base.yml",
+            repo_copy / "compose" / "apps" / "monitoring" / "core.yml",
             repo_copy / "compose" / "overlays" / "metrics.yml",
             repo_copy / "compose" / "overlays" / "logging.yml",
         ],
@@ -123,7 +129,10 @@ def test_env_override_for_extra_files(repo_copy: Path, docker_stub: DockerStub) 
         repo_copy / "env" / "local" / "core.env",
         [
             repo_copy / "compose" / "base.yml",
+            repo_copy / "compose" / "apps" / "app" / "base.yml",
             repo_copy / "compose" / "apps" / "app" / "core.yml",
+            repo_copy / "compose" / "apps" / "monitoring" / "base.yml",
+            repo_copy / "compose" / "apps" / "monitoring" / "core.yml",
             repo_copy / "compose" / "overlays" / "custom.yml",
         ],
         "config",

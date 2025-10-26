@@ -16,6 +16,7 @@ def test_infers_compose_files_and_env_from_instance(
         args=["core"],
         cwd=repo_copy,
         script_path=script_path,
+        env={"DOCKER_STUB_SERVICES_OUTPUT": "app\nmonitoring"},
     )
 
     assert result.returncode == 0, result.stderr
@@ -26,6 +27,8 @@ def test_infers_compose_files_and_env_from_instance(
         "compose/base.yml",
         "compose/apps/app/base.yml",
         "compose/apps/app/core.yml",
+        "compose/apps/monitoring/base.yml",
+        "compose/apps/monitoring/core.yml",
     ]
     assert calls == [
         _expected_compose_call(env_file, expected_files, "config", "--services"),
@@ -41,6 +44,7 @@ def test_executes_from_scripts_directory(docker_stub: DockerStub, repo_copy: Pat
         args=["core"],
         cwd=scripts_dir,
         script_path="./check_health.sh",
+        env={"DOCKER_STUB_SERVICES_OUTPUT": "app\nmonitoring"},
     )
 
     assert result.returncode == 0, result.stderr
@@ -51,10 +55,13 @@ def test_executes_from_scripts_directory(docker_stub: DockerStub, repo_copy: Pat
         "compose/base.yml",
         "compose/apps/app/base.yml",
         "compose/apps/app/core.yml",
+        "compose/apps/monitoring/base.yml",
+        "compose/apps/monitoring/core.yml",
     ]
     assert calls == [
         _expected_compose_call(env_file, expected_files, "config", "--services"),
         _expected_compose_call(env_file, expected_files, "ps"),
         _expected_compose_call(env_file, expected_files, "logs", "--tail=50", "app-core"),
         _expected_compose_call(env_file, expected_files, "logs", "--tail=50", "app"),
+        _expected_compose_call(env_file, expected_files, "logs", "--tail=50", "monitoring"),
     ]

@@ -1,0 +1,3 @@
+services:
+  monitoring:
+    container_name: monitoring-core

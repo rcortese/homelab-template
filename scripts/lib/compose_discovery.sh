@@ -116,12 +116,22 @@ load_compose_discovery() {
         return 1
       fi
 
-      if [[ -n "${COMPOSE_INSTANCE_APP_NAMES[$instance]:-}" && "${COMPOSE_INSTANCE_APP_NAMES[$instance]}" != "$app_name" ]]; then
-        echo "[!] Instância '$instance' encontrada em múltiplas aplicações ('$app_name' e '${COMPOSE_INSTANCE_APP_NAMES[$instance]}')." >&2
-        return 1
-      fi
+      local existing_apps="${COMPOSE_INSTANCE_APP_NAMES[$instance]:-}"
+      if [[ -z "$existing_apps" ]]; then
+        COMPOSE_INSTANCE_APP_NAMES[$instance]="$app_name"
+      else
+        local already_listed=0
+        while IFS=$'\n' read -r existing_app; do
+          if [[ "$existing_app" == "$app_name" ]]; then
+            already_listed=1
+            break
+          fi
+        done <<<"$existing_apps"
 
-      COMPOSE_INSTANCE_APP_NAMES[$instance]="$app_name"
+        if [[ $already_listed -eq 0 ]]; then
+          COMPOSE_INSTANCE_APP_NAMES[$instance]+=$'\n'"$app_name"
+        fi
+      fi
       seen_instances[$instance]=1
       compose_discovery__append_instance_file "$instance" "$instance_rel"
     done

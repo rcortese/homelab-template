@@ -10,6 +10,8 @@ BASE_COMPOSE = REPO_ROOT / "compose" / "base.yml"
 APP_BASE_COMPOSE = REPO_ROOT / "compose" / "apps" / "app" / "base.yml"
 CORE_COMPOSE = REPO_ROOT / "compose" / "apps" / "app" / "core.yml"
 MEDIA_COMPOSE = REPO_ROOT / "compose" / "apps" / "app" / "media.yml"
+MONITORING_BASE_COMPOSE = REPO_ROOT / "compose" / "apps" / "monitoring" / "base.yml"
+MONITORING_CORE_COMPOSE = REPO_ROOT / "compose" / "apps" / "monitoring" / "core.yml"
 CORE_ENV = REPO_ROOT / "env" / "core.example.env"
 MEDIA_ENV = REPO_ROOT / "env" / "media.example.env"
 CORE_ENV_LOCAL = REPO_ROOT / "env" / "local" / "core.env"
@@ -36,14 +38,16 @@ def expected_compose_call(env_file: Path, files: list[Path], *args: str) -> list
 
 
 __all__ = [
-    "APP_BASE_COMPOSE",
     "BASE_COMPOSE",
+    "APP_BASE_COMPOSE",
     "CORE_COMPOSE",
     "CORE_ENV",
     "CORE_ENV_LOCAL",
     "MEDIA_COMPOSE",
     "MEDIA_ENV",
     "MEDIA_ENV_LOCAL",
+    "MONITORING_BASE_COMPOSE",
+    "MONITORING_CORE_COMPOSE",
     "REPO_ROOT",
     "SCRIPT_PATH",
     "expected_compose_call",

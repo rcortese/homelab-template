@@ -36,6 +36,28 @@ validate_executor_prepare_plan() {
 
   mapfile -t instance_file_list < <(printf '%s\n' "$instance_files_raw")
 
+  local -a instance_app_names=()
+  local instance_apps_raw="${COMPOSE_INSTANCE_APP_NAMES[$instance]:-}"
+  if [[ -n "$instance_apps_raw" ]]; then
+    mapfile -t instance_app_names < <(printf '%s\n' "$instance_apps_raw")
+  fi
+
+  declare -A instance_overrides_by_app=()
+  local instance_entry app_for_entry
+  for instance_entry in "${instance_file_list[@]}"; do
+    [[ -z "$instance_entry" ]] && continue
+    app_for_entry="${instance_entry#compose/apps/}"
+    app_for_entry="${app_for_entry%%/*}"
+    if [[ -z "$app_for_entry" ]]; then
+      continue
+    fi
+    if [[ -n "${instance_overrides_by_app[$app_for_entry]:-}" ]]; then
+      instance_overrides_by_app[$app_for_entry]+=$'\n'"$instance_entry"
+    else
+      instance_overrides_by_app[$app_for_entry]="$instance_entry"
+    fi
+  done
+
   local env_file_rel="${COMPOSE_INSTANCE_ENV_FILES[$instance]:-}"
   local env_file=""
 
@@ -44,6 +66,19 @@ validate_executor_prepare_plan() {
   fi
 
   files_ref=("$base_file")
+
+  local app_name
+  for app_name in "${instance_app_names[@]}"; do
+    files_ref+=("$(resolve_compose_file "compose/apps/${app_name}/base.yml")")
+    if [[ -n "${instance_overrides_by_app[$app_name]:-}" ]]; then
+      local -a app_override_entries=()
+      mapfile -t app_override_entries < <(printf '%s\n' "${instance_overrides_by_app[$app_name]}")
+      local override_entry
+      for override_entry in "${app_override_entries[@]}"; do
+        files_ref+=("$(resolve_compose_file "$override_entry")")
+      done
+    fi
+  done
 
   local -a extra_files=()
   local extra_files_source=""
@@ -64,10 +99,20 @@ validate_executor_prepare_plan() {
     done < <(parse_compose_file_list "$extra_files_source")
   fi
 
-  local rel
+  local rel resolved_rel entry
   for rel in "${instance_file_list[@]}"; do
     [[ -z "$rel" ]] && continue
-    files_ref+=("$(resolve_compose_file "$rel")")
+    resolved_rel="$(resolve_compose_file "$rel")"
+    local already_in_list=0
+    for entry in "${files_ref[@]}"; do
+      if [[ "$entry" == "$resolved_rel" ]]; then
+        already_in_list=1
+        break
+      fi
+    done
+    if ((already_in_list == 0)); then
+      files_ref+=("$resolved_rel")
+    fi
   done
 
   if [[ ${#extra_files[@]} -gt 0 ]]; then

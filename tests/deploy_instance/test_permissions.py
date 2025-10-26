@@ -97,7 +97,7 @@ def test_deploy_uses_convention_for_data_dir(repo_copy: Path) -> None:
     )
 
     assert result.returncode == 0, result.stderr
-    data_dir = repo_copy / "data" / "app-core"
+    data_dir = repo_copy / "custom-storage"
     assert data_dir.exists()
-    assert not (repo_copy / "custom-storage").exists()
+    assert not (repo_copy / "data" / "app-core").exists()
     assert (repo_copy / "backups").exists()
