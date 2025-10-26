@@ -75,6 +75,26 @@ def test_unknown_instance_returns_error(docker_stub: DockerStub) -> None:
     assert docker_stub.read_calls() == []
 
 
+def test_errors_when_compose_command_missing(docker_stub: DockerStub) -> None:
+    metadata_sequence = list(load_instance_metadata())
+    assert metadata_sequence, "Expected at least one compose instance for validation tests"
+    target_instance = metadata_sequence[0].name
+
+    env = {
+        "DOCKER_COMPOSE_BIN": "definitely-missing-binary",
+        "COMPOSE_INSTANCES": target_instance,
+    }
+
+    result = run_validate_compose(env)
+
+    assert result.returncode == 127
+    assert (
+        "Error: definitely-missing-binary is not available. Set DOCKER_COMPOSE_BIN if needed."
+        in result.stderr
+    )
+    assert docker_stub.read_calls() == []
+
+
 @pytest.mark.parametrize("instances", [" , ,  "])
 def test_only_separators_in_compose_instances_returns_error(
     instances: str, docker_stub: DockerStub
