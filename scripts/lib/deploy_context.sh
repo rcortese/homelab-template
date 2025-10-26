@@ -150,6 +150,11 @@ build_deploy_context() {
     return 1
   fi
 
+  local app_names_string=""
+  if [[ ${#instance_app_names[@]} -gt 0 ]]; then
+    app_names_string="$(printf '%s\n' "${instance_app_names[@]}")"
+  fi
+
   local primary_app="${instance_app_names[0]}"
   local app_data_dir_value="${APP_DATA_DIR:-}"
   if [[ -z "$app_data_dir_value" ]]; then
@@ -235,5 +240,6 @@ build_deploy_context() {
   printf '  [DATA_UID]=%q\n' "$data_uid"
   printf '  [DATA_GID]=%q\n' "$data_gid"
   printf '  [APP_DATA_UID_GID]=%q\n' "$app_data_uid_gid"
+  printf '  [APP_NAMES]=%q\n' "$app_names_string"
   printf ')\n'
 }

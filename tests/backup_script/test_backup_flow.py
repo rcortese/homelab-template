@@ -44,7 +44,19 @@ def test_successful_backup_creates_snapshot_and_restarts_stack(
         ),
     )
 
-    data_dir = repo_copy / "data" / "app-core"
+    env_file = repo_copy / "env" / "local" / "core.env"
+    env_file.write_text(
+        env_file.read_text(encoding="utf-8") + "APP_DATA_DIR=data/core-root\n",
+        encoding="utf-8",
+    )
+
+    data_root = repo_copy / "data" / "core-root"
+    apps_dir = data_root / "apps"
+    apps_dir.mkdir(parents=True)
+    (apps_dir / "app-core").mkdir()
+    (apps_dir / "monitoring").mkdir()
+
+    data_dir = data_root / "data" / "app-core"
     data_dir.mkdir(parents=True)
     (data_dir / "db.sqlite").write_text("payload", encoding="utf-8")
 
@@ -52,13 +64,15 @@ def test_successful_backup_creates_snapshot_and_restarts_stack(
 
     assert result.returncode == 0, result.stderr
     assert "Backup da instância 'core' concluído" in result.stdout
+    assert "Aplicações detectadas para religar: app monitoring" in result.stdout
 
     backup_dir = repo_copy / "backups" / "core-20240101-030405"
     assert backup_dir.is_dir()
-    assert (backup_dir / "db.sqlite").read_text(encoding="utf-8") == "payload"
+    restored_file = backup_dir / "data" / "app-core" / "db.sqlite"
+    assert restored_file.read_text(encoding="utf-8") == "payload"
 
     calls = compose_log.read_text(encoding="utf-8").splitlines()
-    assert calls == ["core down", "core up -d"]
+    assert calls == ["core down", "core up -d app monitoring"]
 
 
 def test_copy_failure_still_attempts_restart(repo_copy: Path, monkeypatch) -> None:
@@ -79,7 +93,19 @@ def test_copy_failure_still_attempts_restart(repo_copy: Path, monkeypatch) -> No
         ),
     )
 
-    data_dir = repo_copy / "data" / "app-core"
+    env_file = repo_copy / "env" / "local" / "core.env"
+    env_file.write_text(
+        env_file.read_text(encoding="utf-8") + "APP_DATA_DIR=data/core-root\n",
+        encoding="utf-8",
+    )
+
+    data_root = repo_copy / "data" / "core-root"
+    apps_dir = data_root / "apps"
+    apps_dir.mkdir(parents=True)
+    (apps_dir / "app-core").mkdir()
+    (apps_dir / "monitoring-core").mkdir()
+
+    data_dir = data_root / "data" / "app-core"
     data_dir.mkdir(parents=True)
     (data_dir / "db.sqlite").write_text("payload", encoding="utf-8")
 
@@ -93,10 +119,10 @@ def test_copy_failure_still_attempts_restart(repo_copy: Path, monkeypatch) -> No
     assert list(backup_dir.iterdir()) == []
 
     calls = compose_log.read_text(encoding="utf-8").splitlines()
-    assert calls == ["core down", "core up -d"]
+    assert calls == ["core down", "core up -d app monitoring"]
     assert cp_log.read_text(encoding="utf-8").splitlines() == [
         "-a",
-        f"{repo_copy}/data/app-core/.",
+        f"{repo_copy}/data/core-root/.",
         f"{repo_copy}/backups/core-20240101-030405/",
     ]
 
@@ -105,3 +131,70 @@ def test_copy_failure_still_attempts_restart(repo_copy: Path, monkeypatch) -> No
     for stub in fake_bin.iterdir():
         stub.unlink()
     fake_bin.rmdir()
+
+
+def test_detected_apps_ignore_unknown_entries(repo_copy: Path, monkeypatch) -> None:
+    compose_log = _install_compose_stub(repo_copy)
+    _prepend_fake_bin(
+        repo_copy,
+        monkeypatch,
+        (
+            "date",
+            "#!/usr/bin/env bash\nset -euo pipefail\nprintf '20240101-030405\\n'\n",
+        ),
+    )
+
+    env_file = repo_copy / "env" / "local" / "core.env"
+    env_file.write_text(
+        env_file.read_text(encoding="utf-8") + "APP_DATA_DIR=data/core-root\n",
+        encoding="utf-8",
+    )
+
+    data_root = repo_copy / "data" / "core-root"
+    apps_dir = data_root / "apps"
+    apps_dir.mkdir(parents=True)
+    (apps_dir / "app-core").mkdir()
+    (apps_dir / "monitoring-core").mkdir()
+    (apps_dir / "legacy-service").mkdir()
+
+    data_dir = data_root / "data"
+    data_dir.mkdir()
+    (data_dir / "orphan").mkdir()
+
+    result = run_backup(repo_copy, "core")
+
+    assert result.returncode == 0, result.stderr
+    assert "Aplicações detectadas para religar: app monitoring" in result.stdout
+
+    calls = compose_log.read_text(encoding="utf-8").splitlines()
+    assert calls == ["core down", "core up -d app monitoring"]
+
+
+def test_fallback_to_known_apps_when_no_active_dirs(repo_copy: Path, monkeypatch) -> None:
+    compose_log = _install_compose_stub(repo_copy)
+    _prepend_fake_bin(
+        repo_copy,
+        monkeypatch,
+        (
+            "date",
+            "#!/usr/bin/env bash\nset -euo pipefail\nprintf '20240101-030405\\n'\n",
+        ),
+    )
+
+    env_file = repo_copy / "env" / "local" / "core.env"
+    env_file.write_text(
+        env_file.read_text(encoding="utf-8") + "APP_DATA_DIR=data/core-root\n",
+        encoding="utf-8",
+    )
+
+    data_root = repo_copy / "data" / "core-root"
+    data_root.mkdir(parents=True)
+
+    result = run_backup(repo_copy, "core")
+
+    assert result.returncode == 0, result.stderr
+    assert "Nenhuma aplicação ativa identificada; religando stack completa." not in result.stdout
+    assert "Aplicações detectadas para religar: app monitoring" in result.stdout
+
+    calls = compose_log.read_text(encoding="utf-8").splitlines()
+    assert calls == ["core down", "core up -d app monitoring"]
