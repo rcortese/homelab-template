@@ -182,3 +182,155 @@ def test_script_fails_with_pending_changes(tmp_path):
 
     assert result.returncode != 0
     assert "alterações locais não commitadas" in result.stderr
+
+
+def test_script_errors_when_remote_missing(tmp_path):
+    consumer = create_consumer_repo(tmp_path)
+    script = consumer / "scripts" / "update_from_template.sh"
+    os.chmod(script, 0o755)
+
+    head_commit = (
+        subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=consumer,
+            text=True,
+            capture_output=True,
+            check=True,
+        ).stdout.strip()
+    )
+
+    env = {
+        **os.environ,
+        "TEMPLATE_REMOTE": "missing",
+        "ORIGINAL_COMMIT_ID": head_commit,
+        "FIRST_COMMIT_ID": head_commit,
+        "TARGET_BRANCH": "main",
+    }
+
+    result = subprocess.run(
+        [str(script)],
+        cwd=consumer,
+        capture_output=True,
+        text=True,
+        env=env,
+        check=False,
+    )
+
+    assert result.returncode != 0
+    assert "remote 'missing' não está configurado" in result.stderr
+
+
+def test_script_errors_when_original_commit_is_invalid(tmp_path):
+    consumer = create_consumer_repo(tmp_path)
+    script = consumer / "scripts" / "update_from_template.sh"
+    os.chmod(script, 0o755)
+
+    head_commit = (
+        subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=consumer,
+            text=True,
+            capture_output=True,
+            check=True,
+        ).stdout.strip()
+    )
+
+    env = {
+        **os.environ,
+        "TEMPLATE_REMOTE": "template",
+        "ORIGINAL_COMMIT_ID": "deadbeef",
+        "FIRST_COMMIT_ID": head_commit,
+        "TARGET_BRANCH": "main",
+    }
+
+    result = subprocess.run(
+        [str(script)],
+        cwd=consumer,
+        capture_output=True,
+        text=True,
+        env=env,
+        check=False,
+    )
+
+    assert result.returncode != 0
+    assert "commit original deadbeef não foi encontrado" in result.stderr
+
+
+def test_script_errors_when_first_commit_not_descends_from_original(tmp_path):
+    template_remote = tmp_path / "template.git"
+    run(["git", "init", "--bare", str(template_remote)], cwd=tmp_path)
+    subprocess.run(
+        ["git", "--git-dir", str(template_remote), "symbolic-ref", "HEAD", "refs/heads/main"],
+        check=True,
+    )
+
+    consumer = create_consumer_repo(tmp_path)
+    script = consumer / "scripts" / "update_from_template.sh"
+    os.chmod(script, 0o755)
+
+    run(["git", "branch", "-M", "main"], cwd=consumer)
+    run(["git", "remote", "add", "template", str(template_remote)], cwd=consumer)
+    run(["git", "push", "template", "main"], cwd=consumer)
+
+    (consumer / "local.txt").write_text("local change\n", encoding="utf-8")
+    run(["git", "add", "local.txt"], cwd=consumer)
+    run(["git", "commit", "-m", "Local customization"], cwd=consumer)
+
+    first_commit = (
+        subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=consumer,
+            text=True,
+            capture_output=True,
+            check=True,
+        ).stdout.strip()
+    )
+
+    base_commit = (
+        subprocess.run(
+            ["git", "rev-parse", "HEAD~1"],
+            cwd=consumer,
+            text=True,
+            capture_output=True,
+            check=True,
+        ).stdout.strip()
+    )
+
+    run(["git", "checkout", "-b", "side", base_commit], cwd=consumer)
+    (consumer / "side.txt").write_text("side branch\n", encoding="utf-8")
+    run(["git", "add", "side.txt"], cwd=consumer)
+    run(["git", "commit", "-m", "Side commit"], cwd=consumer)
+
+    original_commit = (
+        subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=consumer,
+            text=True,
+            capture_output=True,
+            check=True,
+        ).stdout.strip()
+    )
+
+    run(["git", "checkout", "main"], cwd=consumer)
+
+    env = {
+        **os.environ,
+        "TEMPLATE_REMOTE": "template",
+        "ORIGINAL_COMMIT_ID": original_commit,
+        "FIRST_COMMIT_ID": first_commit,
+        "TARGET_BRANCH": "main",
+    }
+
+    result = subprocess.run(
+        [str(script)],
+        cwd=consumer,
+        capture_output=True,
+        text=True,
+        env=env,
+        check=False,
+    )
+
+    assert result.returncode != 0
+    assert (
+        f"o commit {original_commit} não é ancestral de {first_commit}" in result.stderr
+    )
