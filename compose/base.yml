@@ -11,6 +11,6 @@ services:
       APP_SECRET: ${APP_SECRET}
       APP_RETENTION_HOURS: ${APP_RETENTION_HOURS:-168}
     volumes:
-      - ../${APP_DATA_DIR}:/var/lib/app
+      - ${APP_DATA_DIR_MOUNT}:/var/lib/app
       - ../backups:/var/backups
     restart: unless-stopped

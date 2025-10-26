@@ -41,6 +41,9 @@ source "$SCRIPT_DIR/lib/compose_plan.sh"
 # shellcheck source=./lib/env_file_chain.sh
 source "$SCRIPT_DIR/lib/env_file_chain.sh"
 
+# shellcheck source=./lib/env_helpers.sh
+source "$SCRIPT_DIR/lib/env_helpers.sh"
+
 INSTANCE_NAME=""
 COMPOSE_ARGS=()
 declare -a COMPOSE_CMD=()
@@ -174,6 +177,7 @@ if [[ -n "${COMPOSE_ENV_FILE:-}" ]]; then
 fi
 
 app_data_dir_value="${APP_DATA_DIR:-}"
+app_data_dir_mount_value=""
 
 if [[ -z "$app_data_dir_value" && -n "$compose_env_file_abs" && -f "$compose_env_file_abs" ]]; then
   if app_data_dir_kv="$("$SCRIPT_DIR/lib/env_loader.sh" "$compose_env_file_abs" APP_DATA_DIR)"; then
@@ -220,7 +224,8 @@ if [[ ${#COMPOSE_ARGS[@]} -gt 0 ]]; then
 fi
 
 if [[ -n "$app_data_dir_value" ]]; then
-  APP_DATA_DIR="$app_data_dir_value" exec -- "${COMPOSE_CMD[@]}"
+  app_data_dir_mount_value="$(resolve_app_data_dir_mount "$app_data_dir_value")"
+  APP_DATA_DIR="$app_data_dir_value" APP_DATA_DIR_MOUNT="$app_data_dir_mount_value" exec -- "${COMPOSE_CMD[@]}"
 else
   exec "${COMPOSE_CMD[@]}"
 fi

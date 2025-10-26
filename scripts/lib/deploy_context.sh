@@ -212,8 +212,13 @@ build_deploy_context() {
 
   local primary_app="${instance_app_names[0]}"
   local app_data_dir_value="${APP_DATA_DIR:-}"
+  local app_data_dir_mount_value=""
   if [[ -z "$app_data_dir_value" ]]; then
     app_data_dir_value="data/${primary_app}-${instance}"
+  fi
+
+  if [[ -n "$app_data_dir_value" ]]; then
+    app_data_dir_mount_value="$(resolve_app_data_dir_mount "$app_data_dir_value")"
   fi
 
   if ((app_data_dir_was_set == 1)); then
@@ -266,6 +271,7 @@ build_deploy_context() {
   printf '  [COMPOSE_EXTRA_FILES]=%q\n' "$extra_compose_files_string"
   printf '  [COMPOSE_FILES]=%q\n' "$compose_files_string"
   printf '  [APP_DATA_DIR]=%q\n' "$app_data_dir_value"
+  printf '  [APP_DATA_DIR_MOUNT]=%q\n' "$app_data_dir_mount_value"
   printf '  [PERSISTENT_DIRS]=%q\n' "$persistent_dirs_string"
   printf '  [DATA_UID]=%q\n' "$data_uid"
   printf '  [DATA_GID]=%q\n' "$data_gid"
