@@ -110,6 +110,28 @@ Defina `COMPOSE_FILES` e `COMPOSE_ENV_FILE` para combinações personalizadas e 
   - `SERVICE_NAME` — nome de um serviço específico para reduzir o escopo (útil ao investigar incidentes pontuais).
   - `COMPOSE_ENV_FILE` — caminho para um arquivo `.env` alternativo a ser carregado antes de consultar o `docker compose`.
 - O script complementa automaticamente a lista de serviços executando `docker compose config --services`, garantindo cobertura mesmo sem `HEALTH_SERVICES` definido.
+- **Formatos de saída:**
+  - `text` (padrão) — replica o comportamento histórico imprimindo o resultado de `docker compose ps` seguido dos logs recentes.
+  - `json` — serializa o status dos contêineres (incluindo `docker compose ps --format json`, quando disponível) e os logs de cada serviço monitorado para consumo por pipelines ou páginas de status.
+- **Persistência da saída:** use `--output <arquivo>` para gravar o relatório em disco sem abrir mão da saída padrão, facilitando integrações que versionam ou distribuem o resultado.
+
+Exemplos práticos:
+
+```bash
+# Saída tradicional em texto
+scripts/check_health.sh core
+
+# Coleta estruturada para pipelines (ex.: GitHub Actions + jq)
+scripts/check_health.sh --format json core | jq '.logs.failed'
+
+# Gera arquivo JSON para publicar em uma página de status
+scripts/check_health.sh --format json --output status/core.json core
+
+# Usa HEALTH_SERVICES para restringir a coleta a serviços críticos
+HEALTH_SERVICES="api worker" scripts/check_health.sh --format json media | jq '.compose.raw'
+```
+
+> **Dica:** combine o modo `json` com ferramentas como `jq`, `yq` ou clientes HTTP (`curl`, `gh api`) para alimentar dashboards e notificações. O campo `logs.entries[].log` traz o conteúdo em texto, enquanto `logs.entries[].log_b64` preserva os dados em Base64 para reprocessamento seguro.
 
 ## scripts/check_db_integrity.sh
 
