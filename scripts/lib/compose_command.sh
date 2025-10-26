@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 # Shared helpers for resolving docker compose command invocations.
 
 compose_resolve_command() {

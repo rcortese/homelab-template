@@ -57,5 +57,10 @@ resolve_app_data_dir_mount() {
     sanitized="${sanitized#./}"
   done
 
+  if [[ "$sanitized" == ..* ]]; then
+    printf '%s' "$sanitized"
+    return 0
+  fi
+
   printf '../%s' "$sanitized"
 }
