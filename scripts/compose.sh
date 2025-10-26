@@ -76,24 +76,48 @@ COMPOSE_FILES_LIST=()
 metadata_loaded=0
 declare -a resolved_instance_app_names=()
 
+split_env_entries() {
+  local raw="${1:-}"
+  local -n __out="$2"
+
+  __out=()
+
+  if [[ -z "$raw" ]]; then
+    return
+  fi
+
+  raw="${raw//$'\n'/ }"
+  raw="${raw//,/ }"
+
+  local token
+  for token in $raw; do
+    [[ -z "$token" ]] && continue
+    __out+=("$token")
+  done
+}
+
+if [[ -n "$INSTANCE_NAME" ]]; then
+  if ! compose_metadata="$("$SCRIPT_DIR/lib/compose_instances.sh" "$REPO_ROOT")"; then
+    if [[ -z "${COMPOSE_FILES:-}" ]]; then
+      echo "Error: não foi possível carregar metadados das instâncias." >&2
+      exit 1
+    fi
+  else
+    eval "$compose_metadata"
+    metadata_loaded=1
+
+    if [[ -z "${COMPOSE_INSTANCE_FILES[$INSTANCE_NAME]:-}" ]]; then
+      echo "Error: instância desconhecida '$INSTANCE_NAME'." >&2
+      echo "Disponíveis: ${COMPOSE_INSTANCE_NAMES[*]}" >&2
+      exit 1
+    fi
+  fi
+fi
+
 if [[ -n "${COMPOSE_FILES:-}" ]]; then
   # shellcheck disable=SC2206
   COMPOSE_FILES_LIST=(${COMPOSE_FILES})
-elif [[ -n "$INSTANCE_NAME" ]]; then
-  if ! compose_metadata="$("$SCRIPT_DIR/lib/compose_instances.sh" "$REPO_ROOT")"; then
-    echo "Error: não foi possível carregar metadados das instâncias." >&2
-    exit 1
-  fi
-
-  eval "$compose_metadata"
-  metadata_loaded=1
-
-  if [[ -z "${COMPOSE_INSTANCE_FILES[$INSTANCE_NAME]:-}" ]]; then
-    echo "Error: instância desconhecida '$INSTANCE_NAME'." >&2
-    echo "Disponíveis: ${COMPOSE_INSTANCE_NAMES[*]}" >&2
-    exit 1
-  fi
-
+elif [[ -n "$INSTANCE_NAME" && $metadata_loaded -eq 1 ]]; then
   mapfile -t instance_compose_files < <(printf '%s\n' "${COMPOSE_INSTANCE_FILES[$INSTANCE_NAME]}")
 
   append_unique_file COMPOSE_FILES_LIST "$BASE_COMPOSE_FILE"
@@ -106,22 +130,34 @@ elif [[ -n "$INSTANCE_NAME" ]]; then
   fi
 fi
 
-if [[ -z "${COMPOSE_ENV_FILE:-}" && -n "$INSTANCE_NAME" && $metadata_loaded -eq 1 ]]; then
-  if [[ -n "${COMPOSE_INSTANCE_ENV_FILES[$INSTANCE_NAME]:-}" ]]; then
-    COMPOSE_ENV_FILE="${COMPOSE_INSTANCE_ENV_FILES[$INSTANCE_NAME]}"
-  fi
+COMPOSE_ENV_FILES_LIST=()
+explicit_env_input="${COMPOSE_ENV_FILES:-}"
+if [[ -z "$explicit_env_input" && -n "${COMPOSE_ENV_FILE:-}" ]]; then
+  explicit_env_input="$COMPOSE_ENV_FILE"
 fi
 
-if [[ -z "${COMPOSE_ENV_FILE:-}" && -n "$INSTANCE_NAME" ]]; then
-  env_candidate_rel="env/local/${INSTANCE_NAME}.env"
-  if [[ -f "$REPO_ROOT/$env_candidate_rel" ]]; then
-    COMPOSE_ENV_FILE="$env_candidate_rel"
-  else
-    env_template_rel="env/${INSTANCE_NAME}.example.env"
-    if [[ -f "$REPO_ROOT/$env_template_rel" ]]; then
-      COMPOSE_ENV_FILE="$env_template_rel"
-    fi
-  fi
+metadata_env_input=""
+if [[ -n "$INSTANCE_NAME" && $metadata_loaded -eq 1 && -n "${COMPOSE_INSTANCE_ENV_FILES[$INSTANCE_NAME]:-}" ]]; then
+  metadata_env_input="${COMPOSE_INSTANCE_ENV_FILES[$INSTANCE_NAME]}"
+fi
+
+env_file_chain__resolve_explicit "$explicit_env_input" "$metadata_env_input" COMPOSE_ENV_FILES_LIST
+
+if (( ${#COMPOSE_ENV_FILES_LIST[@]} == 0 )) && [[ -n "$INSTANCE_NAME" ]]; then
+  env_file_chain__defaults "$REPO_ROOT" "$INSTANCE_NAME" COMPOSE_ENV_FILES_LIST
+fi
+
+if (( ${#COMPOSE_ENV_FILES_LIST[@]} > 0 )); then
+  COMPOSE_ENV_FILE="${COMPOSE_ENV_FILES_LIST[-1]}"
+  COMPOSE_ENV_FILES="$(printf '%s\n' "${COMPOSE_ENV_FILES_LIST[@]}")"
+  COMPOSE_ENV_FILES="${COMPOSE_ENV_FILES%$'\n'}"
+else
+  COMPOSE_ENV_FILES=""
+fi
+
+declare -a COMPOSE_ENV_FILES_RESOLVED=()
+if (( ${#COMPOSE_ENV_FILES_LIST[@]} > 0 )); then
+  env_file_chain__to_absolute "$REPO_ROOT" COMPOSE_ENV_FILES_LIST COMPOSE_ENV_FILES_RESOLVED
 fi
 
 compose_env_file_abs=""
@@ -173,7 +209,11 @@ fi
 
 if [[ ${#COMPOSE_FILES_LIST[@]} -gt 0 ]]; then
   for file in "${COMPOSE_FILES_LIST[@]}"; do
-    COMPOSE_CMD+=(-f "$file")
+    resolved_file="$file"
+    if [[ "$resolved_file" != /* ]]; then
+      resolved_file="$REPO_ROOT/$resolved_file"
+    fi
+    COMPOSE_CMD+=(-f "$resolved_file")
   done
 fi
 

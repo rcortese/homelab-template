@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import pytest
+from pathlib import Path
 
 from tests.conftest import DockerStub
 
@@ -27,10 +28,36 @@ def test_respects_docker_compose_bin_override(docker_stub: DockerStub) -> None:
     assert result.returncode == 0, result.stderr
 
     calls = docker_stub.read_calls()
+    repo_root = Path(__file__).resolve().parents[2]
+    base_file = str((repo_root / "compose" / "base.yml").resolve())
     assert calls == [
-        ["--context", "remote", "compose", "config", "--services"],
-        ["--context", "remote", "compose", "ps"],
-        ["--context", "remote", "compose", "logs", "--tail=50", "app"],
+        [
+            "--context",
+            "remote",
+            "compose",
+            "-f",
+            base_file,
+            "config",
+            "--services",
+        ],
+        [
+            "--context",
+            "remote",
+            "compose",
+            "-f",
+            base_file,
+            "ps",
+        ],
+        [
+            "--context",
+            "remote",
+            "compose",
+            "-f",
+            base_file,
+            "logs",
+            "--tail=50",
+            "app",
+        ],
     ]
 
 

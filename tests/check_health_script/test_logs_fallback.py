@@ -8,6 +8,20 @@ from tests.conftest import DockerStub
 from .utils import run_check_health
 
 
+def _strip_env_and_file_flags(call: list[str]) -> list[str]:
+    cleaned: list[str] = []
+    skip_next = False
+    for token in call:
+        if skip_next:
+            skip_next = False
+            continue
+        if token in {"--env-file", "-f"}:
+            skip_next = True
+            continue
+        cleaned.append(token)
+    return cleaned
+
+
 def test_logs_fallback_through_alternative_services(
     docker_stub: DockerStub, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -23,7 +37,9 @@ def test_logs_fallback_through_alternative_services(
 
     assert result.returncode == 0, result.stderr
 
-    calls = docker_stub.read_calls()
+    calls = [
+        _strip_env_and_file_flags(entry) for entry in docker_stub.read_calls()
+    ]
     assert calls == [
         ["compose", "config", "--services"],
         ["compose", "ps"],
@@ -42,7 +58,9 @@ def test_logs_reports_failure_when_all_services_fail(
     assert result.returncode != 0
     assert "Failed to retrieve logs for services" in result.stderr
 
-    calls = docker_stub.read_calls()
+    calls = [
+        _strip_env_and_file_flags(entry) for entry in docker_stub.read_calls()
+    ]
     assert calls == [
         ["compose", "config", "--services"],
         ["compose", "ps"],
@@ -63,7 +81,9 @@ def test_logs_handles_comma_separated_health_services(docker_stub: DockerStub) -
     assert result.returncode == 0, result.stderr
     assert "Warning: Failed to retrieve logs for services: app-core" in result.stderr
 
-    calls = docker_stub.read_calls()
+    calls = [
+        _strip_env_and_file_flags(entry) for entry in docker_stub.read_calls()
+    ]
     assert calls == [
         ["compose", "config", "--services"],
         ["compose", "ps"],
@@ -81,7 +101,9 @@ def test_logs_attempts_all_services_even_after_success(docker_stub: DockerStub) 
     assert result.returncode == 0, result.stderr
     assert "Warning:" not in result.stderr
 
-    calls = docker_stub.read_calls()
+    calls = [
+        _strip_env_and_file_flags(entry) for entry in docker_stub.read_calls()
+    ]
     assert calls == [
         ["compose", "config", "--services"],
         ["compose", "ps"],

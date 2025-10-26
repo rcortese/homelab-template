@@ -34,11 +34,11 @@ def test_instance_uses_expected_env_and_compose_files(
         if arg == "-f"
     ]
     assert compose_files == [
-        "compose/base.yml",
-        "compose/apps/app/base.yml",
-        "compose/apps/app/core.yml",
-        "compose/apps/monitoring/base.yml",
-        "compose/apps/monitoring/core.yml",
+        str((repo_copy / "compose" / "base.yml").resolve()),
+        str((repo_copy / "compose" / "apps" / "app" / "base.yml").resolve()),
+        str((repo_copy / "compose" / "apps" / "app" / "core.yml").resolve()),
+        str((repo_copy / "compose" / "apps" / "monitoring" / "base.yml").resolve()),
+        str((repo_copy / "compose" / "apps" / "monitoring" / "core.yml").resolve()),
     ]
 
 
@@ -65,9 +65,9 @@ def test_instance_resolves_manifests_when_invoked_from_scripts_dir(
         if arg == "-f"
     ]
     assert compose_files == [
-        "compose/base.yml",
-        "compose/apps/app/base.yml",
-        "compose/apps/app/core.yml",
-        "compose/apps/monitoring/base.yml",
-        "compose/apps/monitoring/core.yml",
+        str((repo_copy / "compose" / "base.yml").resolve()),
+        str((repo_copy / "compose" / "apps" / "app" / "base.yml").resolve()),
+        str((repo_copy / "compose" / "apps" / "app" / "core.yml").resolve()),
+        str((repo_copy / "compose" / "apps" / "monitoring" / "base.yml").resolve()),
+        str((repo_copy / "compose" / "apps" / "monitoring" / "core.yml").resolve()),
     ]

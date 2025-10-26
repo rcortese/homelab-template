@@ -34,9 +34,16 @@ def test_custom_compose_files_override(
     assert len(calls) == 1
     command = calls[0]
 
-    assert "--env-file" in command
-    env_arg_index = command.index("--env-file")
-    assert command[env_arg_index + 1].endswith("env/local/core.env")
+    env_args = [
+        command[index + 1]
+        for index, arg in enumerate(command)
+        if arg == "--env-file"
+    ]
+    expected_envs = {
+        str((repo_copy / "env" / "local" / "common.env").resolve()),
+        str((repo_copy / "env" / "local" / "core.env").resolve()),
+    }
+    assert set(env_args) == expected_envs
 
     compose_files = [
         command[index + 1]
@@ -44,6 +51,6 @@ def test_custom_compose_files_override(
         if arg == "-f"
     ]
     assert compose_files == [
-        "compose/custom.yml",
-        "compose/override.yml",
+        str((repo_copy / "compose" / "custom.yml").resolve()),
+        str((repo_copy / "compose" / "override.yml").resolve()),
     ]

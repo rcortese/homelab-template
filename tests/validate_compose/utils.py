@@ -3,9 +3,9 @@ from __future__ import annotations
 import os
 import subprocess
 from dataclasses import dataclass
+from collections.abc import Iterable, Sequence
 from functools import lru_cache
 from pathlib import Path
-from typing import Iterable
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SCRIPT_PATH = REPO_ROOT / "scripts" / "validate_compose.sh"
@@ -23,10 +23,15 @@ class InstanceMetadata:
     env_file: Path | None
     env_local: Path | None
     env_template: Path | None
+    env_chain: tuple[Path, ...]
 
     def resolved_env_file(self, repo_root: Path | None = None) -> Path | None:
         root = Path(repo_root or REPO_ROOT)
         return None if self.env_file is None else root / self.env_file
+
+    def resolved_env_chain(self, repo_root: Path | None = None) -> tuple[Path, ...]:
+        root = Path(repo_root or REPO_ROOT)
+        return tuple(root / entry for entry in self.env_chain)
 
     def compose_files(self, repo_root: Path | None = None) -> list[Path]:
         root = Path(repo_root or REPO_ROOT)
@@ -66,10 +71,17 @@ def run_validate_compose(env: dict[str, str], cwd: Path | None = None) -> subpro
     )
 
 
-def expected_compose_call(env_file: Path | None, files: list[Path], *args: str) -> list[str]:
+def expected_compose_call(
+    env_files: Path | Sequence[Path] | None, files: Iterable[Path], *args: str
+) -> list[str]:
     cmd: list[str] = ["compose"]
-    if env_file is not None:
-        cmd.extend(["--env-file", str(env_file)])
+    if env_files is not None:
+        if isinstance(env_files, Path):
+            entries: Sequence[Path] = (env_files,)
+        else:
+            entries = env_files
+        for env in entries:
+            cmd.extend(["--env-file", str(env)])
     for file in files:
         cmd.extend(["-f", str(file)])
     cmd.extend(args)
@@ -130,11 +142,23 @@ def _discover_instance_metadata(repo_root: Path) -> tuple[InstanceMetadata, ...]
         env_local = local_rel if (repo_root / local_rel).exists() else None
         env_template = template_rel if (repo_root / template_rel).exists() else None
 
+        env_entries: list[Path] = []
+        global_local = Path("env/local/common.env")
+        global_template = Path("env/common.example.env")
+
+        if (repo_root / global_local).exists():
+            env_entries.append(global_local)
+        elif (repo_root / global_template).exists():
+            env_entries.append(global_template)
+
         env_file: Path | None
         if env_local is not None:
             env_file = env_local
+            env_entries.append(env_local)
         else:
             env_file = env_template
+            if env_template is not None:
+                env_entries.append(env_template)
 
         metadata.append(
             InstanceMetadata(
@@ -144,6 +168,7 @@ def _discover_instance_metadata(repo_root: Path) -> tuple[InstanceMetadata, ...]
                 env_file=env_file,
                 env_local=env_local,
                 env_template=env_template,
+                env_chain=tuple(env_entries),
             )
         )
 

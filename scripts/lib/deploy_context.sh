@@ -98,19 +98,50 @@ build_deploy_context() {
     return 1
   fi
 
-  local env_file="$local_env_file"
-  local env_file_abs="$repo_root/$env_file"
-
-  if [[ ! -f "$env_file_abs" ]]; then
-    echo "[!] Arquivo ${env_file} não encontrado." >&2
-    if [[ -n "$template_file" && -f "$repo_root/$template_file" ]]; then
-      echo "    Copie o template padrão antes de continuar:" >&2
-      echo "    cp ${template_file} ${env_file}" >&2
-    elif [[ -n "$template_file" ]]; then
-      echo "    Template correspondente (${template_file}) também não foi localizado." >&2
-    fi
-    return 1
+  local env_files_blob=""
+  if [[ -v COMPOSE_INSTANCE_ENV_FILES["$instance"] ]]; then
+    env_files_blob="${COMPOSE_INSTANCE_ENV_FILES[$instance]}"
   fi
+
+  declare -a env_files_rel=()
+  env_file_chain__resolve_explicit "$env_files_blob" "" env_files_rel
+
+  if (( ${#env_files_rel[@]} == 0 )); then
+    env_file_chain__defaults "$repo_root" "$instance" env_files_rel
+  fi
+
+  if (( ${#env_files_rel[@]} == 0 )); then
+    env_files_rel=("$local_env_file")
+  fi
+
+  local primary_env_file=""
+  if (( ${#env_files_rel[@]} > 0 )); then
+    primary_env_file="${env_files_rel[-1]}"
+  fi
+
+  declare -a env_files_abs=()
+  env_file_chain__to_absolute "$repo_root" env_files_rel env_files_abs
+
+  local idx=0
+  while ((idx < ${#env_files_rel[@]})); do
+    local rel_entry="${env_files_rel[$idx]}"
+    local abs_entry="${env_files_abs[$idx]}"
+
+    if [[ ! -f "$abs_entry" ]]; then
+      echo "[!] Arquivo ${rel_entry} não encontrado." >&2
+      if [[ "$rel_entry" == "$local_env_file" ]]; then
+        if [[ -n "$template_file" && -f "$repo_root/$template_file" ]]; then
+          echo "    Copie o template padrão antes de continuar:" >&2
+          echo "    cp ${template_file} ${rel_entry}" >&2
+        elif [[ -n "$template_file" ]]; then
+          echo "    Template correspondente (${template_file}) também não foi localizado." >&2
+        fi
+      fi
+      return 1
+    fi
+
+    idx=$((idx + 1))
+  done
 
   local app_data_dir_was_set=0
   local previous_app_data_dir=""
@@ -119,13 +150,37 @@ build_deploy_context() {
     previous_app_data_dir="$APP_DATA_DIR"
   fi
 
-  if [[ -n "$env_file_abs" ]]; then
-    load_env_pairs "$env_file_abs" \
-      APP_DATA_DIR \
-      COMPOSE_EXTRA_FILES \
-      APP_DATA_UID \
-      APP_DATA_GID
-  fi
+  local -A loaded_env_values=()
+  local -a requested_env_keys=(
+    APP_DATA_DIR
+    COMPOSE_EXTRA_FILES
+    APP_DATA_UID
+    APP_DATA_GID
+  )
+
+  local env_file_abs
+  for env_file_abs in "${env_files_abs[@]}"; do
+    local env_output=""
+    if env_output="$("${_DEPLOY_CONTEXT_DIR}/env_loader.sh" "$env_file_abs" "${requested_env_keys[@]}" 2>/dev/null)"; then
+      local line key value
+      while IFS='=' read -r line; do
+        [[ -z "$line" ]] && continue
+        key="${line%%=*}"
+        value="${line#*=}"
+        loaded_env_values[$key]="$value"
+      done <<<"$env_output"
+    fi
+  done
+
+  local key
+  for key in "${requested_env_keys[@]}"; do
+    if [[ -n "${loaded_env_values[$key]+x}" ]]; then
+      if [[ "$key" == "COMPOSE_EXTRA_FILES" && -n "${COMPOSE_EXTRA_FILES:-}" ]]; then
+        continue
+      fi
+      export "$key=${loaded_env_values[$key]}"
+    fi
+  done
 
   local -a instance_app_names=()
   if [[ -v COMPOSE_INSTANCE_APP_NAMES["$instance"] ]]; then
@@ -166,6 +221,12 @@ build_deploy_context() {
 
   local compose_files_string="${compose_files_list[*]}"
 
+  local env_files_string=""
+  if [[ ${#env_files_rel[@]} -gt 0 ]]; then
+    env_files_string="$(printf '%s\n' "${env_files_rel[@]}")"
+    env_files_string="${env_files_string%$'\n'}"
+  fi
+
   local -a persistent_dirs=()
   if [[ "$app_data_dir_value" == /* ]]; then
     persistent_dirs=("$app_data_dir_value" "$repo_root/backups")
@@ -181,7 +242,8 @@ build_deploy_context() {
 
   printf 'declare -A DEPLOY_CONTEXT=(\n'
   printf '  [INSTANCE]=%q\n' "$instance"
-  printf '  [COMPOSE_ENV_FILE]=%q\n' "$env_file"
+  printf '  [COMPOSE_ENV_FILE]=%q\n' "$primary_env_file"
+  printf '  [COMPOSE_ENV_FILES]=%q\n' "$env_files_string"
   printf '  [COMPOSE_FILES]=%q\n' "$compose_files_string"
   printf '  [APP_DATA_DIR]=%q\n' "$app_data_dir_value"
   printf '  [PERSISTENT_DIRS]=%q\n' "$persistent_dirs_string"

@@ -32,11 +32,21 @@ def run_check_health(
     )
 
 
-def _expected_compose_call(env_file: str | None, files: list[str], *args: str) -> list[str]:
+from typing import Iterable
+
+
+def _expected_compose_call(
+    env_files: str | Iterable[str] | None, files: Iterable[str], *args: str
+) -> list[str]:
     cmd = ["compose"]
-    if env_file:
-        cmd.extend(["--env-file", env_file])
+    if env_files:
+        if isinstance(env_files, str):
+            env_entries = [env_files]
+        else:
+            env_entries = list(env_files)
+        for env_file in env_entries:
+            cmd.extend(["--env-file", str(env_file)])
     for path in files:
-        cmd.extend(["-f", path])
+        cmd.extend(["-f", str(path)])
     cmd.extend(args)
     return cmd

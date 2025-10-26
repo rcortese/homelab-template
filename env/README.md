@@ -8,21 +8,33 @@ Este diretório armazena modelos (`*.example.env`) e instruções para gerar arq
    ```bash
    mkdir -p env/local
    ```
-2. Copie os modelos relevantes:
+2. Copie o modelo compartilhado para servir como base global:
+   ```bash
+   cp env/common.example.env env/local/common.env
+   ```
+3. Copie os modelos específicos de cada instância que será utilizada:
    ```bash
    cp env/<alvo>.example.env env/local/<alvo>.env
    ```
-3. Preencha os valores conforme o ambiente (desenvolvimento, laboratório, produção, etc.).
+4. Preencha os valores conforme o ambiente (desenvolvimento, laboratório, produção, etc.).
+
+> **Dica:** as variáveis definidas em `env/local/common.env` são carregadas antes das instâncias (ex.: `env/local/core.env`). Utilize esse arquivo para consolidar credenciais compartilhadas, fuso horário, UID/GID de volumes e demais defaults globais.
 
 ## Mapeamento das variáveis
 
-Monte uma tabela semelhante à abaixo para cada arquivo `env/<alvo>.example.env`:
+### `env/common.example.env`
 
 | Variável | Obrigatória? | Uso | Referência |
 | --- | --- | --- | --- |
 | `TZ` | Sim | Define timezone para logs e agendamentos. | `compose/base.yml`. |
 | `APP_SECRET` | Sim | Chave utilizada para criptografar dados sensíveis. | `compose/base.yml`. |
 | `APP_RETENTION_HOURS` | Opcional | Controla a retenção de registros/processos. | `compose/base.yml` e runbooks. |
+| `APP_DATA_UID`/`APP_DATA_GID` | Opcional | Ajusta o proprietário padrão dos volumes persistentes. | `scripts/deploy_instance.sh`, `scripts/backup.sh`, `scripts/fix_permission_issues.sh`. |
+
+Monte uma tabela semelhante à abaixo para cada arquivo `env/<alvo>.example.env`:
+
+| Variável | Obrigatória? | Uso | Referência |
+| --- | --- | --- | --- |
 | `APP_PUBLIC_URL` | Opcional | Define URL pública para links e cookies. | `compose/apps/<app>/<instância>.yml` (ex.: `compose/apps/app/core.yml`). |
 | `SERVICE_NAME` | Opcional | Personaliza o nome do container ou alvo de logs. | `compose/apps/<app>/<instância>.yml`, `scripts/check_health.sh`. |
 | `COMPOSE_EXTRA_FILES` | Opcional | Lista overlays adicionais aplicados após o override da instância (separados por espaço ou vírgula). | `scripts/deploy_instance.sh`, `scripts/validate_compose.sh`, `scripts/lib/compose_defaults.sh`. |
@@ -40,10 +52,10 @@ Monte uma tabela semelhante à abaixo para cada arquivo `env/<alvo>.example.env`
 
 ## Integração com scripts
 
-Os scripts fornecidos pelo template aceitam `COMPOSE_ENV_FILE` para selecionar qual arquivo `.env` será utilizado. Documente, no runbook correspondente, como combinar variáveis e manifests para cada ambiente. Quando precisar ativar overlays específicos sem modificar scripts, adicione no `.env` algo como:
+Os scripts fornecidos pelo template aceitam `COMPOSE_ENV_FILES` (ou o legado `COMPOSE_ENV_FILE`) para selecionar quais arquivos `.env` serão utilizados. Documente, no runbook correspondente, como combinar variáveis e manifests para cada ambiente. Quando precisar ativar overlays específicos sem modificar scripts, adicione no `.env` algo como:
 
 ```env
 COMPOSE_EXTRA_FILES=compose/overlays/observability.yml compose/overlays/metrics.yml
 ```
 
-Esse padrão mantém as diferenças entre template e fork confinadas aos arquivos de configuração.
+Esse padrão mantém as diferenças entre template e fork confinadas aos arquivos de configuração. Quando múltiplos arquivos `.env` são carregados (globais + específicos), os valores definidos por último prevalecem.

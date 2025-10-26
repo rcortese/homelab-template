@@ -37,10 +37,10 @@ setup_compose_defaults() {
   local instance="${1:-}"
   local base_dir="${2:-.}"
   local base_fs
-  local compose_metadata=""
 
   declare -g COMPOSE_FILES="${COMPOSE_FILES:-}"
   declare -g COMPOSE_ENV_FILE="${COMPOSE_ENV_FILE:-}"
+  declare -g COMPOSE_ENV_FILES="${COMPOSE_ENV_FILES:-}"
   declare -ga COMPOSE_CMD=()
 
   if [[ "$base_dir" == "." ]]; then
@@ -51,9 +51,14 @@ setup_compose_defaults() {
     fi
   fi
 
-  if [[ -z "${COMPOSE_FILES:-}" && -n "$instance" ]]; then
+  local metadata_loaded=0
+  local compose_metadata=""
+  if [[ -n "$instance" ]]; then
     if compose_metadata="$("$SCRIPT_DIR/lib/compose_instances.sh" "$base_fs")"; then
       eval "$compose_metadata"
+      metadata_loaded=1
+    fi
+  fi
 
       if [[ -n "${COMPOSE_INSTANCE_FILES[$instance]:-}" ]]; then
         local -a files_list=()
@@ -68,38 +73,57 @@ setup_compose_defaults() {
     fi
   fi
 
-  if [[ -z "${COMPOSE_ENV_FILE:-}" && -n "$instance" ]]; then
-    local env_candidate_rel="env/local/${instance}.env"
-    local env_candidate_abs
-    if [[ -n "$base_fs" ]]; then
-      env_candidate_abs="${base_fs%/}/${env_candidate_rel}"
-    else
-      env_candidate_abs="$env_candidate_rel"
-    fi
-
-    if [[ -f "$env_candidate_abs" ]]; then
-      if [[ "$base_dir" == "." ]]; then
-        COMPOSE_ENV_FILE="$env_candidate_rel"
-      else
-        COMPOSE_ENV_FILE="$env_candidate_abs"
-      fi
-    fi
+  local explicit_env_input="${COMPOSE_ENV_FILES:-}"
+  if [[ -z "$explicit_env_input" && -n "${COMPOSE_ENV_FILE:-}" ]]; then
+    explicit_env_input="$COMPOSE_ENV_FILE"
   fi
 
-  local env_file_abs=""
+  local metadata_env_input=""
+  if [[ -n "$instance" && $metadata_loaded -eq 1 && -n "${COMPOSE_INSTANCE_ENV_FILES[$instance]:-}" ]]; then
+    metadata_env_input="${COMPOSE_INSTANCE_ENV_FILES[$instance]}"
+  fi
 
-  if [[ -n "${COMPOSE_ENV_FILE:-}" ]]; then
-    if [[ "${COMPOSE_ENV_FILE}" == /* ]]; then
-      env_file_abs="${COMPOSE_ENV_FILE}"
-    elif [[ -n "$base_fs" ]]; then
-      env_file_abs="${base_fs%/}/${COMPOSE_ENV_FILE}"
-    else
-      env_file_abs="${COMPOSE_ENV_FILE}"
-    fi
+  declare -a env_files_rel=()
+  env_file_chain__resolve_explicit "$explicit_env_input" "$metadata_env_input" env_files_rel
 
-    if [[ -z "${COMPOSE_EXTRA_FILES:-}" && -f "$env_file_abs" ]]; then
-      local env_loader_output=""
-      if env_loader_output="$("$SCRIPT_DIR/lib/env_loader.sh" "$env_file_abs" COMPOSE_EXTRA_FILES 2>/dev/null)"; then
+  if (( ${#env_files_rel[@]} == 0 )) && [[ -n "$instance" ]]; then
+    env_file_chain__defaults "$base_fs" "$instance" env_files_rel
+  fi
+
+  declare -a env_files_abs=()
+  env_file_chain__to_absolute "$base_fs" env_files_rel env_files_abs
+
+  if (( ${#env_files_abs[@]} > 0 )); then
+    COMPOSE_ENV_FILE="${env_files_abs[-1]}"
+    COMPOSE_ENV_FILES="$(printf '%s\n' "${env_files_abs[@]}")"
+    COMPOSE_ENV_FILES="${COMPOSE_ENV_FILES%$'\n'}"
+  else
+    COMPOSE_ENV_FILE=""
+    COMPOSE_ENV_FILES=""
+  fi
+
+  if [[ -z "${DOCKER_COMPOSE_BIN:-}" ]]; then
+    COMPOSE_CMD=(docker compose)
+  else
+    # shellcheck disable=SC2206
+    COMPOSE_CMD=(${DOCKER_COMPOSE_BIN})
+  fi
+
+  if (( ${#env_files_abs[@]} > 0 )); then
+    local env_file_path
+    for env_file_path in "${env_files_abs[@]}"; do
+      COMPOSE_CMD+=(--env-file "$env_file_path")
+    done
+  fi
+
+  if [[ -z "${COMPOSE_EXTRA_FILES:-}" && ${#env_files_abs[@]} -gt 0 ]]; then
+    local env_loader_output=""
+    local env_file_path
+    for env_file_path in "${env_files_abs[@]}"; do
+      if [[ ! -f "$env_file_path" ]]; then
+        continue
+      fi
+      if env_loader_output="$("$SCRIPT_DIR/lib/env_loader.sh" "$env_file_path" COMPOSE_EXTRA_FILES 2>/dev/null)"; then
         while IFS='=' read -r key value; do
           [[ -z "$key" ]] && continue
           if [[ "$key" == "COMPOSE_EXTRA_FILES" && -n "$value" ]]; then
@@ -107,18 +131,7 @@ setup_compose_defaults() {
           fi
         done <<<"$env_loader_output"
       fi
-    fi
-  fi
-
-  if [[ -n "${DOCKER_COMPOSE_BIN:-}" ]]; then
-    # shellcheck disable=SC2206
-    COMPOSE_CMD=(${DOCKER_COMPOSE_BIN})
-  else
-    COMPOSE_CMD=(docker compose)
-  fi
-
-  if [[ -n "${COMPOSE_ENV_FILE:-}" ]]; then
-    COMPOSE_CMD+=(--env-file "$COMPOSE_ENV_FILE")
+    done
   fi
 
   local -a compose_files_entries=()
@@ -186,7 +199,7 @@ setup_compose_defaults() {
     unset __base_seen_with_extras
   fi
 
-  if [[ ${#extra_files_entries[@]} -gt 0 ]]; then
+  if [[ ${#extra_files_entries[@]} > 0 ]]; then
     local -a combined_entries=("${compose_files_entries[@]}" "${extra_files_entries[@]}")
     COMPOSE_FILES="${combined_entries[*]}"
   else
@@ -197,7 +210,13 @@ setup_compose_defaults() {
   split_compose_entries "${COMPOSE_FILES:-}" final_compose_entries
 
   for file in "${final_compose_entries[@]}"; do
-    COMPOSE_CMD+=(-f "$file")
+    local resolved="$file"
+    if [[ "$resolved" != /* ]]; then
+      if [[ -n "$base_fs" ]]; then
+        resolved="${base_fs%/}/$resolved"
+      fi
+    fi
+    COMPOSE_CMD+=(-f "$resolved")
   done
 }
 
@@ -207,7 +226,7 @@ main() {
 
   setup_compose_defaults "$instance" "$base_dir"
 
-  declare -p COMPOSE_FILES COMPOSE_ENV_FILE COMPOSE_CMD
+  declare -p COMPOSE_FILES COMPOSE_ENV_FILES COMPOSE_ENV_FILE COMPOSE_CMD
 }
 
 if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then

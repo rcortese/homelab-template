@@ -35,6 +35,7 @@ fi
 eval "$deploy_context_eval"
 
 export COMPOSE_ENV_FILE="${DEPLOY_CONTEXT[COMPOSE_ENV_FILE]}"
+export COMPOSE_ENV_FILES="${DEPLOY_CONTEXT[COMPOSE_ENV_FILES]}"
 export COMPOSE_FILES="${DEPLOY_CONTEXT[COMPOSE_FILES]}"
 
 compose_cmd=("$REPO_ROOT/scripts/compose.sh" "$INSTANCE")
