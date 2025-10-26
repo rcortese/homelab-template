@@ -29,6 +29,29 @@ load_deploy_metadata() {
   return 0
 }
 
+deploy_context__report_missing_instance() {
+  local repo_root="$1"
+  local instance="$2"
+  shift 2
+  local available_instances=("$@")
+
+  mapfile -t candidate_files < <(
+    find "$repo_root/compose/apps" -mindepth 2 -maxdepth 2 -name "${instance}.yml" -print 2>/dev/null
+  )
+
+  if [[ ${#candidate_files[@]} -gt 0 ]]; then
+    echo "[!] Metadados ausentes para instância '$instance'." >&2
+  else
+    echo "[!] Instância '$instance' inválida." >&2
+  fi
+
+  if ((${#available_instances[@]} > 0)); then
+    echo "    Disponíveis: ${available_instances[*]}" >&2
+  fi
+
+  return 1
+}
+
 build_deploy_context() {
   local repo_root="$1"
   local instance="$2"
@@ -47,30 +70,12 @@ build_deploy_context() {
   done
 
   if [[ $found_instance -eq 0 ]]; then
-    mapfile -t candidate_files < <(
-      find "$repo_root/compose/apps" -mindepth 2 -maxdepth 2 -name "${instance}.yml" -print 2>/dev/null
-    )
-
-    if [[ ${#candidate_files[@]} -gt 0 ]]; then
-      echo "[!] Metadados ausentes para instância '$instance'." >&2
-    else
-      echo "[!] Instância '$instance' inválida." >&2
-    fi
-    echo "    Disponíveis: ${COMPOSE_INSTANCE_NAMES[*]}" >&2
+    deploy_context__report_missing_instance "$repo_root" "$instance" "${COMPOSE_INSTANCE_NAMES[@]}"
     return 1
   fi
 
   if [[ -z "${COMPOSE_INSTANCE_FILES[$instance]-}" ]]; then
-    mapfile -t candidate_files < <(
-      find "$repo_root/compose/apps" -mindepth 2 -maxdepth 2 -name "${instance}.yml" -print 2>/dev/null
-    )
-
-    if [[ ${#candidate_files[@]} -gt 0 ]]; then
-      echo "[!] Metadados ausentes para instância '$instance'." >&2
-    else
-      echo "[!] Instância '$instance' inválida." >&2
-    fi
-    echo "    Disponíveis: ${COMPOSE_INSTANCE_NAMES[*]}" >&2
+    deploy_context__report_missing_instance "$repo_root" "$instance" "${COMPOSE_INSTANCE_NAMES[@]}"
     return 1
   fi
 
