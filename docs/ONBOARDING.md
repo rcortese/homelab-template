@@ -38,7 +38,7 @@ pip install -r requirements-dev.txt
 
 ## 4. Rode as validações consolidadas
 
-Com os `.env` locais criados e as dependências instaladas, utilize o atalho compatível com o README para confirmar se a estrutura continua íntegra:
+Com os `.env` locais criados e as dependências instaladas, execute:
 
 ```bash
 scripts/check_all.sh
@@ -52,9 +52,9 @@ scripts/check_env_sync.py
 scripts/validate_compose.sh
 ```
 
-- `scripts/check_structure.sh` confirma a presença de diretórios e arquivos obrigatórios conforme [`docs/STRUCTURE.md`](./STRUCTURE.md).
-- `scripts/check_env_sync.py` compara os manifests `compose/` com os modelos `env/*.example.env`, evitando variáveis órfãs antes de abrir PRs.
-- `scripts/validate_compose.sh` verifica se as combinações padrão de Docker Compose seguem válidas para os perfis configurados.
+- [`scripts/check_structure.sh`](./OPERATIONS.md#scriptscheck_structuresh)
+- [`scripts/check_env_sync.py`](./OPERATIONS.md#scriptscheck_env_syncpy)
+- [`scripts/validate_compose.sh`](./OPERATIONS.md#scriptsvalidate_composesh)
 
 ## 5. Próximos passos
 
