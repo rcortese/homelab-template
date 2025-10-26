@@ -80,27 +80,9 @@ metadata_loaded=0
 declare -a resolved_instance_app_names=()
 declare -a EXTRA_COMPOSE_FILES=()
 
-split_env_entries() {
-  local raw="${1:-}"
-  local -n __out=$2
-
-  __out=()
-
-  if [[ -z "$raw" ]]; then
-    return
-  fi
-
-  raw="${raw//$'\n'/ }"
-  raw="${raw//,/ }"
-
-  local token
-  for token in $raw; do
-    [[ -z "$token" ]] && continue
-    __out+=("$token")
-  done
-}
-
-split_env_entries "${COMPOSE_EXTRA_FILES:-}" EXTRA_COMPOSE_FILES
+mapfile -t EXTRA_COMPOSE_FILES < <(
+  env_file_chain__parse_list "${COMPOSE_EXTRA_FILES:-}"
+)
 
 if [[ -n "$INSTANCE_NAME" ]]; then
   if ! compose_metadata="$("$SCRIPT_DIR/lib/compose_instances.sh" "$REPO_ROOT")"; then
