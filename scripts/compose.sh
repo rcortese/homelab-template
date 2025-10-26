@@ -70,6 +70,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 COMPOSE_FILES_LIST=()
+metadata_loaded=0
 
 append_unique_file() {
   local -n __target_array="$1"
@@ -99,6 +100,7 @@ elif [[ -n "$INSTANCE_NAME" ]]; then
   fi
 
   eval "$compose_metadata"
+  metadata_loaded=1
 
   if [[ -z "${COMPOSE_INSTANCE_FILES[$INSTANCE_NAME]:-}" ]]; then
     echo "Error: instância desconhecida '$INSTANCE_NAME'." >&2
@@ -120,10 +122,9 @@ elif [[ -n "$INSTANCE_NAME" ]]; then
   done
 fi
 
-if [[ -z "${COMPOSE_ENV_FILE:-}" && -n "$INSTANCE_NAME" ]]; then
-  maybe_env_file="env/local/${INSTANCE_NAME}.env"
-  if [[ -f "$maybe_env_file" ]]; then
-    COMPOSE_ENV_FILE="$maybe_env_file"
+if [[ -z "${COMPOSE_ENV_FILE:-}" && -n "$INSTANCE_NAME" && $metadata_loaded -eq 1 ]]; then
+  if [[ -n "${COMPOSE_INSTANCE_ENV_FILES[$INSTANCE_NAME]:-}" ]]; then
+    COMPOSE_ENV_FILE="${COMPOSE_INSTANCE_ENV_FILES[$INSTANCE_NAME]}"
   fi
 fi
 
