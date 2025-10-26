@@ -21,6 +21,12 @@ REQUESTED_DATA_DIR=""
 # shellcheck disable=SC2034  # Utilizado pela rotina registrada em trap.
 RESUME_ON_EXIT=1
 SQLITE3_BIN="${SQLITE3_BIN:-sqlite3}"
+SQLITE3_MODE="${SQLITE3_MODE:-container}"
+SQLITE3_CONTAINER_RUNTIME="${SQLITE3_CONTAINER_RUNTIME:-docker}"
+SQLITE3_CONTAINER_IMAGE="${SQLITE3_CONTAINER_IMAGE:-keinos/sqlite3:latest}"
+
+SQLITE3_BACKEND=""
+SQLITE3_BIN_PATH=""
 
 declare -ag COMPOSE_CMD=()
 declare -ag PAUSED_SERVICES=()
@@ -48,13 +54,104 @@ Opções:
   -h, --help             Exibe esta ajuda e sai.
 
 Variáveis de ambiente relevantes:
-  SQLITE3_BIN            Sobrescreve o binário sqlite3 utilizado.
+  SQLITE3_MODE           Força 'container', 'binary' ou 'auto' (padrão: container).
+  SQLITE3_CONTAINER_RUNTIME  Runtime de contêiner utilizado (padrão: docker).
+  SQLITE3_CONTAINER_IMAGE    Imagem do contêiner sqlite3 (padrão: keinos/sqlite3:latest).
+  SQLITE3_BIN            Caminho para um binário sqlite3 local (usado em modo binary ou fallback).
   DATA_DIR               Alternativa para --data-dir.
 
 Exemplos:
   scripts/check_db_integrity.sh core
   DATA_DIR="/mnt/storage/data" scripts/check_db_integrity.sh media --no-resume
 USAGE
+}
+
+resolve_sqlite_backend() {
+  local resolved_bin=""
+
+  case "$SQLITE3_MODE" in
+  binary)
+    if resolved_bin="$(command -v "$SQLITE3_BIN" 2>/dev/null)"; then
+      SQLITE3_BACKEND="binary"
+      SQLITE3_BIN_PATH="$resolved_bin"
+      return 0
+    fi
+    echo "Erro: sqlite3 não encontrado (binário: $SQLITE3_BIN)." >&2
+    exit 127
+    ;;
+  container)
+    if command -v "$SQLITE3_CONTAINER_RUNTIME" >/dev/null 2>&1; then
+      SQLITE3_BACKEND="container"
+      SQLITE3_BIN_PATH=""
+      return 0
+    fi
+    if resolved_bin="$(command -v "$SQLITE3_BIN" 2>/dev/null)"; then
+      echo "[!] Runtime '$SQLITE3_CONTAINER_RUNTIME' indisponível; usando binário '$resolved_bin'." >&2
+      SQLITE3_BACKEND="binary"
+      SQLITE3_BIN_PATH="$resolved_bin"
+      return 0
+    fi
+    echo "Erro: runtime '$SQLITE3_CONTAINER_RUNTIME' indisponível e sqlite3 (binário: $SQLITE3_BIN) ausente." >&2
+    exit 127
+    ;;
+  auto | *)
+    if command -v "$SQLITE3_CONTAINER_RUNTIME" >/dev/null 2>&1; then
+      SQLITE3_BACKEND="container"
+      SQLITE3_BIN_PATH=""
+      return 0
+    fi
+    if resolved_bin="$(command -v "$SQLITE3_BIN" 2>/dev/null)"; then
+      SQLITE3_BACKEND="binary"
+      SQLITE3_BIN_PATH="$resolved_bin"
+      return 0
+    fi
+    echo "Erro: sqlite3 não encontrado e runtime '$SQLITE3_CONTAINER_RUNTIME' indisponível." >&2
+    exit 127
+    ;;
+  esac
+}
+
+sqlite3_exec() {
+  if [[ "$SQLITE3_BACKEND" == "binary" ]]; then
+    "$SQLITE3_BIN_PATH" "$@"
+    return $?
+  fi
+
+  declare -a volume_args=()
+  declare -A mounted_paths=()
+  local arg path dir
+
+  for arg in "$@"; do
+    if [[ "$arg" == /* ]]; then
+      path="$arg"
+      if [[ -d "$path" ]]; then
+        dir="$path"
+      else
+        dir="$(dirname "$path")"
+      fi
+
+      if [[ -n "$dir" && -d "$dir" && -z "${mounted_paths[$dir]:-}" ]]; then
+        volume_args+=("--volume" "$dir:$dir:rw")
+        mounted_paths[$dir]=1
+      fi
+    fi
+  done
+
+  if [[ -d "$REPO_ROOT" && -z "${mounted_paths[$REPO_ROOT]:-}" ]]; then
+    volume_args+=("--volume" "$REPO_ROOT:$REPO_ROOT:rw")
+    mounted_paths[$REPO_ROOT]=1
+  fi
+
+  local workdir="$REPO_ROOT"
+  if [[ ! -d "$workdir" ]]; then
+    workdir="$PWD"
+  fi
+
+  "$SQLITE3_CONTAINER_RUNTIME" run --rm -i \
+    "${volume_args[@]}" \
+    --workdir "$workdir" \
+    "$SQLITE3_CONTAINER_IMAGE" \
+    sqlite3 "$@"
 }
 
 trap '
@@ -136,13 +233,13 @@ attempt_recovery() {
   local new_db="$tmp_dir/recovered.db"
   local timestamp backup_file
 
-  if ! "$SQLITE3_BIN" "$db_file" ".recover" >"$dump_file" 2>"$log_file"; then
+  if ! sqlite3_exec "$db_file" ".recover" >"$dump_file" 2>"$log_file"; then
     RECOVERY_DETAILS="sqlite3 .recover falhou: $(tr '\n' ' ' <"$log_file")"
     rm -rf "$tmp_dir"
     return 1
   fi
 
-  if ! "$SQLITE3_BIN" "$new_db" <"$dump_file" 2>>"$log_file"; then
+  if ! sqlite3_exec "$new_db" <"$dump_file" 2>>"$log_file"; then
     RECOVERY_DETAILS="não foi possível recriar banco: $(tr '\n' ' ' <"$log_file")"
     rm -rf "$tmp_dir"
     return 1
@@ -187,9 +284,10 @@ if [[ ! -d "$DATA_DIR" ]]; then
   exit 1
 fi
 
-if ! command -v "$SQLITE3_BIN" >/dev/null 2>&1; then
-  echo "Erro: sqlite3 não encontrado (binário: $SQLITE3_BIN)." >&2
-  exit 127
+resolve_sqlite_backend
+
+if [[ "$SQLITE3_BACKEND" == "container" ]]; then
+  echo "[i] Executando sqlite3 via contêiner '$SQLITE3_CONTAINER_IMAGE' (runtime: $SQLITE3_CONTAINER_RUNTIME)." >&2
 fi
 
 if ! compose_defaults_dump="$("$SCRIPT_DIR/lib/compose_defaults.sh" "$INSTANCE_NAME" ".")"; then
@@ -242,7 +340,7 @@ for db_file in "${DB_FILES[@]}"; do
   echo "[*] Verificando integridade de: $db_file"
   check_output=""
   check_status=0
-  if ! check_output="$("$SQLITE3_BIN" "$db_file" "PRAGMA integrity_check;" 2>&1)"; then
+  if ! check_output="$(sqlite3_exec "$db_file" "PRAGMA integrity_check;" 2>&1)"; then
     check_status=$?
   fi
 
