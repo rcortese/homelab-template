@@ -51,6 +51,24 @@ RUN_STRUCTURE=1
 RUN_VALIDATE=1
 RUN_HEALTH=1
 
+append_unique_file() {
+  local -n __target_array="$1"
+  local __file="$2"
+  local existing
+
+  if [[ -z "$__file" ]]; then
+    return
+  fi
+
+  for existing in "${__target_array[@]}"; do
+    if [[ "$existing" == "$__file" ]]; then
+      return
+    fi
+  done
+
+  __target_array+=("$__file")
+}
+
 while [[ $# -gt 0 ]]; do
   case "$1" in
   -h | --help)
@@ -177,11 +195,13 @@ if [[ -n "${COMPOSE_EXTRA_FILES:-}" ]]; then
 fi
 
 mapfile -t INSTANCE_COMPOSE_FILES < <(printf '%s\n' "${COMPOSE_INSTANCE_FILES[$INSTANCE]}")
-COMPOSE_FILES_LIST=("$BASE_COMPOSE_FILE")
+COMPOSE_FILES_LIST=()
+
+append_unique_file COMPOSE_FILES_LIST "$BASE_COMPOSE_FILE"
+append_unique_file COMPOSE_FILES_LIST "compose/apps/${app_name}/base.yml"
 
 for compose_file in "${INSTANCE_COMPOSE_FILES[@]}"; do
-  [[ -z "$compose_file" ]] && continue
-  COMPOSE_FILES_LIST+=("$compose_file")
+  append_unique_file COMPOSE_FILES_LIST "$compose_file"
 done
 
 if [[ ${#extra_compose_files[@]} -gt 0 ]]; then

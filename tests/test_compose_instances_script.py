@@ -66,8 +66,8 @@ def test_compose_instances_outputs_expected_metadata(repo_copy: Path) -> None:
     files_line = find_declare_line(result.stdout, "COMPOSE_INSTANCE_FILES")
     files_map = parse_mapping(files_line)
     assert files_map == {
-        "core": "compose/apps/app/base.yml\ncompose/apps/app/core.yml",
-        "media": "compose/apps/app/base.yml\ncompose/apps/app/media.yml",
+        "core": "compose/apps/app/core.yml",
+        "media": "compose/apps/app/media.yml",
     }
 
     env_files_line = find_declare_line(result.stdout, "COMPOSE_INSTANCE_ENV_FILES")

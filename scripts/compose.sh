@@ -71,6 +71,24 @@ done
 
 COMPOSE_FILES_LIST=()
 
+append_unique_file() {
+  local -n __target_array="$1"
+  local __file="$2"
+  local existing
+
+  if [[ -z "$__file" ]]; then
+    return
+  fi
+
+  for existing in "${__target_array[@]}"; do
+    if [[ "$existing" == "$__file" ]]; then
+      return
+    fi
+  done
+
+  __target_array+=("$__file")
+}
+
 if [[ -n "${COMPOSE_FILES:-}" ]]; then
   # shellcheck disable=SC2206
   COMPOSE_FILES_LIST=(${COMPOSE_FILES})
@@ -89,11 +107,16 @@ elif [[ -n "$INSTANCE_NAME" ]]; then
   fi
 
   mapfile -t instance_compose_files < <(printf '%s\n' "${COMPOSE_INSTANCE_FILES[$INSTANCE_NAME]}")
-  COMPOSE_FILES_LIST=("$BASE_COMPOSE_FILE")
+
+  append_unique_file COMPOSE_FILES_LIST "$BASE_COMPOSE_FILE"
+
+  instance_app_name="${COMPOSE_INSTANCE_APP_NAMES[$INSTANCE_NAME]:-}"
+  if [[ -n "$instance_app_name" ]]; then
+    append_unique_file COMPOSE_FILES_LIST "compose/apps/${instance_app_name}/base.yml"
+  fi
 
   for compose_file in "${instance_compose_files[@]}"; do
-    [[ -z "$compose_file" ]] && continue
-    COMPOSE_FILES_LIST+=("$compose_file")
+    append_unique_file COMPOSE_FILES_LIST "$compose_file"
   done
 fi
 
