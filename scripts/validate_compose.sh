@@ -97,7 +97,7 @@ resolve_compose_file() {
   fi
 }
 
-declare -a instances_to_validate
+declare -a instances_to_validate=()
 
 if [[ -n "${COMPOSE_INSTANCES:-}" ]]; then
   IFS=',' read -ra raw_instances <<<"$COMPOSE_INSTANCES"
