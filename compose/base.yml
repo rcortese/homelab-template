@@ -14,3 +14,15 @@ services:
       - ${APP_DATA_DIR_MOUNT}:/var/lib/app
       - ../backups:/var/backups
     restart: unless-stopped
+    networks:
+      homelab_internal:
+        ipv4_address: ${APP_NETWORK_IPV4}
+
+networks:
+  homelab_internal:
+    name: ${APP_NETWORK_NAME:-homelab_internal}
+    driver: ${APP_NETWORK_DRIVER:-bridge}
+    ipam:
+      config:
+        - subnet: ${APP_NETWORK_SUBNET}
+          gateway: ${APP_NETWORK_GATEWAY}
