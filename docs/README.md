@@ -10,6 +10,11 @@ utilize [`docs/local/`](./local/README.md) e apenas referencie esses materiais q
 - [Estrutura do template](./STRUCTURE.md) — Convenções obrigatórias de diretórios, arquivos essenciais e validações.
 - [Guia de variáveis de ambiente](../env/README.md) — Como mapear e documentar variáveis em diferentes ambientes.
 
+## Visão geral e integrações
+
+- [Resumo da stack](./OVERVIEW.md) — Personalize este panorama para refletir o contexto do seu fork e mantenha-o atualizado sempre que o repositório derivado divergir do template.
+- [Integração de rede](./NETWORKING_INTEGRATION.md) — Ajuste este guia às dependências e requisitos de conectividade específicos, garantindo que forks atualizem essa seção ao evoluir a topologia.
+
 ## Operação
 
 - [Operações e scripts padrão](./OPERATIONS.md) — Adapte os utilitários fornecidos para o seu projeto.

@@ -26,12 +26,21 @@ Este documento apresenta um ponto de partida para descrever processos operaciona
   - `COMPOSE_INSTANCES` — lista de ambientes a validar (separados por espaço ou vírgula).
   - `DOCKER_COMPOSE_BIN` — caminho alternativo para o binário.
   - `COMPOSE_EXTRA_FILES` — lista opcional de overlays extras aplicados após o override padrão (aceita espaços ou vírgulas).
-- **Exemplo:**
-  ```bash
-  scripts/validate_compose.sh
-  COMPOSE_INSTANCES="prod staging" scripts/validate_compose.sh
-  COMPOSE_EXTRA_FILES="compose/overlays/metrics.yml" scripts/validate_compose.sh
-  ```
+- **Exemplos práticos:**
+  - Execução padrão, usando apenas os manifests base e override configurados:
+    ```bash
+    scripts/validate_compose.sh
+    ```
+  - Validação simultânea de múltiplas instâncias definidas em `COMPOSE_INSTANCES`:
+    ```bash
+    COMPOSE_INSTANCES="prod staging" scripts/validate_compose.sh
+    ```
+  - Aplicação de overlays extras listados em `COMPOSE_EXTRA_FILES`:
+    ```bash
+    COMPOSE_EXTRA_FILES="compose/overlays/metrics.yml" scripts/validate_compose.sh
+    ```
+
+  > As variáveis podem ser exportadas previamente (`export COMPOSE_INSTANCES=...`) ou prefixadas ao comando, mantendo o fluxo simples.
 
 ## scripts/deploy_instance.sh
 
@@ -56,6 +65,25 @@ Este documento apresenta um ponto de partida para descrever processos operaciona
 
 - **Objetivo:** consultar status de serviços após deploys, restores ou troubleshooting.
 - **Adaptação necessária:** documente quais endpoints, comandos ou logs devem ser verificados para cada ambiente.
+
+## scripts/update_from_template.sh
+
+- **Objetivo:** re-aplicar personalizações locais sobre a versão mais recente do template oficial usando `git rebase --onto`.
+- **Parâmetros principais:**
+  - `--remote` — nome do remote que aponta para o repositório original do template.
+  - `--original-commit` — hash do commit do template usado quando o fork foi criado.
+  - `--first-local-commit` — hash do primeiro commit exclusivo do repositório derivado.
+  - `--dry-run` — executa apenas a simulação do rebase sem alterar a branch atual.
+- **Referência adicional:** consulte a seção ["Atualizando a partir do template original"](../README.md#atualizando-a-partir-do-template-original) do `README.md` para o passo a passo completo.
+- **Exemplo:**
+  ```bash
+  scripts/update_from_template.sh \
+    --remote template \
+    --original-commit <hash-do-template-inicial> \
+    --first-local-commit <hash-do-primeiro-commit-local> \
+    --target-branch main \
+    --dry-run
+  ```
 
 ## Personalizações sugeridas
 
