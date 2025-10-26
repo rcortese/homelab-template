@@ -66,6 +66,30 @@ setup_compose_defaults() {
     fi
   fi
 
+  local env_file_abs=""
+
+  if [[ -n "${COMPOSE_ENV_FILE:-}" ]]; then
+    if [[ "${COMPOSE_ENV_FILE}" == /* ]]; then
+      env_file_abs="${COMPOSE_ENV_FILE}"
+    elif [[ -n "$base_fs" ]]; then
+      env_file_abs="${base_fs%/}/${COMPOSE_ENV_FILE}"
+    else
+      env_file_abs="${COMPOSE_ENV_FILE}"
+    fi
+
+    if [[ -z "${COMPOSE_EXTRA_FILES:-}" && -f "$env_file_abs" ]]; then
+      local env_loader_output=""
+      if env_loader_output="$("$SCRIPT_DIR/lib/env_loader.sh" "$env_file_abs" COMPOSE_EXTRA_FILES 2>/dev/null)"; then
+        while IFS='=' read -r key value; do
+          [[ -z "$key" ]] && continue
+          if [[ "$key" == "COMPOSE_EXTRA_FILES" && -n "$value" ]]; then
+            COMPOSE_EXTRA_FILES="$value"
+          fi
+        done <<<"$env_loader_output"
+      fi
+    fi
+  fi
+
   if [[ -n "${DOCKER_COMPOSE_BIN:-}" ]]; then
     # shellcheck disable=SC2206
     COMPOSE_CMD=(${DOCKER_COMPOSE_BIN})
@@ -79,15 +103,16 @@ setup_compose_defaults() {
 
   local compose_files_entries=()
   local extra_files_entries=()
+  local resolved_extra_files="${COMPOSE_EXTRA_FILES:-}"
 
   if [[ -n "${COMPOSE_FILES:-}" ]]; then
     IFS=$' 	
 ' read -r -a compose_files_entries <<<"${COMPOSE_FILES}"
   fi
 
-  if [[ -n "${COMPOSE_EXTRA_FILES:-}" ]]; then
+  if [[ -n "$resolved_extra_files" ]]; then
     IFS=$' 	
-' read -r -a extra_files_entries <<<"${COMPOSE_EXTRA_FILES//,/ }"
+' read -r -a extra_files_entries <<<"${resolved_extra_files//,/ }"
   fi
 
   if [[ ${#extra_files_entries[@]} -gt 0 ]]; then

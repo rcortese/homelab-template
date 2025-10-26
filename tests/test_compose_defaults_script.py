@@ -118,6 +118,34 @@ def test_appends_extra_files_when_defined(repo_copy: Path) -> None:
     assert _extract_file_args(compose_cmd) == expected_files
 
 
+def test_loads_extra_files_from_env_file(repo_copy: Path) -> None:
+    script_path = repo_copy / SCRIPT_RELATIVE
+    env_file = repo_copy / "env" / "local" / "core.env"
+    overlays = [
+        "compose/overlays/metrics.yml",
+        "compose/overlays/logging.yml",
+    ]
+    env_file.write_text(
+        env_file.read_text(encoding="utf-8")
+        + f"COMPOSE_EXTRA_FILES={', '.join(overlays)}\n",
+        encoding="utf-8",
+    )
+
+    env = os.environ.copy()
+    env.pop("COMPOSE_EXTRA_FILES", None)
+
+    stdout = _run_script(script_path, "core", str(repo_copy), env=env)
+
+    compose_cmd = _extract_compose_cmd(stdout)
+    expected_files = [
+        "compose/base.yml",
+        "compose/apps/app/base.yml",
+        "compose/apps/app/core.yml",
+        *overlays,
+    ]
+    assert _extract_file_args(compose_cmd) == expected_files
+
+
 def test_respects_docker_compose_bin_override(repo_copy: Path) -> None:
     script_path = repo_copy / SCRIPT_RELATIVE
     env = os.environ.copy()
