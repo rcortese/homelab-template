@@ -72,7 +72,11 @@ def test_successful_backup_creates_snapshot_and_restarts_stack(
     assert restored_file.read_text(encoding="utf-8") == "payload"
 
     calls = compose_log.read_text(encoding="utf-8").splitlines()
-    assert calls == ["core down", "core up -d app monitoring"]
+    assert calls == [
+        "core ps --status running --services",
+        "core down",
+        "core up -d app monitoring",
+    ]
 
 
 def test_copy_failure_still_attempts_restart(repo_copy: Path, monkeypatch) -> None:
@@ -119,7 +123,11 @@ def test_copy_failure_still_attempts_restart(repo_copy: Path, monkeypatch) -> No
     assert list(backup_dir.iterdir()) == []
 
     calls = compose_log.read_text(encoding="utf-8").splitlines()
-    assert calls == ["core down", "core up -d app monitoring"]
+    assert calls == [
+        "core ps --status running --services",
+        "core down",
+        "core up -d app monitoring",
+    ]
     assert cp_log.read_text(encoding="utf-8").splitlines() == [
         "-a",
         f"{repo_copy}/data/core-root/.",
@@ -167,7 +175,11 @@ def test_detected_apps_ignore_unknown_entries(repo_copy: Path, monkeypatch) -> N
     assert "Aplicações detectadas para religar: app monitoring" in result.stdout
 
     calls = compose_log.read_text(encoding="utf-8").splitlines()
-    assert calls == ["core down", "core up -d app monitoring"]
+    assert calls == [
+        "core ps --status running --services",
+        "core down",
+        "core up -d app monitoring",
+    ]
 
 
 def test_fallback_to_known_apps_when_no_active_dirs(repo_copy: Path, monkeypatch) -> None:
@@ -197,4 +209,8 @@ def test_fallback_to_known_apps_when_no_active_dirs(repo_copy: Path, monkeypatch
     assert "Aplicações detectadas para religar: app monitoring" in result.stdout
 
     calls = compose_log.read_text(encoding="utf-8").splitlines()
-    assert calls == ["core down", "core up -d app monitoring"]
+    assert calls == [
+        "core ps --status running --services",
+        "core down",
+        "core up -d app monitoring",
+    ]

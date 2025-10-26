@@ -48,14 +48,34 @@ split_compose_entries() {
   done
 }
 
+split_env_entries() {
+  local raw="${1:-}"
+  local -n __out="$2"
+
+  __out=()
+
+  if [[ -z "$raw" ]]; then
+    return
+  fi
+
+  raw="${raw//$'\n'/ }"
+  raw="${raw//,/ }"
+
+  local token
+  for token in $raw; do
+    [[ -z "$token" ]] && continue
+    __out+=("$token")
+  done
+}
+
 setup_compose_defaults() {
   local instance="${1:-}"
   local base_dir="${2:-.}"
   local base_fs
-  local compose_metadata=""
 
   declare -g COMPOSE_FILES="${COMPOSE_FILES:-}"
   declare -g COMPOSE_ENV_FILE="${COMPOSE_ENV_FILE:-}"
+  declare -g COMPOSE_ENV_FILES="${COMPOSE_ENV_FILES:-}"
   declare -ga COMPOSE_CMD=()
 
   if [[ "$base_dir" == "." ]]; then
@@ -66,57 +86,62 @@ setup_compose_defaults() {
     fi
   fi
 
-  if [[ -z "${COMPOSE_FILES:-}" && -n "$instance" ]]; then
+  local metadata_loaded=0
+  local compose_metadata=""
+  if [[ -n "$instance" ]]; then
     if compose_metadata="$("$SCRIPT_DIR/lib/compose_instances.sh" "$base_fs")"; then
       eval "$compose_metadata"
+      metadata_loaded=1
+    fi
+  fi
 
-      if [[ -n "${COMPOSE_INSTANCE_FILES[$instance]:-}" ]]; then
-        mapfile -t __instance_compose_files < <(printf '%s\n' "${COMPOSE_INSTANCE_FILES[$instance]}")
-        local -a files_list=()
+  if [[ -z "${COMPOSE_FILES:-}" ]]; then
+    if [[ -n "$instance" && $metadata_loaded -eq 1 && -n "${COMPOSE_INSTANCE_FILES[$instance]:-}" ]]; then
+      mapfile -t __instance_compose_files < <(printf '%s\n' "${COMPOSE_INSTANCE_FILES[$instance]}")
+      local -a files_list=()
 
-        append_unique_file files_list "$BASE_COMPOSE_FILE"
+      append_unique_file files_list "$BASE_COMPOSE_FILE"
 
-        local -a __instance_app_names=()
-        local __apps_raw="${COMPOSE_INSTANCE_APP_NAMES[$instance]:-}"
-        if [[ -n "$__apps_raw" ]]; then
-          mapfile -t __instance_app_names < <(printf '%s\n' "$__apps_raw")
-        fi
-
-        declare -A __instance_overrides_by_app=()
-        local __compose_entry __app_for_entry
-        for __compose_entry in "${__instance_compose_files[@]}"; do
-          [[ -z "$__compose_entry" ]] && continue
-          __app_for_entry="${__compose_entry#compose/apps/}"
-          __app_for_entry="${__app_for_entry%%/*}"
-          if [[ -z "$__app_for_entry" ]]; then
-            continue
-          fi
-          if [[ -n "${__instance_overrides_by_app[$__app_for_entry]:-}" ]]; then
-            __instance_overrides_by_app[$__app_for_entry]+=$'\n'"$__compose_entry"
-          else
-            __instance_overrides_by_app[$__app_for_entry]="$__compose_entry"
-          fi
-        done
-
-        local __app_name
-        for __app_name in "${__instance_app_names[@]}"; do
-          append_unique_file files_list "compose/apps/${__app_name}/base.yml"
-          if [[ -n "${__instance_overrides_by_app[$__app_name]:-}" ]]; then
-            local -a __app_override_entries=()
-            mapfile -t __app_override_entries < <(printf '%s\n' "${__instance_overrides_by_app[$__app_name]}")
-            local __override_entry
-            for __override_entry in "${__app_override_entries[@]}"; do
-              append_unique_file files_list "$__override_entry"
-            done
-          fi
-        done
-
-        for __compose_entry in "${__instance_compose_files[@]}"; do
-          append_unique_file files_list "$__compose_entry"
-        done
-
-        COMPOSE_FILES="${files_list[*]}"
+      local -a __instance_app_names=()
+      local __apps_raw="${COMPOSE_INSTANCE_APP_NAMES[$instance]:-}"
+      if [[ -n "$__apps_raw" ]]; then
+        mapfile -t __instance_app_names < <(printf '%s\n' "$__apps_raw")
       fi
+
+      declare -A __instance_overrides_by_app=()
+      local __compose_entry __app_for_entry
+      for __compose_entry in "${__instance_compose_files[@]}"; do
+        [[ -z "$__compose_entry" ]] && continue
+        __app_for_entry="${__compose_entry#compose/apps/}"
+        __app_for_entry="${__app_for_entry%%/*}"
+        if [[ -z "$__app_for_entry" ]]; then
+          continue
+        fi
+        if [[ -n "${__instance_overrides_by_app[$__app_for_entry]:-}" ]]; then
+          __instance_overrides_by_app[$__app_for_entry]+=$'\n'"$__compose_entry"
+        else
+          __instance_overrides_by_app[$__app_for_entry]="$__compose_entry"
+        fi
+      done
+
+      local __app_name
+      for __app_name in "${__instance_app_names[@]}"; do
+        append_unique_file files_list "compose/apps/${__app_name}/base.yml"
+        if [[ -n "${__instance_overrides_by_app[$__app_name]:-}" ]]; then
+          local -a __app_override_entries=()
+          mapfile -t __app_override_entries < <(printf '%s\n' "${__instance_overrides_by_app[$__app_name]}")
+          local __override_entry
+          for __override_entry in "${__app_override_entries[@]}"; do
+            append_unique_file files_list "$__override_entry"
+          done
+        fi
+      done
+
+      for __compose_entry in "${__instance_compose_files[@]}"; do
+        append_unique_file files_list "$__compose_entry"
+      done
+
+      COMPOSE_FILES="${files_list[*]}"
     fi
 
     if [[ -z "${COMPOSE_FILES:-}" ]]; then
@@ -124,38 +149,113 @@ setup_compose_defaults() {
     fi
   fi
 
-  if [[ -z "${COMPOSE_ENV_FILE:-}" && -n "$instance" ]]; then
-    local env_candidate_rel="env/local/${instance}.env"
-    local env_candidate_abs
-    if [[ -n "$base_fs" ]]; then
-      env_candidate_abs="${base_fs%/}/${env_candidate_rel}"
-    else
-      env_candidate_abs="$env_candidate_rel"
-    fi
+  local -a env_files_entries=()
 
-    if [[ -f "$env_candidate_abs" ]]; then
-      if [[ "$base_dir" == "." ]]; then
-        COMPOSE_ENV_FILE="$env_candidate_rel"
-      else
-        COMPOSE_ENV_FILE="$env_candidate_abs"
+  if [[ -n "${COMPOSE_ENV_FILES:-}" ]]; then
+    split_env_entries "${COMPOSE_ENV_FILES}" env_files_entries
+  fi
+
+  if (( ${#env_files_entries[@]} == 0 )); then
+    if [[ -n "${COMPOSE_ENV_FILE:-}" ]]; then
+      env_files_entries=("$COMPOSE_ENV_FILE")
+    elif [[ -n "$instance" && $metadata_loaded -eq 1 ]]; then
+      if [[ -n "${COMPOSE_INSTANCE_ENV_FILES[$instance]:-}" ]]; then
+        split_env_entries "${COMPOSE_INSTANCE_ENV_FILES[$instance]}" env_files_entries
       fi
     fi
   fi
 
-  local env_file_abs=""
+  if (( ${#env_files_entries[@]} == 0 )) && [[ -n "$instance" ]]; then
+    local -a fallback_envs=()
+    local global_candidate_rel="env/local/common.env"
+    local global_template_rel="env/common.example.env"
+    local instance_local_rel="env/local/${instance}.env"
+    local instance_template_rel="env/${instance}.example.env"
 
-  if [[ -n "${COMPOSE_ENV_FILE:-}" ]]; then
-    if [[ "${COMPOSE_ENV_FILE}" == /* ]]; then
-      env_file_abs="${COMPOSE_ENV_FILE}"
-    elif [[ -n "$base_fs" ]]; then
-      env_file_abs="${base_fs%/}/${COMPOSE_ENV_FILE}"
+    if [[ "$base_dir" == "." ]]; then
+      if [[ -f "${base_fs%/}/${global_candidate_rel}" ]]; then
+        fallback_envs+=("$global_candidate_rel")
+      elif [[ -f "${base_fs%/}/${global_template_rel}" ]]; then
+        fallback_envs+=("$global_template_rel")
+      fi
+      if [[ -f "${base_fs%/}/${instance_local_rel}" ]]; then
+        fallback_envs+=("$instance_local_rel")
+      elif [[ -f "${base_fs%/}/${instance_template_rel}" ]]; then
+        fallback_envs+=("$instance_template_rel")
+      fi
     else
-      env_file_abs="${COMPOSE_ENV_FILE}"
+      local global_candidate_abs="${base_fs%/}/${global_candidate_rel}"
+      local global_template_abs="${base_fs%/}/${global_template_rel}"
+      local instance_local_abs="${base_fs%/}/${instance_local_rel}"
+      local instance_template_abs="${base_fs%/}/${instance_template_rel}"
+
+      if [[ -f "$global_candidate_abs" ]]; then
+        fallback_envs+=("$global_candidate_abs")
+      elif [[ -f "$global_template_abs" ]]; then
+        fallback_envs+=("$global_template_abs")
+      fi
+
+      if [[ -f "$instance_local_abs" ]]; then
+        fallback_envs+=("$instance_local_abs")
+      elif [[ -f "$instance_template_abs" ]]; then
+        fallback_envs+=("$instance_template_abs")
+      fi
     fi
 
-    if [[ -z "${COMPOSE_EXTRA_FILES:-}" && -f "$env_file_abs" ]]; then
-      local env_loader_output=""
-      if env_loader_output="$("$SCRIPT_DIR/lib/env_loader.sh" "$env_file_abs" COMPOSE_EXTRA_FILES 2>/dev/null)"; then
+    env_files_entries=("${fallback_envs[@]}")
+  fi
+
+  if (( ${#env_files_entries[@]} > 0 )); then
+    local -a filtered_env_entries=()
+    local env_entry
+    for env_entry in "${env_files_entries[@]}"; do
+      [[ -z "$env_entry" ]] && continue
+      filtered_env_entries+=("$env_entry")
+    done
+    env_files_entries=("${filtered_env_entries[@]}")
+    unset filtered_env_entries
+  fi
+
+  local -a printed_env_entries=()
+  local -a resolved_env_entries=()
+
+  if (( ${#env_files_entries[@]} > 0 )); then
+    local env_entry display_entry resolved_entry
+    for env_entry in "${env_files_entries[@]}"; do
+      if [[ "$env_entry" == /* ]]; then
+        display_entry="$env_entry"
+        resolved_entry="$env_entry"
+      else
+        if [[ "$base_dir" == "." ]]; then
+          display_entry="$env_entry"
+          resolved_entry="${base_fs%/}/$env_entry"
+        else
+          display_entry="${base_fs%/}/$env_entry"
+          resolved_entry="$display_entry"
+        fi
+      fi
+      printed_env_entries+=("$display_entry")
+      resolved_env_entries+=("$resolved_entry")
+    done
+  fi
+
+  if (( ${#printed_env_entries[@]} > 0 )); then
+    COMPOSE_ENV_FILE="${printed_env_entries[-1]}"
+    COMPOSE_ENV_FILES="$(printf '%s\n' "${printed_env_entries[@]}")"
+    COMPOSE_ENV_FILES="${COMPOSE_ENV_FILES%$'\n'}"
+  else
+    COMPOSE_ENV_FILE=""
+    COMPOSE_ENV_FILES=""
+  fi
+
+  if [[ -z "${COMPOSE_EXTRA_FILES:-}" && ${#resolved_env_entries[@]} -gt 0 ]]; then
+    local env_loader_output=""
+    local env_file_path
+    for env_file_path in "${resolved_env_entries[@]}"; do
+      if [[ ! -f "$env_file_path" ]]; then
+        continue
+      fi
+      if env_loader_output="$("$SCRIPT_DIR/lib/env_loader.sh" "$env_file_path" COMPOSE_EXTRA_FILES 2>/dev/null)"; then
         while IFS='=' read -r key value; do
           [[ -z "$key" ]] && continue
           if [[ "$key" == "COMPOSE_EXTRA_FILES" && -n "$value" ]]; then
@@ -163,7 +263,7 @@ setup_compose_defaults() {
           fi
         done <<<"$env_loader_output"
       fi
-    fi
+    done
   fi
 
   if [[ -n "${DOCKER_COMPOSE_BIN:-}" ]]; then
@@ -173,8 +273,11 @@ setup_compose_defaults() {
     COMPOSE_CMD=(docker compose)
   fi
 
-  if [[ -n "${COMPOSE_ENV_FILE:-}" ]]; then
-    COMPOSE_CMD+=(--env-file "$COMPOSE_ENV_FILE")
+  if (( ${#resolved_env_entries[@]} > 0 )); then
+    local env_file_path
+    for env_file_path in "${resolved_env_entries[@]}"; do
+      COMPOSE_CMD+=(--env-file "$env_file_path")
+    done
   fi
 
   local -a compose_files_entries=()
@@ -253,7 +356,13 @@ setup_compose_defaults() {
   split_compose_entries "${COMPOSE_FILES:-}" final_compose_entries
 
   for file in "${final_compose_entries[@]}"; do
-    COMPOSE_CMD+=(-f "$file")
+    local resolved="$file"
+    if [[ "$resolved" != /* ]]; then
+      if [[ -n "$base_fs" ]]; then
+        resolved="${base_fs%/}/$resolved"
+      fi
+    fi
+    COMPOSE_CMD+=(-f "$resolved")
   done
 }
 
@@ -263,7 +372,7 @@ main() {
 
   setup_compose_defaults "$instance" "$base_dir"
 
-  declare -p COMPOSE_FILES COMPOSE_ENV_FILE COMPOSE_CMD
+  declare -p COMPOSE_FILES COMPOSE_ENV_FILES COMPOSE_ENV_FILE COMPOSE_CMD
 }
 
 if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then

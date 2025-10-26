@@ -110,7 +110,30 @@ normalize_compose_context() {
     extra_input="${extra_input//,/ }"
     for extra_entry in $extra_input; do
       [[ -z "$extra_entry" ]] && continue
-      COMPOSE_CMD+=(-f "$extra_entry")
+      local resolved_extra="$extra_entry"
+      if [[ "$resolved_extra" != /* ]]; then
+        resolved_extra="$REPO_ROOT/$resolved_extra"
+      fi
+
+      local already_present=0
+      local idx=0
+      while ((idx < ${#COMPOSE_CMD[@]})); do
+        if [[ "${COMPOSE_CMD[$idx]}" == "-f" ]]; then
+          if ((idx + 1 < ${#COMPOSE_CMD[@]})); then
+            if [[ "${COMPOSE_CMD[$((idx + 1))]}" == "$resolved_extra" ]]; then
+              already_present=1
+              break
+            fi
+          fi
+          idx=$((idx + 2))
+          continue
+        fi
+        idx=$((idx + 1))
+      done
+
+      if ((already_present == 0)); then
+        COMPOSE_CMD+=(-f "$resolved_extra")
+      fi
     done
   fi
 }
@@ -122,21 +145,63 @@ if ! command -v "${COMPOSE_CMD[0]}" >/dev/null 2>&1; then
   exit 127
 fi
 
-if [[ -z "${HEALTH_SERVICES:-}" && -n "${COMPOSE_ENV_FILE:-}" ]]; then
-  env_file="$COMPOSE_ENV_FILE"
-  if [[ "$env_file" != /* ]]; then
-    env_file="$REPO_ROOT/$env_file"
+if [[ -z "${HEALTH_SERVICES:-}" ]]; then
+  health_env_files=()
+  if [[ -n "${COMPOSE_ENV_FILES:-}" ]]; then
+    raw_env_files="${COMPOSE_ENV_FILES//$'\n'/ }"
+    raw_env_files="${raw_env_files//,/ }"
+    for env_token in $raw_env_files; do
+      [[ -z "$env_token" ]] && continue
+      health_env_files+=("$env_token")
+    done
+  elif [[ -n "${COMPOSE_ENV_FILE:-}" ]]; then
+    health_env_files+=("$COMPOSE_ENV_FILE")
   fi
-  if [[ -f "$env_file" ]]; then
-    load_env_pairs "$env_file" COMPOSE_EXTRA_FILES HEALTH_SERVICES SERVICE_NAME
 
-    if ! compose_defaults_dump="$("$SCRIPT_DIR/lib/compose_defaults.sh" "$INSTANCE_NAME" ".")"; then
-      echo "[!] Não foi possível preparar variáveis padrão do docker compose." >&2
-      exit 1
+  if [[ ${#health_env_files[@]} -gt 0 ]]; then
+    declare -A __health_env_values=()
+    for env_candidate in "${health_env_files[@]}"; do
+      env_abs="$env_candidate"
+      if [[ "$env_abs" != /* ]]; then
+        env_abs="$REPO_ROOT/$env_abs"
+      fi
+      if [[ ! -f "$env_abs" ]]; then
+        continue
+      fi
+      if env_output="$("$SCRIPT_DIR/lib/env_loader.sh" "$env_abs" COMPOSE_EXTRA_FILES HEALTH_SERVICES SERVICE_NAME 2>/dev/null)"; then
+        while IFS='=' read -r line; do
+          [[ -z "$line" ]] && continue
+          key="${line%%=*}"
+          value="${line#*=}"
+          __health_env_values[$key]="$value"
+        done <<<"$env_output"
+      fi
+    done
+
+    defaults_refreshed=0
+    if [[ -n "${__health_env_values[COMPOSE_EXTRA_FILES]+x}" ]]; then
+      COMPOSE_EXTRA_FILES="${__health_env_values[COMPOSE_EXTRA_FILES]}"
+      defaults_refreshed=1
+    fi
+    if [[ -n "${__health_env_values[HEALTH_SERVICES]+x}" ]]; then
+      HEALTH_SERVICES="${__health_env_values[HEALTH_SERVICES]}"
+      defaults_refreshed=1
+    fi
+    if [[ -n "${__health_env_values[SERVICE_NAME]+x}" ]]; then
+      SERVICE_NAME="${__health_env_values[SERVICE_NAME]}"
+      defaults_refreshed=1
     fi
 
-    eval "$compose_defaults_dump"
-    normalize_compose_context
+    if ((defaults_refreshed == 1)); then
+      if ! compose_defaults_dump="$("$SCRIPT_DIR/lib/compose_defaults.sh" "$INSTANCE_NAME" ".")"; then
+        echo "[!] Não foi possível preparar variáveis padrão do docker compose." >&2
+        exit 1
+      fi
+
+      eval "$compose_defaults_dump"
+      normalize_compose_context
+    fi
+    unset __health_env_values
   fi
 fi
 

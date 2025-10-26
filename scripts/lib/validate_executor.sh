@@ -58,11 +58,25 @@ validate_executor_prepare_plan() {
     fi
   done
 
-  local env_file_rel="${COMPOSE_INSTANCE_ENV_FILES[$instance]:-}"
-  local env_file=""
+  local env_files_blob="${COMPOSE_INSTANCE_ENV_FILES[$instance]:-}"
+  local -a env_files_rel=()
+  if [[ -n "$env_files_blob" ]]; then
+    while IFS= read -r env_entry; do
+      [[ -z "$env_entry" ]] && continue
+      env_files_rel+=("$env_entry")
+    done <<<"$env_files_blob"
+  fi
 
-  if [[ -n "$env_file_rel" ]]; then
-    env_file="$repo_root/$env_file_rel"
+  local -a env_files_abs=()
+  if [[ ${#env_files_rel[@]} -gt 0 ]]; then
+    local env_entry
+    for env_entry in "${env_files_rel[@]}"; do
+      if [[ "$env_entry" == /* ]]; then
+        env_files_abs+=("$env_entry")
+      else
+        env_files_abs+=("$repo_root/$env_entry")
+      fi
+    done
   fi
 
   files_ref=("$base_file")
@@ -85,11 +99,15 @@ validate_executor_prepare_plan() {
 
   if [[ -n "${COMPOSE_EXTRA_FILES+x}" ]]; then
     extra_files_source="$COMPOSE_EXTRA_FILES"
-  elif [[ -n "$env_file_rel" && -f "$env_file" ]]; then
-    local extra_output
-    if extra_output="$("$env_loader" "$env_file" COMPOSE_EXTRA_FILES)" && [[ -n "$extra_output" ]]; then
-      extra_files_source="${extra_output#COMPOSE_EXTRA_FILES=}"
-    fi
+  elif [[ ${#env_files_abs[@]} -gt 0 ]]; then
+    local extra_output env_file_path
+    for env_file_path in "${env_files_abs[@]}"; do
+      if [[ -f "$env_file_path" ]]; then
+        if extra_output="$("$env_loader" "$env_file_path" COMPOSE_EXTRA_FILES)" && [[ -n "$extra_output" ]]; then
+          extra_files_source="${extra_output#COMPOSE_EXTRA_FILES=}"
+        fi
+      fi
+    done
   fi
 
   if [[ -n "$extra_files_source" ]]; then
@@ -133,13 +151,22 @@ validate_executor_prepare_plan() {
     fi
   done
 
-  if ((missing == 1)); then
-    return 1
+  local env_missing=0
+  env_args_ref=()
+  if [[ ${#env_files_abs[@]} -gt 0 ]]; then
+    local env_path
+    for env_path in "${env_files_abs[@]}"; do
+      if [[ -f "$env_path" ]]; then
+        env_args_ref+=("--env-file" "$env_path")
+      else
+        echo "✖ instância=\"$instance\" (arquivo ausente: $env_path)" >&2
+        env_missing=1
+      fi
+    done
   fi
 
-  env_args_ref=()
-  if [[ -n "$env_file_rel" && -f "$env_file" ]]; then
-    env_args_ref=("--env-file" "$env_file")
+  if ((missing == 1 || env_missing == 1)); then
+    return 1
   fi
 
   # Touch nameref arrays so shellcheck recognizes they are consumed by callers.

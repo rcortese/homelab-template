@@ -54,15 +54,20 @@ def test_deploy_without_privileges_skips_chown(repo_copy: Path) -> None:
 
 
 def test_deploy_uses_convention_for_data_dir(repo_copy: Path) -> None:
-    env_file = repo_copy / "env" / "local" / "core.env"
-    env_file.write_text(
+    common_env = repo_copy / "env" / "local" / "common.env"
+    common_env.write_text(
         "TZ=UTC\n"
         "APP_SECRET=test-secret-abcdef0123456789\n"
         "APP_RETENTION_HOURS=12\n"
-        "SERVICE_NAME=app-core\n"
-        "APP_DATA_DIR=custom-storage\n"
         "APP_DATA_UID=2000\n"
         "APP_DATA_GID=3000\n",
+        encoding="utf-8",
+    )
+
+    core_env = repo_copy / "env" / "local" / "core.env"
+    core_env.write_text(
+        "SERVICE_NAME=app-core\n"
+        "APP_DATA_DIR=custom-storage\n",
         encoding="utf-8",
     )
 

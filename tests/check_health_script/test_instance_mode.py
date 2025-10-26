@@ -22,18 +22,21 @@ def test_infers_compose_files_and_env_from_instance(
     assert result.returncode == 0, result.stderr
 
     calls = docker_stub.read_calls()
-    env_file = "env/local/core.env"
+    expected_env_files = [
+        str((repo_copy / "env" / "local" / "common.env").resolve()),
+        str((repo_copy / "env" / "local" / "core.env").resolve()),
+    ]
     expected_files = [
-        "compose/base.yml",
-        "compose/apps/app/base.yml",
-        "compose/apps/app/core.yml",
-        "compose/apps/monitoring/base.yml",
-        "compose/apps/monitoring/core.yml",
+        str((repo_copy / "compose" / "base.yml").resolve()),
+        str((repo_copy / "compose" / "apps" / "app" / "base.yml").resolve()),
+        str((repo_copy / "compose" / "apps" / "app" / "core.yml").resolve()),
+        str((repo_copy / "compose" / "apps" / "monitoring" / "base.yml").resolve()),
+        str((repo_copy / "compose" / "apps" / "monitoring" / "core.yml").resolve()),
     ]
     assert calls == [
-        _expected_compose_call(env_file, expected_files, "config", "--services"),
-        _expected_compose_call(env_file, expected_files, "ps"),
-        _expected_compose_call(env_file, expected_files, "logs", "--tail=50", "app-core"),
+        _expected_compose_call(expected_env_files, expected_files, "config", "--services"),
+        _expected_compose_call(expected_env_files, expected_files, "ps"),
+        _expected_compose_call(expected_env_files, expected_files, "logs", "--tail=50", "app-core"),
     ]
 
 
@@ -50,18 +53,21 @@ def test_executes_from_scripts_directory(docker_stub: DockerStub, repo_copy: Pat
     assert result.returncode == 0, result.stderr
 
     calls = docker_stub.read_calls()
-    env_file = "env/local/core.env"
+    expected_env_files = [
+        str((repo_copy / "env" / "local" / "common.env").resolve()),
+        str((repo_copy / "env" / "local" / "core.env").resolve()),
+    ]
     expected_files = [
-        "compose/base.yml",
-        "compose/apps/app/base.yml",
-        "compose/apps/app/core.yml",
-        "compose/apps/monitoring/base.yml",
-        "compose/apps/monitoring/core.yml",
+        str((repo_copy / "compose" / "base.yml").resolve()),
+        str((repo_copy / "compose" / "apps" / "app" / "base.yml").resolve()),
+        str((repo_copy / "compose" / "apps" / "app" / "core.yml").resolve()),
+        str((repo_copy / "compose" / "apps" / "monitoring" / "base.yml").resolve()),
+        str((repo_copy / "compose" / "apps" / "monitoring" / "core.yml").resolve()),
     ]
     assert calls == [
-        _expected_compose_call(env_file, expected_files, "config", "--services"),
-        _expected_compose_call(env_file, expected_files, "ps"),
-        _expected_compose_call(env_file, expected_files, "logs", "--tail=50", "app-core"),
-        _expected_compose_call(env_file, expected_files, "logs", "--tail=50", "app"),
-        _expected_compose_call(env_file, expected_files, "logs", "--tail=50", "monitoring"),
+        _expected_compose_call(expected_env_files, expected_files, "config", "--services"),
+        _expected_compose_call(expected_env_files, expected_files, "ps"),
+        _expected_compose_call(expected_env_files, expected_files, "logs", "--tail=50", "app-core"),
+        _expected_compose_call(expected_env_files, expected_files, "logs", "--tail=50", "app"),
+        _expected_compose_call(expected_env_files, expected_files, "logs", "--tail=50", "monitoring"),
     ]

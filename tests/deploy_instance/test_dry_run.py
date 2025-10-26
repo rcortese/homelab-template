@@ -7,6 +7,7 @@ def test_dry_run_outputs_planned_commands(repo_copy: Path) -> None:
     result = run_deploy(repo_copy, "core", "--dry-run")
 
     assert result.returncode == 0, result.stderr
+    assert "COMPOSE_ENV_FILES=env/local/common.env env/local/core.env" in result.stdout
     assert "COMPOSE_ENV_FILE=env/local/core.env" in result.stdout
     assert "Docker Compose planejado:" in result.stdout
     assert "compose.sh core -- up -d" in result.stdout

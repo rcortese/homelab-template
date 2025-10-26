@@ -62,7 +62,7 @@ def test_accepts_mixed_separators_and_invokes_compose_for_each_instance(
     for call, instance_name in zip(calls, unique_instances):
         assert instance_name in metadata_map, f"Unknown instance '{instance_name}' in test setup"
         metadata = metadata_map[instance_name]
-        expected_env = metadata.resolved_env_file()
+        expected_env = metadata.resolved_env_chain()
         expected_files = metadata.compose_files()
         assert call == expected_compose_call(expected_env, expected_files, "config")
 

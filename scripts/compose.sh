@@ -71,6 +71,7 @@ done
 
 COMPOSE_FILES_LIST=()
 metadata_loaded=0
+compose_metadata=""
 
 append_unique_file() {
   local -n __target_array="$1"
@@ -90,24 +91,48 @@ append_unique_file() {
   __target_array+=("$__file")
 }
 
+split_env_entries() {
+  local raw="${1:-}"
+  local -n __out="$2"
+
+  __out=()
+
+  if [[ -z "$raw" ]]; then
+    return
+  fi
+
+  raw="${raw//$'\n'/ }"
+  raw="${raw//,/ }"
+
+  local token
+  for token in $raw; do
+    [[ -z "$token" ]] && continue
+    __out+=("$token")
+  done
+}
+
+if [[ -n "$INSTANCE_NAME" ]]; then
+  if ! compose_metadata="$("$SCRIPT_DIR/lib/compose_instances.sh" "$REPO_ROOT")"; then
+    if [[ -z "${COMPOSE_FILES:-}" ]]; then
+      echo "Error: não foi possível carregar metadados das instâncias." >&2
+      exit 1
+    fi
+  else
+    eval "$compose_metadata"
+    metadata_loaded=1
+
+    if [[ -z "${COMPOSE_INSTANCE_FILES[$INSTANCE_NAME]:-}" ]]; then
+      echo "Error: instância desconhecida '$INSTANCE_NAME'." >&2
+      echo "Disponíveis: ${COMPOSE_INSTANCE_NAMES[*]}" >&2
+      exit 1
+    fi
+  fi
+fi
+
 if [[ -n "${COMPOSE_FILES:-}" ]]; then
   # shellcheck disable=SC2206
   COMPOSE_FILES_LIST=(${COMPOSE_FILES})
-elif [[ -n "$INSTANCE_NAME" ]]; then
-  if ! compose_metadata="$("$SCRIPT_DIR/lib/compose_instances.sh" "$REPO_ROOT")"; then
-    echo "Error: não foi possível carregar metadados das instâncias." >&2
-    exit 1
-  fi
-
-  eval "$compose_metadata"
-  metadata_loaded=1
-
-  if [[ -z "${COMPOSE_INSTANCE_FILES[$INSTANCE_NAME]:-}" ]]; then
-    echo "Error: instância desconhecida '$INSTANCE_NAME'." >&2
-    echo "Disponíveis: ${COMPOSE_INSTANCE_NAMES[*]}" >&2
-    exit 1
-  fi
-
+elif [[ -n "$INSTANCE_NAME" && $metadata_loaded -eq 1 ]]; then
   mapfile -t instance_compose_files < <(printf '%s\n' "${COMPOSE_INSTANCE_FILES[$INSTANCE_NAME]}")
 
   append_unique_file COMPOSE_FILES_LIST "$BASE_COMPOSE_FILE"
@@ -149,22 +174,68 @@ elif [[ -n "$INSTANCE_NAME" ]]; then
   done
 fi
 
-if [[ -z "${COMPOSE_ENV_FILE:-}" && -n "$INSTANCE_NAME" && $metadata_loaded -eq 1 ]]; then
-  if [[ -n "${COMPOSE_INSTANCE_ENV_FILES[$INSTANCE_NAME]:-}" ]]; then
-    COMPOSE_ENV_FILE="${COMPOSE_INSTANCE_ENV_FILES[$INSTANCE_NAME]}"
+COMPOSE_ENV_FILES_LIST=()
+
+if [[ -n "${COMPOSE_ENV_FILES:-}" ]]; then
+  split_env_entries "${COMPOSE_ENV_FILES}" COMPOSE_ENV_FILES_LIST
+fi
+
+if (( ${#COMPOSE_ENV_FILES_LIST[@]} == 0 )); then
+  if [[ -n "${COMPOSE_ENV_FILE:-}" ]]; then
+    COMPOSE_ENV_FILES_LIST=("$COMPOSE_ENV_FILE")
+  elif [[ -n "$INSTANCE_NAME" && $metadata_loaded -eq 1 ]]; then
+    if [[ -n "${COMPOSE_INSTANCE_ENV_FILES[$INSTANCE_NAME]:-}" ]]; then
+      split_env_entries "${COMPOSE_INSTANCE_ENV_FILES[$INSTANCE_NAME]}" COMPOSE_ENV_FILES_LIST
+    fi
   fi
 fi
 
-if [[ -z "${COMPOSE_ENV_FILE:-}" && -n "$INSTANCE_NAME" ]]; then
-  env_candidate_rel="env/local/${INSTANCE_NAME}.env"
-  if [[ -f "$REPO_ROOT/$env_candidate_rel" ]]; then
-    COMPOSE_ENV_FILE="$env_candidate_rel"
-  else
-    env_template_rel="env/${INSTANCE_NAME}.example.env"
-    if [[ -f "$REPO_ROOT/$env_template_rel" ]]; then
-      COMPOSE_ENV_FILE="$env_template_rel"
-    fi
+if (( ${#COMPOSE_ENV_FILES_LIST[@]} == 0 )) && [[ -n "$INSTANCE_NAME" ]]; then
+  declare -a __fallback_envs=()
+  if [[ -f "$REPO_ROOT/env/local/common.env" ]]; then
+    __fallback_envs+=("env/local/common.env")
+  elif [[ -f "$REPO_ROOT/env/common.example.env" ]]; then
+    __fallback_envs+=("env/common.example.env")
   fi
+
+  if [[ -f "$REPO_ROOT/env/local/${INSTANCE_NAME}.env" ]]; then
+    __fallback_envs+=("env/local/${INSTANCE_NAME}.env")
+  elif [[ -f "$REPO_ROOT/env/${INSTANCE_NAME}.example.env" ]]; then
+    __fallback_envs+=("env/${INSTANCE_NAME}.example.env")
+  fi
+
+  COMPOSE_ENV_FILES_LIST=("${__fallback_envs[@]}")
+  unset __fallback_envs
+fi
+
+if (( ${#COMPOSE_ENV_FILES_LIST[@]} > 0 )); then
+  declare -a __filtered_env_files=()
+  for __env_entry in "${COMPOSE_ENV_FILES_LIST[@]}"; do
+    [[ -z "$__env_entry" ]] && continue
+    __filtered_env_files+=("$__env_entry")
+  done
+  COMPOSE_ENV_FILES_LIST=("${__filtered_env_files[@]}")
+  unset __filtered_env_files
+  unset __env_entry
+fi
+
+if (( ${#COMPOSE_ENV_FILES_LIST[@]} > 0 )); then
+  COMPOSE_ENV_FILE="${COMPOSE_ENV_FILES_LIST[-1]}"
+  COMPOSE_ENV_FILES="$(printf '%s\n' "${COMPOSE_ENV_FILES_LIST[@]}")"
+  COMPOSE_ENV_FILES="${COMPOSE_ENV_FILES%$'\n'}"
+else
+  COMPOSE_ENV_FILES=""
+fi
+
+declare -a COMPOSE_ENV_FILES_RESOLVED=()
+if (( ${#COMPOSE_ENV_FILES_LIST[@]} > 0 )); then
+  for env_file in "${COMPOSE_ENV_FILES_LIST[@]}"; do
+    resolved_env_file="$env_file"
+    if [[ "$resolved_env_file" != /* ]]; then
+      resolved_env_file="$REPO_ROOT/$resolved_env_file"
+    fi
+    COMPOSE_ENV_FILES_RESOLVED+=("$resolved_env_file")
+  done
 fi
 
 if ! cd "$REPO_ROOT"; then
@@ -185,17 +256,19 @@ if ! command -v "${COMPOSE_CMD[0]}" >/dev/null 2>&1; then
   exit 127
 fi
 
-if [[ -n "${COMPOSE_ENV_FILE:-}" ]]; then
-  env_file="$COMPOSE_ENV_FILE"
-  if [[ "$env_file" != /* ]]; then
-    env_file="$REPO_ROOT/$env_file"
-  fi
-  COMPOSE_CMD+=(--env-file "$env_file")
+if (( ${#COMPOSE_ENV_FILES_RESOLVED[@]} > 0 )); then
+  for env_file in "${COMPOSE_ENV_FILES_RESOLVED[@]}"; do
+    COMPOSE_CMD+=(--env-file "$env_file")
+  done
 fi
 
 if [[ ${#COMPOSE_FILES_LIST[@]} -gt 0 ]]; then
   for file in "${COMPOSE_FILES_LIST[@]}"; do
-    COMPOSE_CMD+=(-f "$file")
+    resolved_file="$file"
+    if [[ "$resolved_file" != /* ]]; then
+      resolved_file="$REPO_ROOT/$resolved_file"
+    fi
+    COMPOSE_CMD+=(-f "$resolved_file")
   done
 fi
 

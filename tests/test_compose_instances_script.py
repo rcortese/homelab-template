@@ -68,14 +68,25 @@ def _collect_compose_metadata(repo_root: Path) -> tuple[
         env_local_map[name] = local_rel.as_posix() if local_exists else ""
         env_template_map[name] = template_rel.as_posix() if template_exists else ""
 
+        entries: list[str] = []
+        global_local = Path("env/local/common.env")
+        global_template = Path("env/common.example.env")
+
+        if (repo_root / global_local).exists():
+            entries.append(global_local.as_posix())
+        elif (repo_root / global_template).exists():
+            entries.append(global_template.as_posix())
+
         if local_exists:
-            env_file_map[name] = local_rel.as_posix()
+            entries.append(local_rel.as_posix())
         elif template_exists:
-            env_file_map[name] = template_rel.as_posix()
+            entries.append(template_rel.as_posix())
         else:
             raise AssertionError(
                 f"Expected either {local_rel} or {template_rel} to exist for instance '{name}'"
             )
+
+        env_file_map[name] = "\n".join(entries)
 
     return (
         instance_names,

@@ -28,7 +28,10 @@ def test_prefers_local_env_when_available(repo_copy: Path, docker_stub: DockerSt
     assert len(calls) == 1
     (call,) = calls
     assert call == expected_compose_call(
-        repo_copy / "env" / "local" / "core.env",
+        [
+            repo_copy / "env" / "local" / "common.env",
+            repo_copy / "env" / "local" / "core.env",
+        ],
         [
             repo_copy / "compose" / "base.yml",
             repo_copy / "compose" / "apps" / "app" / "base.yml",
@@ -73,7 +76,10 @@ def test_includes_extra_files_from_env_file(repo_copy: Path, docker_stub: Docker
     assert len(calls) == 1
     (call,) = calls
     assert call == expected_compose_call(
-        repo_copy / "env" / "local" / "core.env",
+        [
+            repo_copy / "env" / "local" / "common.env",
+            repo_copy / "env" / "local" / "core.env",
+        ],
         [
             repo_copy / "compose" / "base.yml",
             repo_copy / "compose" / "apps" / "app" / "base.yml",
@@ -126,7 +132,10 @@ def test_env_override_for_extra_files(repo_copy: Path, docker_stub: DockerStub) 
     assert len(calls) == 1
     (call,) = calls
     assert call == expected_compose_call(
-        repo_copy / "env" / "local" / "core.env",
+        [
+            repo_copy / "env" / "local" / "common.env",
+            repo_copy / "env" / "local" / "core.env",
+        ],
         [
             repo_copy / "compose" / "base.yml",
             repo_copy / "compose" / "apps" / "app" / "base.yml",

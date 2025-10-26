@@ -20,9 +20,16 @@ def test_instance_uses_expected_env_and_compose_files(
     assert len(calls) == 1
     command = calls[0]
 
-    assert "--env-file" in command
-    env_arg_index = command.index("--env-file")
-    assert command[env_arg_index + 1].endswith("env/local/core.env")
+    env_args = [
+        command[index + 1]
+        for index, arg in enumerate(command)
+        if arg == "--env-file"
+    ]
+    expected_envs = {
+        str((repo_copy / "env" / "local" / "common.env").resolve()),
+        str((repo_copy / "env" / "local" / "core.env").resolve()),
+    }
+    assert set(env_args) == expected_envs
 
     compose_files = [
         command[index + 1]
@@ -30,11 +37,11 @@ def test_instance_uses_expected_env_and_compose_files(
         if arg == "-f"
     ]
     assert compose_files == [
-        "compose/base.yml",
-        "compose/apps/app/base.yml",
-        "compose/apps/app/core.yml",
-        "compose/apps/monitoring/base.yml",
-        "compose/apps/monitoring/core.yml",
+        str((repo_copy / "compose" / "base.yml").resolve()),
+        str((repo_copy / "compose" / "apps" / "app" / "base.yml").resolve()),
+        str((repo_copy / "compose" / "apps" / "app" / "core.yml").resolve()),
+        str((repo_copy / "compose" / "apps" / "monitoring" / "base.yml").resolve()),
+        str((repo_copy / "compose" / "apps" / "monitoring" / "core.yml").resolve()),
     ]
 
 
@@ -61,9 +68,9 @@ def test_instance_resolves_manifests_when_invoked_from_scripts_dir(
         if arg == "-f"
     ]
     assert compose_files == [
-        "compose/base.yml",
-        "compose/apps/app/base.yml",
-        "compose/apps/app/core.yml",
-        "compose/apps/monitoring/base.yml",
-        "compose/apps/monitoring/core.yml",
+        str((repo_copy / "compose" / "base.yml").resolve()),
+        str((repo_copy / "compose" / "apps" / "app" / "base.yml").resolve()),
+        str((repo_copy / "compose" / "apps" / "app" / "core.yml").resolve()),
+        str((repo_copy / "compose" / "apps" / "monitoring" / "base.yml").resolve()),
+        str((repo_copy / "compose" / "apps" / "monitoring" / "core.yml").resolve()),
     ]

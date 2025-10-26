@@ -18,12 +18,19 @@ def test_invokes_ps_and_logs_with_custom_files(docker_stub: DockerStub) -> None:
     assert result.returncode == 0, result.stderr
 
     calls = docker_stub.read_calls()
+    repo_root = Path(__file__).resolve().parents[2]
+    expected_env = str((repo_root / "env" / "custom.env").resolve())
+
+    compose_files = [
+        (repo_root / "compose" / "base.yml").resolve(),
+        (repo_root / "compose" / "extra.yml").resolve(),
+    ]
     assert calls == [
-        _expected_compose_call("env/custom.env", ["compose/base.yml", "compose/extra.yml"], "config", "--services"),
-        _expected_compose_call("env/custom.env", ["compose/base.yml", "compose/extra.yml"], "ps"),
+        _expected_compose_call(expected_env, compose_files, "config", "--services"),
+        _expected_compose_call(expected_env, compose_files, "ps"),
         _expected_compose_call(
-            "env/custom.env",
-            ["compose/base.yml", "compose/extra.yml"],
+            expected_env,
+            compose_files,
             "logs",
             "--tail=50",
             "app",
@@ -51,10 +58,10 @@ def test_loads_compose_extra_files_from_env_file(
     assert result.returncode == 0, result.stderr
     assert "Warning:" not in result.stderr
 
+    repo_root = Path(__file__).resolve().parents[2]
     expected_files = [
-        "compose/base.yml",
-        "compose/overlays/extra.yml",
-        "compose/overlays/extra.yml",
+        (repo_root / "compose" / "base.yml").resolve(),
+        (repo_root / "compose" / "overlays" / "extra.yml").resolve(),
     ]
     calls = docker_stub.read_calls()
     assert calls == [
