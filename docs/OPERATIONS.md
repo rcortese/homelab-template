@@ -13,7 +13,7 @@ Este documento apresenta um ponto de partida para descrever processos operaciona
 | [`scripts/deploy_instance.sh`](#scriptsdeploy_instancesh) | Orquestrar deploy guiado de instâncias. | `scripts/deploy_instance.sh <alvo>` | Deploys manuais ou automatizados. |
 | [`scripts/fix_permission_issues.sh`](#scriptsfix_permission_issuessh) | Ajustar permissões de diretórios persistentes. | `scripts/fix_permission_issues.sh <instancia>` | Antes de subir serviços que usam armazenamento compartilhado. |
 | [`scripts/backup.sh`](#scriptsbackupsh) | Gerar snapshot versionado da instância. | `scripts/backup.sh <instancia>` | Rotinas de backup e pré-mudanças invasivas. |
-| [`scripts/compose.sh`](#scriptscomposesh) | Padronizar chamadas ao `docker compose`. | `scripts/compose.sh <subcomando>` | Operações Compose locais ou em CI. |
+| [`scripts/compose.sh`](#scriptscomposesh) | Padronizar chamadas ao `docker compose`. | `scripts/compose.sh <instancia> <subcomando>` | Operações Compose locais ou em CI. |
 | [`scripts/describe_instance.sh`](#scriptsdescribe_instancesh) | Resumir serviços, portas e volumes de uma instância. | `scripts/describe_instance.sh <instancia>` | Auditorias rápidas ou geração de runbooks. |
 | [`scripts/check_health.sh`](#scriptscheck_healthsh) | Conferir status dos serviços após mudanças. | `scripts/check_health.sh <instancia>` | Pós-deploy, pós-restore ou troubleshooting. |
 | [`scripts/check_db_integrity.sh`](#scriptscheck_db_integritysh) | Validar integridade de bancos SQLite com pausa controlada. | `scripts/check_db_integrity.sh <instancia>` | Manutenções programadas ou investigação de falhas. |
@@ -93,7 +93,10 @@ O script depende de `scripts/lib/deploy_context.sh` para calcular `APP_DATA_DIR`
 
 ## scripts/compose.sh
 
-Defina `COMPOSE_FILES` e `COMPOSE_ENV_FILE` para combinações personalizadas e registre exemplos específicos da sua stack conforme necessário.
+- **Formato básico:** `scripts/compose.sh <instancia> <subcomando> [argumentos...]`. A instância define quais manifests (`compose/base.yml`, overlays de app e overrides da instância) e cadeias de `.env` serão carregados antes de encaminhar o subcomando ao `docker compose`.
+- **Sem instância:** utilize `--` para separar os argumentos quando quiser apenas reutilizar o wrapper sem carregar metadados (ex.: `scripts/compose.sh -- config`).
+- **Variáveis úteis:** `DOCKER_COMPOSE_BIN` sobrescreve o binário invocado; `COMPOSE_FILES` e `COMPOSE_ENV_FILE` (ou `COMPOSE_ENV_FILES`) forçam combinações personalizadas sem depender dos manifests/`.env` padrão.
+- **Ajuda integrada:** `scripts/compose.sh --help` descreve todas as opções suportadas e exemplos adicionais (`scripts/compose.sh core up -d`, `scripts/compose.sh media logs app`, `scripts/compose.sh core -- down app`).
 
 ## scripts/describe_instance.sh
 
