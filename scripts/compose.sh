@@ -112,9 +112,18 @@ elif [[ -n "$INSTANCE_NAME" ]]; then
 
   append_unique_file COMPOSE_FILES_LIST "$BASE_COMPOSE_FILE"
 
-  instance_app_name="${COMPOSE_INSTANCE_APP_NAMES[$INSTANCE_NAME]:-}"
-  if [[ -n "$instance_app_name" ]]; then
-    append_unique_file COMPOSE_FILES_LIST "compose/apps/${instance_app_name}/base.yml"
+  instance_apps_blob="${COMPOSE_INSTANCE_APPS[$INSTANCE_NAME]:-}"
+  if [[ -z "$instance_apps_blob" && -n "${COMPOSE_INSTANCE_APP_NAMES[$INSTANCE_NAME]:-}" ]]; then
+    instance_apps_blob="${COMPOSE_INSTANCE_APP_NAMES[$INSTANCE_NAME]}"
+  fi
+
+  if [[ -n "$instance_apps_blob" ]]; then
+    instance_app_names=()
+    mapfile -t instance_app_names < <(printf '%s\n' "$instance_apps_blob")
+    for instance_app_name in "${instance_app_names[@]}"; do
+      [[ -z "$instance_app_name" ]] && continue
+      append_unique_file COMPOSE_FILES_LIST "compose/apps/${instance_app_name}/base.yml"
+    done
   fi
 
   for compose_file in "${instance_compose_files[@]}"; do
@@ -122,9 +131,14 @@ elif [[ -n "$INSTANCE_NAME" ]]; then
   done
 fi
 
-if [[ -z "${COMPOSE_ENV_FILE:-}" && -n "$INSTANCE_NAME" && $metadata_loaded -eq 1 ]]; then
-  if [[ -n "${COMPOSE_INSTANCE_ENV_FILES[$INSTANCE_NAME]:-}" ]]; then
+if [[ -z "${COMPOSE_ENV_FILE:-}" && -n "$INSTANCE_NAME" ]]; then
+  if [[ $metadata_loaded -eq 1 && -n "${COMPOSE_INSTANCE_ENV_FILES[$INSTANCE_NAME]:-}" ]]; then
     COMPOSE_ENV_FILE="${COMPOSE_INSTANCE_ENV_FILES[$INSTANCE_NAME]}"
+  else
+    default_env_file="env/local/${INSTANCE_NAME}.env"
+    if [[ -f "$default_env_file" ]]; then
+      COMPOSE_ENV_FILE="$default_env_file"
+    fi
   fi
 fi
 

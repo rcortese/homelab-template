@@ -159,3 +159,26 @@ def test_respects_docker_compose_bin_override(repo_copy: Path) -> None:
     env_file = str(repo_copy / "env" / "local" / "core.env")
     assert "--env-file" in compose_cmd
     assert env_file in compose_cmd
+
+
+def test_defaults_include_all_app_bases_when_multiple_apps(repo_copy: Path) -> None:
+    monitoring_dir = repo_copy / "compose" / "apps" / "monitoring"
+    monitoring_dir.mkdir(parents=True, exist_ok=True)
+    (monitoring_dir / "base.yml").write_text("services: {}\n", encoding="utf-8")
+    (monitoring_dir / "core.yml").write_text("services: {}\n", encoding="utf-8")
+
+    script_path = repo_copy / SCRIPT_RELATIVE
+    stdout = _run_script(script_path, "core", str(repo_copy), env=os.environ.copy())
+
+    compose_files = _extract_value(r'COMPOSE_FILES="([^"]+)"', stdout)
+    expected_files = [
+        "compose/base.yml",
+        "compose/apps/app/base.yml",
+        "compose/apps/monitoring/base.yml",
+        "compose/apps/app/core.yml",
+        "compose/apps/monitoring/core.yml",
+    ]
+    assert compose_files == " ".join(expected_files)
+
+    compose_cmd = _extract_compose_cmd(stdout)
+    assert _extract_file_args(compose_cmd) == expected_files
