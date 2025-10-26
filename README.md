@@ -9,12 +9,8 @@ stack devem ser descritas nos apontamentos locais indicados em [Customização l
 
 ## Pré-requisitos
 
-Certifique-se de ter as ferramentas abaixo instaladas e atualizadas antes de trabalhar em um fork deste template:
-
-- Docker Engine
-- Docker Compose v2
-- Python 3.x
-- ShellCheck, shfmt ou ferramentas equivalentes para lint/format de shell scripts
+Antes de começar, confira a seção de dependências no [guia de onboarding](docs/ONBOARDING.md). Lá mantemos a lista completa e
+sempre atualizada de ferramentas necessárias (incluindo versões mínimas e alternativas compatíveis) para preparar o ambiente.
 
 ### Checklist rápido
 
