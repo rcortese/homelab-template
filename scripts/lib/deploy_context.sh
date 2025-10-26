@@ -10,6 +10,10 @@ source "${_DEPLOY_CONTEXT_DIR}/env_helpers.sh"
 # shellcheck disable=SC1091
 source "${_DEPLOY_CONTEXT_DIR}/compose_plan.sh"
 
+# shellcheck source=./env_file_chain.sh
+# shellcheck disable=SC1091
+source "${_DEPLOY_CONTEXT_DIR}/env_file_chain.sh"
+
 load_deploy_metadata() {
   local repo_root="$1"
 

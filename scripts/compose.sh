@@ -35,6 +35,9 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 # shellcheck source=./lib/compose_plan.sh
 source "$SCRIPT_DIR/lib/compose_plan.sh"
 
+# shellcheck source=./lib/env_file_chain.sh
+source "$SCRIPT_DIR/lib/env_file_chain.sh"
+
 INSTANCE_NAME=""
 COMPOSE_ARGS=()
 
@@ -118,15 +121,13 @@ if [[ -n "${COMPOSE_FILES:-}" ]]; then
   # shellcheck disable=SC2206
   COMPOSE_FILES_LIST=(${COMPOSE_FILES})
 elif [[ -n "$INSTANCE_NAME" && $metadata_loaded -eq 1 ]]; then
-  mapfile -t instance_compose_files < <(printf '%s\n' "${COMPOSE_INSTANCE_FILES[$INSTANCE_NAME]}")
-
-  append_unique_file COMPOSE_FILES_LIST "$BASE_COMPOSE_FILE"
-
-  declare -a instance_app_names=()
-  apps_raw="${COMPOSE_INSTANCE_APP_NAMES[$INSTANCE_NAME]:-}"
-  if [[ -n "$apps_raw" ]]; then
-    mapfile -t instance_app_names < <(printf '%s\n' "$apps_raw")
-    resolved_instance_app_names=("${instance_app_names[@]}")
+  declare -A compose_plan_metadata=()
+  if build_compose_file_plan "$INSTANCE_NAME" COMPOSE_FILES_LIST "" compose_plan_metadata; then
+    if [[ -n "${compose_plan_metadata[app_names]:-}" ]]; then
+      mapfile -t resolved_instance_app_names < <(printf '%s\n' "${compose_plan_metadata[app_names]}")
+    fi
+  else
+    COMPOSE_FILES_LIST=("$BASE_COMPOSE_FILE")
   fi
 fi
 
@@ -203,7 +204,16 @@ if ! command -v "${COMPOSE_CMD[0]}" >/dev/null 2>&1; then
   exit 127
 fi
 
-if [[ -n "$compose_env_file_abs" ]]; then
+if (( ${#COMPOSE_ENV_FILES_RESOLVED[@]} > 0 )); then
+  primary_env_file="${COMPOSE_ENV_FILES_RESOLVED[-1]}"
+  COMPOSE_CMD+=(--env-file "$primary_env_file")
+
+  if (( ${#COMPOSE_ENV_FILES_RESOLVED[@]} > 1 )); then
+    for env_file_path in "${COMPOSE_ENV_FILES_RESOLVED[@]}"; do
+      COMPOSE_CMD+=(--env-file "$env_file_path")
+    done
+  fi
+elif [[ -n "$compose_env_file_abs" ]]; then
   COMPOSE_CMD+=(--env-file "$compose_env_file_abs")
 fi
 
