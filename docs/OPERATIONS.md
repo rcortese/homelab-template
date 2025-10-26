@@ -32,6 +32,7 @@ Este documento apresenta um ponto de partida para descrever processos operaciona
   ```
 - **Saída:** lista variáveis ausentes, obsoletas ou instâncias sem template, retornando código de saída diferente de zero quando encontrar problemas — ideal para CI.
 - **Boas práticas:** execute o script após mudanças em Compose ou nos arquivos `.env` de exemplo e inclua-o no pipeline de validação local antes de abrir PRs.
+  > **Alerta:** rodar a verificação antes de abrir PRs evita que variáveis órfãs avancem para revisão.
 
 ## scripts/bootstrap_instance.sh
 
@@ -73,6 +74,7 @@ Este documento apresenta um ponto de partida para descrever processos operaciona
     ```
 
   > As variáveis podem ser exportadas previamente (`export COMPOSE_INSTANCES=...`) ou prefixadas ao comando, mantendo o fluxo simples.
+  > **Alerta:** use a validação para confirmar se as combinações padrão de Compose permanecem compatíveis com os perfis ativos antes de implantações ou PRs.
 
 ## scripts/deploy_instance.sh
 
