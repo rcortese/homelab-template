@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 
 # shellcheck source=./compose_paths.sh
-# shellcheck disable=SC1091
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/compose_paths.sh"
 
 load_compose_env_map() {

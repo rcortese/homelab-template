@@ -71,7 +71,6 @@ if [[ "$FORMAT_LOWER" != "table" && "$FORMAT_LOWER" != "json" ]]; then
 fi
 
 # shellcheck source=./lib/compose_defaults.sh
-# shellcheck disable=SC1091
 source "$SCRIPT_DIR/lib/compose_defaults.sh"
 
 if ! setup_compose_defaults "$INSTANCE_NAME" "$REPO_ROOT"; then

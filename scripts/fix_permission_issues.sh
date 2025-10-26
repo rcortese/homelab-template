@@ -21,11 +21,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 # shellcheck source=./lib/deploy_context.sh
-# shellcheck disable=SC1091
 source "$SCRIPT_DIR/lib/deploy_context.sh"
 
 # shellcheck source=./lib/step_runner.sh
-# shellcheck disable=SC1091
 source "$SCRIPT_DIR/lib/step_runner.sh"
 
 INSTANCE=""

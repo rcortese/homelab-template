@@ -33,11 +33,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 # shellcheck source=./lib/compose_plan.sh
-# shellcheck disable=SC1091
 source "$SCRIPT_DIR/lib/compose_plan.sh"
 
 # shellcheck source=./lib/env_file_chain.sh
-# shellcheck disable=SC1091
 source "$SCRIPT_DIR/lib/env_file_chain.sh"
 
 INSTANCE_NAME=""

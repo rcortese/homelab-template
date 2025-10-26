@@ -33,11 +33,9 @@ fi
 REPO_ROOT="$(pwd)"
 
 # shellcheck source=./lib/env_helpers.sh
-# shellcheck disable=SC1091
 source "$SCRIPT_DIR/lib/env_helpers.sh"
 
 # shellcheck source=./lib/env_file_chain.sh
-# shellcheck disable=SC1091
 source "$SCRIPT_DIR/lib/env_file_chain.sh"
 
 print_help() {
@@ -157,7 +155,6 @@ normalize_compose_context() {
     local sanitized="${COMPOSE_FILES//$'\n'/ }"
     local -a files_list=()
     if [[ -n "$sanitized" ]]; then
-      # shellcheck disable=SC2206
       files_list=($sanitized)
     fi
 

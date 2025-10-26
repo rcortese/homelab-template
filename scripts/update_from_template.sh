@@ -56,13 +56,10 @@ error() {
 }
 
 # shellcheck source=lib/template_prompts.sh
-# shellcheck disable=SC1091
 source "$SCRIPT_DIR/lib/template_prompts.sh"
 # shellcheck source=lib/template_validate.sh
-# shellcheck disable=SC1091
 source "$SCRIPT_DIR/lib/template_validate.sh"
 # shellcheck source=lib/template_sync.sh
-# shellcheck disable=SC1091
 source "$SCRIPT_DIR/lib/template_sync.sh"
 
 template_remote="${TEMPLATE_REMOTE:-}"

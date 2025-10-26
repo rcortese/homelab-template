@@ -1,11 +1,9 @@
 #!/usr/bin/env bash
 
 # shellcheck source=./compose_discovery.sh
-# shellcheck disable=SC1091
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/compose_discovery.sh"
 
 # shellcheck source=./compose_env_map.sh
-# shellcheck disable=SC1091
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/compose_env_map.sh"
 
 load_compose_instances() {
