@@ -142,6 +142,9 @@ validate_executor_prepare_plan() {
     env_args_ref=("--env-file" "$env_file")
   fi
 
+  # Touch nameref arrays so shellcheck recognizes they are consumed by callers.
+  : "${env_args_ref[@]}"
+
   return 0
 }
 
