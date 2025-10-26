@@ -30,6 +30,10 @@ REPO_ROOT="$(pwd)"
 # shellcheck disable=SC1091
 source "$SCRIPT_DIR/lib/env_helpers.sh"
 
+# shellcheck source=./lib/env_file_chain.sh
+# shellcheck disable=SC1091
+source "$SCRIPT_DIR/lib/env_file_chain.sh"
+
 print_help() {
   cat <<'EOF'
 Uso: scripts/check_health.sh [instancia]
@@ -146,16 +150,11 @@ if ! command -v "${COMPOSE_CMD[0]}" >/dev/null 2>&1; then
 fi
 
 if [[ -z "${HEALTH_SERVICES:-}" ]]; then
-  health_env_files=()
+  declare -a health_env_files=()
   if [[ -n "${COMPOSE_ENV_FILES:-}" ]]; then
-    raw_env_files="${COMPOSE_ENV_FILES//$'\n'/ }"
-    raw_env_files="${raw_env_files//,/ }"
-    for env_token in $raw_env_files; do
-      [[ -z "$env_token" ]] && continue
-      health_env_files+=("$env_token")
-    done
+    env_file_chain__parse_list "${COMPOSE_ENV_FILES}" health_env_files
   elif [[ -n "${COMPOSE_ENV_FILE:-}" ]]; then
-    health_env_files+=("$COMPOSE_ENV_FILE")
+    health_env_files=("$COMPOSE_ENV_FILE")
   fi
 
   if [[ ${#health_env_files[@]} -gt 0 ]]; then

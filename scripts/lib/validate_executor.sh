@@ -2,6 +2,12 @@
 
 # Helpers to execute docker compose validation for each instance.
 
+VALIDATE_EXECUTOR_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# shellcheck source=./env_file_chain.sh
+# shellcheck disable=SC1091
+source "$VALIDATE_EXECUTOR_DIR/env_file_chain.sh"
+
 validate_executor_prepare_plan() {
   local instance="$1"
   local repo_root="$2"
@@ -60,23 +66,15 @@ validate_executor_prepare_plan() {
 
   local env_files_blob="${COMPOSE_INSTANCE_ENV_FILES[$instance]:-}"
   local -a env_files_rel=()
-  if [[ -n "$env_files_blob" ]]; then
-    while IFS= read -r env_entry; do
-      [[ -z "$env_entry" ]] && continue
-      env_files_rel+=("$env_entry")
-    done <<<"$env_files_blob"
+  env_file_chain__resolve_explicit "$env_files_blob" "" env_files_rel
+
+  if (( ${#env_files_rel[@]} == 0 )); then
+    env_file_chain__defaults "$repo_root" "$instance" env_files_rel
   fi
 
   local -a env_files_abs=()
-  if [[ ${#env_files_rel[@]} -gt 0 ]]; then
-    local env_entry
-    for env_entry in "${env_files_rel[@]}"; do
-      if [[ "$env_entry" == /* ]]; then
-        env_files_abs+=("$env_entry")
-      else
-        env_files_abs+=("$repo_root/$env_entry")
-      fi
-    done
+  if (( ${#env_files_rel[@]} > 0 )); then
+    env_file_chain__to_absolute "$repo_root" env_files_rel env_files_abs
   fi
 
   files_ref=("$base_file")

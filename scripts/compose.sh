@@ -32,6 +32,10 @@ USAGE
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
+# shellcheck source=./lib/env_file_chain.sh
+# shellcheck disable=SC1091
+source "$SCRIPT_DIR/lib/env_file_chain.sh"
+
 INSTANCE_NAME=""
 COMPOSE_ARGS=()
 
@@ -175,48 +179,20 @@ elif [[ -n "$INSTANCE_NAME" && $metadata_loaded -eq 1 ]]; then
 fi
 
 COMPOSE_ENV_FILES_LIST=()
-
-if [[ -n "${COMPOSE_ENV_FILES:-}" ]]; then
-  split_env_entries "${COMPOSE_ENV_FILES}" COMPOSE_ENV_FILES_LIST
+explicit_env_input="${COMPOSE_ENV_FILES:-}"
+if [[ -z "$explicit_env_input" && -n "${COMPOSE_ENV_FILE:-}" ]]; then
+  explicit_env_input="$COMPOSE_ENV_FILE"
 fi
 
-if (( ${#COMPOSE_ENV_FILES_LIST[@]} == 0 )); then
-  if [[ -n "${COMPOSE_ENV_FILE:-}" ]]; then
-    COMPOSE_ENV_FILES_LIST=("$COMPOSE_ENV_FILE")
-  elif [[ -n "$INSTANCE_NAME" && $metadata_loaded -eq 1 ]]; then
-    if [[ -n "${COMPOSE_INSTANCE_ENV_FILES[$INSTANCE_NAME]:-}" ]]; then
-      split_env_entries "${COMPOSE_INSTANCE_ENV_FILES[$INSTANCE_NAME]}" COMPOSE_ENV_FILES_LIST
-    fi
-  fi
+metadata_env_input=""
+if [[ -n "$INSTANCE_NAME" && $metadata_loaded -eq 1 && -n "${COMPOSE_INSTANCE_ENV_FILES[$INSTANCE_NAME]:-}" ]]; then
+  metadata_env_input="${COMPOSE_INSTANCE_ENV_FILES[$INSTANCE_NAME]}"
 fi
+
+env_file_chain__resolve_explicit "$explicit_env_input" "$metadata_env_input" COMPOSE_ENV_FILES_LIST
 
 if (( ${#COMPOSE_ENV_FILES_LIST[@]} == 0 )) && [[ -n "$INSTANCE_NAME" ]]; then
-  declare -a __fallback_envs=()
-  if [[ -f "$REPO_ROOT/env/local/common.env" ]]; then
-    __fallback_envs+=("env/local/common.env")
-  elif [[ -f "$REPO_ROOT/env/common.example.env" ]]; then
-    __fallback_envs+=("env/common.example.env")
-  fi
-
-  if [[ -f "$REPO_ROOT/env/local/${INSTANCE_NAME}.env" ]]; then
-    __fallback_envs+=("env/local/${INSTANCE_NAME}.env")
-  elif [[ -f "$REPO_ROOT/env/${INSTANCE_NAME}.example.env" ]]; then
-    __fallback_envs+=("env/${INSTANCE_NAME}.example.env")
-  fi
-
-  COMPOSE_ENV_FILES_LIST=("${__fallback_envs[@]}")
-  unset __fallback_envs
-fi
-
-if (( ${#COMPOSE_ENV_FILES_LIST[@]} > 0 )); then
-  declare -a __filtered_env_files=()
-  for __env_entry in "${COMPOSE_ENV_FILES_LIST[@]}"; do
-    [[ -z "$__env_entry" ]] && continue
-    __filtered_env_files+=("$__env_entry")
-  done
-  COMPOSE_ENV_FILES_LIST=("${__filtered_env_files[@]}")
-  unset __filtered_env_files
-  unset __env_entry
+  env_file_chain__defaults "$REPO_ROOT" "$INSTANCE_NAME" COMPOSE_ENV_FILES_LIST
 fi
 
 if (( ${#COMPOSE_ENV_FILES_LIST[@]} > 0 )); then
@@ -229,13 +205,7 @@ fi
 
 declare -a COMPOSE_ENV_FILES_RESOLVED=()
 if (( ${#COMPOSE_ENV_FILES_LIST[@]} > 0 )); then
-  for env_file in "${COMPOSE_ENV_FILES_LIST[@]}"; do
-    resolved_env_file="$env_file"
-    if [[ "$resolved_env_file" != /* ]]; then
-      resolved_env_file="$REPO_ROOT/$resolved_env_file"
-    fi
-    COMPOSE_ENV_FILES_RESOLVED+=("$resolved_env_file")
-  done
+  env_file_chain__to_absolute "$REPO_ROOT" COMPOSE_ENV_FILES_LIST COMPOSE_ENV_FILES_RESOLVED
 fi
 
 if ! cd "$REPO_ROOT"; then

@@ -6,6 +6,10 @@ _DEPLOY_CONTEXT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck disable=SC1091
 source "${_DEPLOY_CONTEXT_DIR}/env_helpers.sh"
 
+# shellcheck source=./env_file_chain.sh
+# shellcheck disable=SC1091
+source "${_DEPLOY_CONTEXT_DIR}/env_file_chain.sh"
+
 append_unique_file() {
   local -n __target_array="$1"
   local __file="$2"
@@ -117,37 +121,36 @@ build_deploy_context() {
     env_files_blob="${COMPOSE_INSTANCE_ENV_FILES[$instance]}"
   fi
 
-  local -a env_files_rel=()
-  if [[ -n "$env_files_blob" ]]; then
-    while IFS= read -r env_entry; do
-      [[ -z "$env_entry" ]] && continue
-      env_files_rel+=("$env_entry")
-    done <<<"$env_files_blob"
+  declare -a env_files_rel=()
+  env_file_chain__resolve_explicit "$env_files_blob" "" env_files_rel
+
+  if (( ${#env_files_rel[@]} == 0 )); then
+    env_file_chain__defaults "$repo_root" "$instance" env_files_rel
   fi
 
-  if [[ ${#env_files_rel[@]} -eq 0 ]]; then
+  if (( ${#env_files_rel[@]} == 0 )); then
     env_files_rel=("$local_env_file")
   fi
 
   local primary_env_file=""
-  if [[ ${#env_files_rel[@]} -gt 0 ]]; then
+  if (( ${#env_files_rel[@]} > 0 )); then
     primary_env_file="${env_files_rel[-1]}"
   fi
 
-  local -a env_files_abs=()
-  local env_entry
-  for env_entry in "${env_files_rel[@]}"; do
-    local env_path="$env_entry"
-    if [[ "$env_path" != /* ]]; then
-      env_path="$repo_root/$env_path"
-    fi
+  declare -a env_files_abs=()
+  env_file_chain__to_absolute "$repo_root" env_files_rel env_files_abs
 
-    if [[ ! -f "$env_path" ]]; then
-      echo "[!] Arquivo ${env_entry} não encontrado." >&2
-      if [[ "$env_entry" == "$local_env_file" ]]; then
+  local idx=0
+  while ((idx < ${#env_files_rel[@]})); do
+    local rel_entry="${env_files_rel[$idx]}"
+    local abs_entry="${env_files_abs[$idx]}"
+
+    if [[ ! -f "$abs_entry" ]]; then
+      echo "[!] Arquivo ${rel_entry} não encontrado." >&2
+      if [[ "$rel_entry" == "$local_env_file" ]]; then
         if [[ -n "$template_file" && -f "$repo_root/$template_file" ]]; then
           echo "    Copie o template padrão antes de continuar:" >&2
-          echo "    cp ${template_file} ${env_entry}" >&2
+          echo "    cp ${template_file} ${rel_entry}" >&2
         elif [[ -n "$template_file" ]]; then
           echo "    Template correspondente (${template_file}) também não foi localizado." >&2
         fi
@@ -155,7 +158,7 @@ build_deploy_context() {
       return 1
     fi
 
-    env_files_abs+=("$env_path")
+    idx=$((idx + 1))
   done
 
   local app_data_dir_was_set=0
