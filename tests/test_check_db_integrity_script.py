@@ -300,6 +300,42 @@ def test_pauses_and_checks_integrity(
     assert any(" unpause " in call or call.rstrip().endswith(" unpause") for call in calls)
 
 
+def test_handles_compose_ps_failure(
+    repo_copy: Path,
+    compose_stub: tuple[Path, Path],
+    sqlite_stub: tuple[Path, Path, Path],
+) -> None:
+    compose_stub_path, compose_log = compose_stub
+    sqlite_stub_path, sqlite_config, sqlite_log = sqlite_stub
+
+    data_dir = repo_copy / "data"
+    data_dir.mkdir()
+    db_path = data_dir / "app.db"
+    db_path.write_text("dummy", encoding="utf-8")
+
+    result = _run_script(
+        repo_copy,
+        compose_stub_path,
+        compose_log,
+        sqlite_stub_path,
+        sqlite_config,
+        sqlite_log,
+        "core",
+        env={
+            "COMPOSE_STUB_EXIT_CODE": "42",
+            "COMPOSE_STUB_LOG": str(compose_log),
+        },
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert "[!] Não foi possível listar serviços ativos da instância" in result.stderr
+    assert "Integridade OK" in result.stdout
+
+    compose_output = compose_log.read_text(encoding="utf-8")
+    assert "pause" not in compose_output
+    assert "unpause" not in compose_output
+
+
 def test_no_resume_skips_unpause(
     repo_copy: Path,
     compose_stub: tuple[Path, Path],

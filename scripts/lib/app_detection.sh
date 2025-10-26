@@ -23,9 +23,11 @@ app_detection__list_active_services() {
 
   local -a __compose_cmd=("$@")
   local __raw_output=""
+  local __status=0
 
-  if ! __raw_output="$("${__compose_cmd[@]}" ps --status running --services 2>/dev/null)"; then
-    return $?
+  __raw_output="$("${__compose_cmd[@]}" ps --status running --services 2>/dev/null)" || __status=$?
+  if ((__status != 0)); then
+    return "${__status}"
   fi
 
   if [[ -z "$__raw_output" ]]; then
