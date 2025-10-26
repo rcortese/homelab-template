@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# shellcheck source=./compose_paths.sh
+# shellcheck source=scripts/lib/compose_paths.sh
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/compose_paths.sh"
 
 compose_discovery__append_instance_file() {

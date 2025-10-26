@@ -155,7 +155,7 @@ normalize_compose_context() {
     local sanitized="${COMPOSE_FILES//$'\n'/ }"
     local -a files_list=()
     if [[ -n "$sanitized" ]]; then
-      files_list=($sanitized)
+      read -r -a files_list <<<"$sanitized"
     fi
 
     if [[ ${#files_list[@]} -gt 0 ]]; then
