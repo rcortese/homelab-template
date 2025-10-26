@@ -51,6 +51,17 @@ def parse_mapping(line: str) -> dict[str, str]:
 
 
 def test_compose_instances_outputs_expected_metadata(repo_copy: Path) -> None:
+    secondary_app = repo_copy / "compose" / "apps" / "secondary"
+    secondary_app.mkdir(parents=True)
+    (secondary_app / "base.yml").write_text(
+        (repo_copy / "compose" / "apps" / "app" / "base.yml").read_text(encoding="utf-8"),
+        encoding="utf-8",
+    )
+    (secondary_app / "core.yml").write_text(
+        (repo_copy / "compose" / "apps" / "app" / "core.yml").read_text(encoding="utf-8"),
+        encoding="utf-8",
+    )
+
     result = run_compose_instances(repo_copy)
 
     assert result.returncode == 0, result.stderr
@@ -65,10 +76,20 @@ def test_compose_instances_outputs_expected_metadata(repo_copy: Path) -> None:
 
     files_line = find_declare_line(result.stdout, "COMPOSE_INSTANCE_FILES")
     files_map = parse_mapping(files_line)
-    assert files_map == {
-        "core": "compose/apps/app/core.yml",
-        "media": "compose/apps/app/media.yml",
-    }
+    assert files_map["core"].splitlines() == [
+        "compose/apps/app/core.yml",
+        "compose/apps/secondary/core.yml",
+    ]
+    assert files_map["media"] == "compose/apps/app/media.yml"
+
+    apps_line = find_declare_line(result.stdout, "COMPOSE_INSTANCE_APPS")
+    apps_map = parse_mapping(apps_line)
+    assert apps_map["core"].splitlines() == ["app", "secondary"]
+    assert apps_map["media"] == "app"
+
+    app_names_line = find_declare_line(result.stdout, "COMPOSE_INSTANCE_APP_NAMES")
+    app_names_map = parse_mapping(app_names_line)
+    assert app_names_map["core"] == "app"
 
     env_files_line = find_declare_line(result.stdout, "COMPOSE_INSTANCE_ENV_FILES")
     assert parse_mapping(env_files_line) == {
