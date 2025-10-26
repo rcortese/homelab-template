@@ -32,6 +32,9 @@ USAGE
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
+# shellcheck source=./lib/compose_command.sh
+source "$SCRIPT_DIR/lib/compose_command.sh"
+
 # shellcheck source=./lib/compose_plan.sh
 source "$SCRIPT_DIR/lib/compose_plan.sh"
 
@@ -40,6 +43,7 @@ source "$SCRIPT_DIR/lib/env_file_chain.sh"
 
 INSTANCE_NAME=""
 COMPOSE_ARGS=()
+declare -a COMPOSE_CMD=()
 
 if [[ $# -eq 0 ]]; then
   print_help
@@ -209,17 +213,8 @@ if ! cd "$REPO_ROOT"; then
   exit 1
 fi
 
-if [[ -n "${DOCKER_COMPOSE_BIN:-}" ]]; then
-  # Permite sobrescrever o binário do docker compose (ex.: "docker-compose").
-  # shellcheck disable=SC2206
-  COMPOSE_CMD=(${DOCKER_COMPOSE_BIN})
-else
-  COMPOSE_CMD=(docker compose)
-fi
-
-if ! command -v "${COMPOSE_CMD[0]}" >/dev/null 2>&1; then
-  echo "Error: ${COMPOSE_CMD[0]} is not available. Set DOCKER_COMPOSE_BIN if needed." >&2
-  exit 127
+if ! compose_resolve_command COMPOSE_CMD; then
+  exit $?
 fi
 
 if ((${#COMPOSE_ENV_FILES_RESOLVED[@]} > 0)); then
