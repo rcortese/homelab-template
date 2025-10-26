@@ -26,6 +26,8 @@ Certifique-se de ter as ferramentas abaixo instaladas e atualizadas antes de tra
    scripts/check_all.sh
    ```
 
+> Quando criar um guia de onboarding específico da stack, replique esta sequência para manter as instruções alinhadas entre os documentos.
+
 ## Conteúdo obrigatório
 
 Os diretórios abaixo devem existir em qualquer repositório filho criado a partir deste template:
