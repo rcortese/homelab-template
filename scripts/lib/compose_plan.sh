@@ -5,7 +5,7 @@
 # by compose_instances.sh and keep the logic centralized across scripts.
 
 append_unique_file() {
-  local -n __target_array="$1"
+  local -n __target_array=$1
   local __file="$2"
   local existing
 
@@ -51,13 +51,12 @@ build_compose_file_plan() {
     return 1
   fi
 
-  local -n __plan_ref="$target_array_name"
+  local -n __plan_ref=$target_array_name
   __plan_ref=()
 
   local -a __extras_ref_copy=()
   if [[ -n "$extras_array_name" ]]; then
-    # shellcheck disable=SC2178
-    local -n __extras_ref="$extras_array_name"
+    local -n __extras_ref=$extras_array_name
     __extras_ref_copy=("${__extras_ref[@]}")
   fi
 
@@ -110,19 +109,19 @@ build_compose_file_plan() {
 
   if [[ -n "$metadata_assoc_name" ]]; then
     declare -gA "$metadata_assoc_name"
-    local -n __metadata_ref="$metadata_assoc_name"
+    local -n __metadata_ref=$metadata_assoc_name
     __metadata_ref=()
 
     if [[ ${#__instance_app_names[@]} -gt 0 ]]; then
-      __metadata_ref[app_names]="$(printf '%s\n' "${__instance_app_names[@]}")"
+      __metadata_ref["app_names"]="$(printf '%s\n' "${__instance_app_names[@]}")"
     fi
 
     if [[ ${#__instance_compose_files[@]} -gt 0 ]]; then
-      __metadata_ref[discovered_files]="$(printf '%s\n' "${__instance_compose_files[@]}")"
+      __metadata_ref["discovered_files"]="$(printf '%s\n' "${__instance_compose_files[@]}")"
     fi
 
     if [[ ${#__extras_ref_copy[@]} -gt 0 ]]; then
-      __metadata_ref[extra_files]="$(printf '%s\n' "${__extras_ref_copy[@]}")"
+      __metadata_ref["extra_files"]="$(printf '%s\n' "${__extras_ref_copy[@]}")"
     fi
   fi
 

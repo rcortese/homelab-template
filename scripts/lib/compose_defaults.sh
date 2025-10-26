@@ -6,13 +6,13 @@ set -euo pipefail
 #   $1 - Instance name (optional).
 #   $2 - Base directory for compose/env files (defaults to current directory).
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# shellcheck source=./lib/compose_plan.sh
-source "$SCRIPT_DIR/lib/compose_plan.sh"
+# shellcheck source=./scripts/lib/compose_plan.sh
+source "${LIB_DIR}/compose_plan.sh"
 
-# shellcheck source=./lib/env_file_chain.sh
-source "$SCRIPT_DIR/lib/env_file_chain.sh"
+# shellcheck source=./scripts/lib/env_file_chain.sh
+source "${LIB_DIR}/env_file_chain.sh"
 
 setup_compose_defaults() {
   local instance="${1:-}"
@@ -35,7 +35,7 @@ setup_compose_defaults() {
   local metadata_loaded=0
   local compose_metadata=""
   if [[ -z "${COMPOSE_FILES:-}" && -n "$instance" ]]; then
-    if compose_metadata="$("$SCRIPT_DIR/lib/compose_instances.sh" "$base_fs")"; then
+    if compose_metadata="$("${LIB_DIR}/compose_instances.sh" "$base_fs")"; then
       eval "$compose_metadata"
       metadata_loaded=1
     fi
@@ -63,14 +63,24 @@ setup_compose_defaults() {
   fi
 
   declare -a env_files_rel=()
-  env_file_chain__resolve_explicit "$explicit_env_input" "$metadata_env_input" env_files_rel
+  if [[ -n "$explicit_env_input" || -n "$metadata_env_input" ]]; then
+    mapfile -t env_files_rel < <(
+      env_file_chain__resolve_explicit "$explicit_env_input" "$metadata_env_input"
+    )
+  fi
 
   if ((${#env_files_rel[@]} == 0)) && [[ -n "$instance" ]]; then
-    env_file_chain__defaults "$base_fs" "$instance" env_files_rel
+    mapfile -t env_files_rel < <(
+      env_file_chain__defaults "$base_fs" "$instance"
+    )
   fi
 
   declare -a env_files_abs=()
-  env_file_chain__to_absolute "$base_fs" env_files_rel env_files_abs
+  if ((${#env_files_rel[@]} > 0)); then
+    mapfile -t env_files_abs < <(
+      env_file_chain__to_absolute "$base_fs" "${env_files_rel[@]}"
+    )
+  fi
 
   if ((${#env_files_abs[@]} > 0)); then
     COMPOSE_ENV_FILE="${env_files_abs[-1]}"
@@ -102,7 +112,7 @@ setup_compose_defaults() {
       if [[ ! -f "$env_file_path" ]]; then
         continue
       fi
-      if env_loader_output="$("$SCRIPT_DIR/lib/env_loader.sh" "$env_file_path" COMPOSE_EXTRA_FILES 2>/dev/null)"; then
+      if env_loader_output="$("${LIB_DIR}/env_loader.sh" "$env_file_path" COMPOSE_EXTRA_FILES 2>/dev/null)"; then
         while IFS='=' read -r key value; do
           [[ -z "$key" ]] && continue
           if [[ "$key" == "COMPOSE_EXTRA_FILES" && -n "$value" ]]; then
@@ -117,7 +127,9 @@ setup_compose_defaults() {
   local -a extra_files_entries=()
   local resolved_extra_files="${COMPOSE_EXTRA_FILES:-}"
 
-  env_file_chain__parse_list "${COMPOSE_FILES:-}" compose_files_entries
+  mapfile -t compose_files_entries < <(
+    env_file_chain__parse_list "${COMPOSE_FILES:-}"
+  )
 
   if [[ ${#compose_files_entries[@]} -gt 0 ]]; then
     declare -A __base_seen=()
@@ -137,7 +149,9 @@ setup_compose_defaults() {
   fi
 
   if [[ -n "$resolved_extra_files" ]]; then
-    env_file_chain__parse_list "$resolved_extra_files" extra_files_entries
+    mapfile -t extra_files_entries < <(
+      env_file_chain__parse_list "$resolved_extra_files"
+    )
   fi
 
   if [[ ${#extra_files_entries[@]} -gt 0 ]]; then
@@ -178,7 +192,7 @@ setup_compose_defaults() {
     unset __base_seen_with_extras
   fi
 
-  if [[ ${#extra_files_entries[@]} > 0 ]]; then
+  if [[ ${#extra_files_entries[@]} -gt 0 ]]; then
     local -a combined_entries=("${compose_files_entries[@]}" "${extra_files_entries[@]}")
     COMPOSE_FILES="${combined_entries[*]}"
   else
@@ -186,7 +200,9 @@ setup_compose_defaults() {
   fi
 
   local -a final_compose_entries=()
-  env_file_chain__parse_list "${COMPOSE_FILES:-}" final_compose_entries
+  mapfile -t final_compose_entries < <(
+    env_file_chain__parse_list "${COMPOSE_FILES:-}"
+  )
 
   for file in "${final_compose_entries[@]}"; do
     local resolved="$file"

@@ -13,7 +13,7 @@ app_detection__list_active_services() {
     return 1
   fi
 
-  local -n __output_ref="${__target_ref}"
+  local -n __output_ref=$__target_ref
   __output_ref=()
 
   if [[ $# -eq 0 ]]; then

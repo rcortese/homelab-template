@@ -23,7 +23,7 @@ HELP
 }
 
 validate_cli_parse_instances() {
-  local -n __out="$1"
+  local -n __out=$1
   shift
 
   local first_arg="${1:-}"
