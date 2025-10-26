@@ -237,6 +237,39 @@ def test_pauses_and_checks_integrity(
     assert any(" unpause " in call or call.rstrip().endswith(" unpause") for call in calls)
 
 
+def test_no_resume_skips_unpause(
+    repo_copy: Path,
+    compose_stub: tuple[Path, Path],
+    sqlite_stub: tuple[Path, Path, Path],
+) -> None:
+    compose_stub_path, compose_log = compose_stub
+    sqlite_stub_path, sqlite_config, sqlite_log = sqlite_stub
+
+    data_dir = repo_copy / "data"
+    data_dir.mkdir()
+    db_path = data_dir / "app.db"
+    db_path.write_text("dummy", encoding="utf-8")
+
+    result = _run_script(
+        repo_copy,
+        compose_stub_path,
+        compose_log,
+        sqlite_stub_path,
+        sqlite_config,
+        sqlite_log,
+        "core",
+        "--no-resume",
+        env={"COMPOSE_STUB_SERVICES": "app"},
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert "Integridade OK" in result.stdout
+
+    calls = compose_log.read_text(encoding="utf-8").splitlines()
+    assert any(" pause " in call or call.rstrip().endswith(" pause") for call in calls)
+    assert not any(" unpause " in call or call.rstrip().endswith(" unpause") for call in calls)
+
+
 def test_recovers_corrupted_database(
     repo_copy: Path,
     compose_stub: tuple[Path, Path],
