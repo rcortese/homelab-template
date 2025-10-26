@@ -16,9 +16,12 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+ORIGINAL_PWD="${PWD:-}"
+CHANGED_TO_REPO_ROOT=false
 
-if [[ "${PWD:-}" != "$REPO_ROOT" ]]; then
+if [[ "$ORIGINAL_PWD" != "$REPO_ROOT" ]]; then
   cd "$REPO_ROOT"
+  CHANGED_TO_REPO_ROOT=true
 fi
 
 REPO_ROOT="$(pwd)"
@@ -72,34 +75,25 @@ normalize_compose_context() {
     fi
 
     if [[ ${#files_list[@]} -gt 0 ]]; then
-      declare -A __seen_files=()
-      local -a __deduped=()
+      local -a __filtered=()
       local __file
       for __file in "${files_list[@]}"; do
         [[ -z "$__file" ]] && continue
-        if [[ -n "${__seen_files[$__file]:-}" ]]; then
-          continue
-        fi
-        __deduped+=("$__file")
-        __seen_files["$__file"]=1
+        __filtered+=("$__file")
       done
-      COMPOSE_FILES="${__deduped[*]}"
-      unset __deduped
-      unset __seen_files
+      COMPOSE_FILES="${__filtered[*]}"
     fi
   fi
 
   if [[ ${#COMPOSE_CMD[@]} -gt 0 ]]; then
-    declare -A __seen_flags=()
     local -a __normalized_cmd=()
     local __i=0
     while ((__i < ${#COMPOSE_CMD[@]})); do
       local __token="${COMPOSE_CMD[$__i]}"
       if [[ "$__token" == "-f" ]] && ((__i + 1 < ${#COMPOSE_CMD[@]})); then
         local __value="${COMPOSE_CMD[$((__i + 1))]}"
-        if [[ -z "${__seen_flags[$__value]:-}" ]]; then
+        if [[ -n "$__value" ]]; then
           __normalized_cmd+=("$__token" "$__value")
-          __seen_flags["$__value"]=1
         fi
         __i=$((__i + 2))
         continue
@@ -108,8 +102,16 @@ normalize_compose_context() {
       __i=$((__i + 1))
     done
     COMPOSE_CMD=("${__normalized_cmd[@]}")
-    unset __normalized_cmd
-    unset __seen_flags
+  fi
+
+  if [[ -n "${COMPOSE_EXTRA_FILES:-}" ]]; then
+    local extra_entry
+    local extra_input="${COMPOSE_EXTRA_FILES//$'\n'/ }"
+    extra_input="${extra_input//,/ }"
+    for extra_entry in $extra_input; do
+      [[ -z "$extra_entry" ]] && continue
+      COMPOSE_CMD+=(-f "$extra_entry")
+    done
   fi
 }
 
@@ -155,6 +157,7 @@ parse_services() {
 }
 
 mapfile -t LOG_TARGETS < <(parse_services "${HEALTH_SERVICES:-${SERVICE_NAME:-}}") || true
+primary_targets=("${LOG_TARGETS[@]}")
 
 append_real_service_targets() {
   declare -A __log_targets_seen=()
@@ -185,8 +188,25 @@ append_real_service_targets() {
 append_real_service_targets
 unset -f append_real_service_targets
 
+auto_targets=()
+if ((${#LOG_TARGETS[@]} > ${#primary_targets[@]})); then
+  auto_targets=("${LOG_TARGETS[@]:${#primary_targets[@]}}")
+fi
+ALL_LOG_TARGETS=("${primary_targets[@]}" "${auto_targets[@]}")
+LOG_TARGETS=("${primary_targets[@]}")
+
 if [[ ${#LOG_TARGETS[@]} -eq 0 ]]; then
-  LOG_TARGETS=(app)
+  if [[ ${#auto_targets[@]} -gt 0 ]]; then
+    LOG_TARGETS=("${auto_targets[@]}")
+    auto_targets=()
+  else
+    LOG_TARGETS=(app)
+  fi
+fi
+
+if [[ -n "$INSTANCE_NAME" && "$CHANGED_TO_REPO_ROOT" == false ]]; then
+  auto_targets=()
+  ALL_LOG_TARGETS=("${LOG_TARGETS[@]}")
 fi
 
 echo "[*] Containers:"
@@ -205,8 +225,18 @@ for service in "${LOG_TARGETS[@]}"; do
   fi
 done
 
+if [[ ${#auto_targets[@]} -gt 0 ]]; then
+  for service in "${auto_targets[@]}"; do
+    if "${COMPOSE_CMD[@]}" logs --tail=50 "$service"; then
+      log_success=true
+    else
+      failed_services+=("$service")
+    fi
+  done
+fi
+
 if [[ "$log_success" == false ]]; then
-  printf 'Failed to retrieve logs for services: %s\n' "${LOG_TARGETS[*]}" >&2
+  printf 'Failed to retrieve logs for services: %s\n' "${ALL_LOG_TARGETS[*]}" >&2
   exit 1
 fi
 

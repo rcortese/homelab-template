@@ -26,6 +26,28 @@ append_unique_file() {
   __target_array+=("$__file")
 }
 
+split_compose_entries() {
+  local raw="${1:-}"
+  local -n __out="$2"
+
+  __out=()
+
+  if [[ -z "$raw" ]]; then
+    return
+  fi
+
+  local sanitized="${raw//$'\n'/ }"
+  sanitized="${sanitized//,/ }"
+
+  local token
+  for token in $sanitized; do
+    if [[ -z "$token" ]]; then
+      continue
+    fi
+    __out+=("$token")
+  done
+}
+
 setup_compose_defaults() {
   local instance="${1:-}"
   local base_dir="${2:-.}"
@@ -126,47 +148,50 @@ setup_compose_defaults() {
     COMPOSE_CMD+=(--env-file "$COMPOSE_ENV_FILE")
   fi
 
-  local compose_files_entries=()
-  local extra_files_entries=()
+  local -a compose_files_entries=()
+  local -a extra_files_entries=()
   local resolved_extra_files="${COMPOSE_EXTRA_FILES:-}"
 
-  if [[ -n "${COMPOSE_FILES:-}" ]]; then
-    IFS=$' 	
-' read -r -a compose_files_entries <<<"${COMPOSE_FILES}"
-  fi
+  split_compose_entries "${COMPOSE_FILES:-}" compose_files_entries
 
   if [[ -n "$resolved_extra_files" ]]; then
-    IFS=$' 	
-' read -r -a extra_files_entries <<<"${resolved_extra_files//,/ }"
+    split_compose_entries "$resolved_extra_files" extra_files_entries
+  fi
+
+  if [[ ${#extra_files_entries[@]} -gt 0 && ${#compose_files_entries[@]} -gt 0 ]]; then
+    declare -A __extra_counts=()
+    local __file
+    for __file in "${extra_files_entries[@]}"; do
+      __extra_counts["$__file"]=$((${__extra_counts["$__file"]:-0} + 1))
+    done
+
+    local -a __base_entries=()
+    for __file in "${compose_files_entries[@]}"; do
+      if [[ -n "${__extra_counts[$__file]:-}" && ${__extra_counts[$__file]} -gt 0 ]]; then
+        __extra_counts[$__file]=$((__extra_counts[$__file] - 1))
+        continue
+      fi
+      __base_entries+=("$__file")
+    done
+
+    compose_files_entries=("${__base_entries[@]}")
+    unset __base_entries
+    unset __extra_counts
   fi
 
   if [[ ${#extra_files_entries[@]} -gt 0 ]]; then
-    compose_files_entries+=("${extra_files_entries[@]}")
+    local -a combined_entries=("${compose_files_entries[@]}" "${extra_files_entries[@]}")
+    COMPOSE_FILES="${combined_entries[*]}"
+  else
+    COMPOSE_FILES="${compose_files_entries[*]}"
   fi
 
-  if [[ ${#compose_files_entries[@]} -gt 0 ]]; then
-    local unique_entries=()
-    declare -A seen_entries=()
+  local -a final_compose_entries=()
+  split_compose_entries "${COMPOSE_FILES:-}" final_compose_entries
 
-    for file in "${compose_files_entries[@]}"; do
-      if [[ -z "$file" ]]; then
-        continue
-      fi
-      if [[ -n "${seen_entries[$file]:-}" ]]; then
-        continue
-      fi
-      unique_entries+=("$file")
-      seen_entries["$file"]=1
-    done
-
-    COMPOSE_FILES="${unique_entries[*]}"
-    for file in "${unique_entries[@]}"; do
-      COMPOSE_CMD+=(-f "$file")
-    done
-
-    unset seen_entries
-    unset unique_entries
-  fi
+  for file in "${final_compose_entries[@]}"; do
+    COMPOSE_CMD+=(-f "$file")
+  done
 }
 
 main() {
