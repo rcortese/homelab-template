@@ -58,7 +58,7 @@ Este documento apresenta um ponto de partida para descrever processos operaciona
 ## scripts/fix_permission_issues.sh
 
 - **Objetivo:** normalizar permissões de diretórios persistentes definidos na instância antes de executar serviços Docker.
-- **Contexto:** lê os valores calculados por `scripts/lib/deploy_context.sh`, utilizando `APP_DATA_DIR`, `APP_DATA_UID` e `APP_DATA_GID` definidos no `.env` da instância (ou valores padrão `data/<app>` e `1000:1000`).
+- **Contexto:** lê os valores calculados por `scripts/lib/deploy_context.sh`, utilizando `APP_DATA_DIR`, `APP_DATA_UID` e `APP_DATA_GID` definidos no `.env` da instância (ou valores padrão `data/<app>-<instância>` e `1000:1000`).
 - **Uso típico:**
   ```bash
   scripts/fix_permission_issues.sh <instancia>
@@ -68,7 +68,7 @@ Este documento apresenta um ponto de partida para descrever processos operaciona
   - garante que os diretórios de dados e `backups/` existam (`mkdir -p`);
   - aplica `chown <uid>:<gid>` quando executado com privilégios suficientes;
   - valida o owner final e emite avisos se persistirem divergências.
-- **Boas práticas:** personalize `APP_DATA_DIR` para apontar o armazenamento desejado (por exemplo, volumes montados no host) e documente o `UID:GID` esperado para evitar conflitos em ambientes multiusuário.
+- **Boas práticas:** siga a convenção `data/<app>-<instância>` sempre que possível para manter a organização padrão. Sobrescreva `APP_DATA_DIR` apenas quando precisar apontar para armazenamento alternativo (por exemplo, volumes montados no host, dispositivos dedicados ou diretórios com requisitos especiais) e documente o `UID:GID` esperado para evitar conflitos em ambientes multiusuário.
 
 ## scripts/compose.sh
 
