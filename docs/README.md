@@ -8,7 +8,7 @@ utilize [`docs/local/`](./local/README.md) e apenas referencie esses materiais q
 ## Começando
 
 - [Guia de onboarding](./ONBOARDING.md) — Resumo do fluxo inicial com pré-requisitos, bootstrap dos `.env` e validações obrigatórias.
-- [Estrutura do template](./STRUCTURE.md) — Convenções obrigatórias de diretórios, arquivos essenciais e validações.
+- [Estrutura do template](./STRUCTURE.md) — Convenções obrigatórias de diretórios, arquivos essenciais e validações. A tabela de diretórios ali apresentada é a fonte única de verdade para a estrutura mínima.
 - [Guia de variáveis de ambiente](../env/README.md) — Como mapear e documentar variáveis em diferentes ambientes.
 
 ## Visão geral e integrações

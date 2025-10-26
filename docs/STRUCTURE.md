@@ -6,6 +6,8 @@ Este guia descreve a estrutura mínima esperada para qualquer repositório que h
 
 ## Diretórios obrigatórios
 
+> Fonte única de verdade para os diretórios mínimos exigidos pelo template. Sempre atualize esta tabela antes de replicar mudanças em outros documentos.
+
 | Caminho | Descrição | Itens esperados |
 | --- | --- | --- |
 | `compose/` | Manifests Docker Compose base e variações por ambiente ou função. | `base.yml`, sobreposições nomeadas (`<alvo>.yml`) e diretórios em `compose/apps/`. |
