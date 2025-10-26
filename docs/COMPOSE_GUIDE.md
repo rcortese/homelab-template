@@ -93,4 +93,4 @@ docker compose \
 - Inclua todos os arquivos `compose/apps/<app>/base.yml` antes dos overrides por instância.
 - Combine o override `compose/apps/<app>/<instância>.yml` correspondente logo após o `base.yml` da aplicação.
 - Sincronize a combinação de arquivos com as variáveis de ambiente (`env/local/<instância>.env`).
-- Revalide as combinações com [`scripts/validate_compose.sh`](./OPERATIONS.md#scriptsvalidate_composesh) ao alterar qualquer arquivo em `compose/`.
+- Revalide as combinações com [`scripts/validate_compose.sh`](./OPERATIONS.md#scriptsvalidate_compose.sh) ao alterar qualquer arquivo em `compose/`.
