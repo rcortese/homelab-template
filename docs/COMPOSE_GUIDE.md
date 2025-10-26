@@ -55,27 +55,29 @@ docker compose \
 
 ## Exemplos de comando
 
-### Core
+Use um único esqueleto de comando e ajuste os parâmetros marcados para cada
+instância:
 
 ```bash
 docker compose \
-  --env-file env/local/core.env \
+  --env-file env/local/<instância>.env \
   -f compose/base.yml \
   -f compose/apps/app/base.yml \
-  -f compose/apps/app/core.yml \
+  -f compose/apps/app/<instância>.yml \
+  ${COMPOSE_EXTRA_FLAGS:-} \
   up -d
 ```
 
-### Media (com volume de mídia)
+> `COMPOSE_EXTRA_FLAGS` pode incluir `-f` adicionais (ex.: overlays) ou outras
+> opções globais necessárias para a instância.
 
-```bash
-docker compose \
-  --env-file env/local/media.env \
-  -f compose/base.yml \
-  -f compose/apps/app/base.yml \
-  -f compose/apps/app/media.yml \
-  up -d
-```
+As diferenças entre as instâncias principais ficam concentradas nos arquivos
+carregados e nas variáveis apontadas pelo comando acima:
+
+| Cenário | `--env-file` | Overrides obrigatórios (`-f`) | Overlays adicionais | Observações |
+| ------- | ------------- | ----------------------------- | ------------------- | ----------- |
+| **core** | `env/local/core.env` | `compose/apps/app/core.yml` | — | Sem overlays obrigatórios. Utilize apenas quando a stack demandar arquivos extras. |
+| **media** | `env/local/media.env` | `compose/apps/app/media.yml` | Opcional: `compose/overlays/<overlay>.yml` (ex.: armazenamento de mídia) | Adicione overlays específicos da instância ao definir `COMPOSE_EXTRA_FLAGS` ou `COMPOSE_EXTRA_FILES`. |
 
 ### Combinação ad-hoc com `COMPOSE_FILES`
 
