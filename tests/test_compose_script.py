@@ -21,8 +21,10 @@ def run_compose(
     args: list[str] | None = None,
     env: dict[str, str] | None = None,
     cwd: Path | None = None,
+    script_path: Path | None = None,
 ) -> subprocess.CompletedProcess[str]:
-    command = [str(SCRIPT_PATH)]
+    target_script = script_path or SCRIPT_PATH
+    command = [str(target_script)]
     if args:
         command.extend(args)
     return subprocess.run(
@@ -32,6 +34,20 @@ def run_compose(
         check=False,
         cwd=cwd or REPO_ROOT,
         env={**os.environ, **(env or {})},
+    )
+
+
+def run_compose_in_repo(
+    repo_root: Path,
+    *,
+    args: list[str] | None = None,
+    env: dict[str, str] | None = None,
+) -> subprocess.CompletedProcess[str]:
+    return run_compose(
+        args=args,
+        env=env,
+        cwd=repo_root,
+        script_path=repo_root / "scripts" / "compose.sh",
     )
 
 
@@ -89,3 +105,40 @@ def test_fallback_to_docker_compose(docker_stub: DockerStub) -> None:
 
     assert result.returncode == 0
     assert docker_stub.read_calls() == [["compose", "ps"]]
+
+
+def test_instance_uses_expected_env_and_compose_files(
+    repo_copy: Path, docker_stub: DockerStub
+) -> None:
+    result = run_compose_in_repo(repo_copy, args=["core"])
+
+    assert result.returncode == 0
+
+    calls = docker_stub.read_calls()
+    assert len(calls) == 1
+    command = calls[0]
+
+    assert "--env-file" in command
+    env_arg_index = command.index("--env-file")
+    assert command[env_arg_index + 1] == "env/local/core.env"
+
+    compose_files = [
+        command[index + 1]
+        for index, arg in enumerate(command)
+        if arg == "-f"
+    ]
+    assert compose_files == [
+        "compose/base.yml",
+        "compose/apps/app/base.yml",
+        "compose/apps/app/core.yml",
+    ]
+
+
+def test_unknown_instance_returns_error(repo_copy: Path) -> None:
+    result = run_compose_in_repo(repo_copy, args=["unknown"])
+
+    assert result.returncode == 1
+    assert "instância desconhecida 'unknown'" in result.stderr
+    assert "Disponíveis:" in result.stderr
+    assert "core" in result.stderr
+    assert "media" in result.stderr
