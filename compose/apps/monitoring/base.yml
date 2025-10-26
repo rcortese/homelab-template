@@ -2,3 +2,6 @@ services:
   monitoring:
     image: example/monitoring:latest
     restart: unless-stopped
+    networks:
+      homelab_internal:
+        ipv4_address: ${MONITORING_NETWORK_IPV4}
