@@ -143,6 +143,48 @@ def sqlite_stub(tmp_path: Path) -> tuple[Path, Path, Path]:
     return script_path, config_path, log_path
 
 
+@pytest.fixture
+def docker_stub(tmp_path: Path) -> tuple[Path, Path]:
+    log_path = tmp_path / "docker_stub.log"
+    script_path = tmp_path / "docker"
+    script_lines = [
+        "#!/usr/bin/env python3",
+        "import json",
+        "import os",
+        "import subprocess",
+        "import sys",
+        "from pathlib import Path",
+        "",
+        "log_path = Path(os.environ['DOCKER_STUB_LOG'])",
+        "with log_path.open('a', encoding='utf-8') as handle:",
+        "    json.dump({'argv': sys.argv[1:]}, handle)",
+        "    handle.write('\\n')",
+        "",
+        "args = sys.argv[1:]",
+        "try:",
+        "    idx = args.index('sqlite3')",
+        "except ValueError:",
+        "    sys.exit(0)",
+        "",
+        "container_args = args[idx + 1:]",
+        "if not container_args:",
+        "    sys.exit(0)",
+        "",
+        "stub_bin = os.environ['SQLITE3_CONTAINER_STUB_BIN']",
+        "result = subprocess.run(",
+        "    [stub_bin, *container_args],",
+        "    stdin=sys.stdin,",
+        "    stdout=sys.stdout,",
+        "    stderr=sys.stderr,",
+        "    check=False,",
+        ")",
+        "sys.exit(result.returncode)",
+    ]
+    script_path.write_text("\n".join(script_lines) + "\n", encoding="utf-8")
+    script_path.chmod(0o755)
+    return script_path, log_path
+
+
 def _run_script(
     repo_copy: Path,
     compose_stub_path: Path,
@@ -152,6 +194,7 @@ def _run_script(
     sqlite_log: Path,
     *args: str,
     env: dict[str, str] | None = None,
+    sqlite_mode: str | None = "binary",
 ) -> subprocess.CompletedProcess[str]:
     script_path = repo_copy / SCRIPT_RELATIVE
     result_env = os.environ.copy()
@@ -164,6 +207,8 @@ def _run_script(
             "SQLITE3_STUB_LOG": str(sqlite_log),
         }
     )
+    if sqlite_mode is not None:
+        result_env["SQLITE3_MODE"] = sqlite_mode
     if env:
         result_env.update(env)
 
@@ -350,3 +395,85 @@ def test_reports_failure_when_recovery_cannot_run(
     assert result.returncode == 2
     assert "Falha ao recuperar" in result.stderr
     assert compose_log.read_text(encoding="utf-8").count("unpause") == 1
+
+
+def test_runs_sqlite_via_container_when_requested(
+    repo_copy: Path,
+    compose_stub: tuple[Path, Path],
+    sqlite_stub: tuple[Path, Path, Path],
+    docker_stub: tuple[Path, Path],
+) -> None:
+    compose_stub_path, compose_log = compose_stub
+    sqlite_stub_path, sqlite_config, sqlite_log = sqlite_stub
+    docker_path, docker_log = docker_stub
+
+    data_dir = repo_copy / "data"
+    data_dir.mkdir()
+    db_path = data_dir / "app.db"
+    db_path.write_text("payload", encoding="utf-8")
+
+    env = {
+        "COMPOSE_STUB_SERVICES": "app",
+        "PATH": f"{docker_path.parent}:{os.environ['PATH']}",
+        "DOCKER_STUB_LOG": str(docker_log),
+        "SQLITE3_CONTAINER_STUB_BIN": str(sqlite_stub_path),
+    }
+
+    result = _run_script(
+        repo_copy,
+        compose_stub_path,
+        compose_log,
+        sqlite_stub_path,
+        sqlite_config,
+        sqlite_log,
+        "core",
+        env=env,
+        sqlite_mode="container",
+    )
+
+    assert result.returncode == 0, result.stderr
+    docker_calls = [
+        json.loads(line)["argv"]
+        for line in docker_log.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    assert docker_calls, "docker stub should be invoked in container mode"
+    assert any("sqlite3" in call for call in docker_calls)
+
+
+def test_falls_back_to_binary_when_container_unavailable(
+    repo_copy: Path,
+    compose_stub: tuple[Path, Path],
+    sqlite_stub: tuple[Path, Path, Path],
+) -> None:
+    compose_stub_path, compose_log = compose_stub
+    sqlite_stub_path, sqlite_config, sqlite_log = sqlite_stub
+
+    data_dir = repo_copy / "data"
+    data_dir.mkdir()
+    db_path = data_dir / "app.db"
+    db_path.write_text("payload", encoding="utf-8")
+
+    result = _run_script(
+        repo_copy,
+        compose_stub_path,
+        compose_log,
+        sqlite_stub_path,
+        sqlite_config,
+        sqlite_log,
+        "core",
+        env={
+            "COMPOSE_STUB_SERVICES": "app",
+            "SQLITE3_CONTAINER_RUNTIME": "nonexistent-docker",
+        },
+        sqlite_mode="container",
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert "Runtime 'nonexistent-docker' indisponível" in result.stderr
+    stub_calls = [
+        json.loads(line)["argv"]
+        for line in sqlite_log.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    assert stub_calls, "fallback should execute sqlite stub directly"

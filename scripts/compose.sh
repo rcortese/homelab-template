@@ -74,6 +74,7 @@ done
 
 COMPOSE_FILES_LIST=()
 metadata_loaded=0
+declare -a resolved_instance_app_names=()
 
 if [[ -n "${COMPOSE_FILES:-}" ]]; then
   # shellcheck disable=SC2206
@@ -93,9 +94,15 @@ elif [[ -n "$INSTANCE_NAME" ]]; then
     exit 1
   fi
 
-  if ! build_compose_file_plan "$INSTANCE_NAME" COMPOSE_FILES_LIST; then
-    echo "Error: não foi possível montar lista de arquivos da instância '$INSTANCE_NAME'." >&2
-    exit 1
+  mapfile -t instance_compose_files < <(printf '%s\n' "${COMPOSE_INSTANCE_FILES[$INSTANCE_NAME]}")
+
+  append_unique_file COMPOSE_FILES_LIST "$BASE_COMPOSE_FILE"
+
+  declare -a instance_app_names=()
+  apps_raw="${COMPOSE_INSTANCE_APP_NAMES[$INSTANCE_NAME]:-}"
+  if [[ -n "$apps_raw" ]]; then
+    mapfile -t instance_app_names < <(printf '%s\n' "$apps_raw")
+    resolved_instance_app_names=("${instance_app_names[@]}")
   fi
 fi
 
@@ -117,6 +124,31 @@ if [[ -z "${COMPOSE_ENV_FILE:-}" && -n "$INSTANCE_NAME" ]]; then
   fi
 fi
 
+compose_env_file_abs=""
+if [[ -n "${COMPOSE_ENV_FILE:-}" ]]; then
+  compose_env_file_abs="$COMPOSE_ENV_FILE"
+  if [[ "$compose_env_file_abs" != /* ]]; then
+    compose_env_file_abs="$REPO_ROOT/$compose_env_file_abs"
+  fi
+fi
+
+app_data_dir_value="${APP_DATA_DIR:-}"
+
+if [[ -z "$app_data_dir_value" && -n "$compose_env_file_abs" && -f "$compose_env_file_abs" ]]; then
+  if app_data_dir_kv="$("$SCRIPT_DIR/lib/env_loader.sh" "$compose_env_file_abs" APP_DATA_DIR)"; then
+    if [[ -n "$app_data_dir_kv" ]]; then
+      app_data_dir_value="${app_data_dir_kv#APP_DATA_DIR=}"
+    fi
+  fi
+fi
+
+if [[ -z "$app_data_dir_value" && $metadata_loaded -eq 1 && -n "$INSTANCE_NAME" && ${#resolved_instance_app_names[@]} -gt 0 ]]; then
+  primary_app_name="${resolved_instance_app_names[0]}"
+  if [[ -n "$primary_app_name" ]]; then
+    app_data_dir_value="data/${primary_app_name}-${INSTANCE_NAME}"
+  fi
+fi
+
 if ! cd "$REPO_ROOT"; then
   echo "Error: não foi possível acessar o diretório do repositório: $REPO_ROOT" >&2
   exit 1
@@ -135,12 +167,8 @@ if ! command -v "${COMPOSE_CMD[0]}" >/dev/null 2>&1; then
   exit 127
 fi
 
-if [[ -n "${COMPOSE_ENV_FILE:-}" ]]; then
-  env_file="$COMPOSE_ENV_FILE"
-  if [[ "$env_file" != /* ]]; then
-    env_file="$REPO_ROOT/$env_file"
-  fi
-  COMPOSE_CMD+=(--env-file "$env_file")
+if [[ -n "$compose_env_file_abs" ]]; then
+  COMPOSE_CMD+=(--env-file "$compose_env_file_abs")
 fi
 
 if [[ ${#COMPOSE_FILES_LIST[@]} -gt 0 ]]; then
@@ -153,4 +181,8 @@ if [[ ${#COMPOSE_ARGS[@]} -gt 0 ]]; then
   COMPOSE_CMD+=("${COMPOSE_ARGS[@]}")
 fi
 
-exec "${COMPOSE_CMD[@]}"
+if [[ -n "$app_data_dir_value" ]]; then
+  APP_DATA_DIR="$app_data_dir_value" exec -- "${COMPOSE_CMD[@]}"
+else
+  exec "${COMPOSE_CMD[@]}"
+fi
