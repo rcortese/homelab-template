@@ -57,6 +57,11 @@ fi
 
 eval "$compose_defaults_dump"
 
+if ! command -v "${COMPOSE_CMD[0]}" >/dev/null 2>&1; then
+  echo "Error: ${COMPOSE_CMD[0]} is not available. Set DOCKER_COMPOSE_BIN if needed." >&2
+  exit 127
+fi
+
 if [[ -z "${HEALTH_SERVICES:-}" && -n "${COMPOSE_ENV_FILE:-}" ]]; then
   env_file="$COMPOSE_ENV_FILE"
   if [[ "$env_file" != /* ]]; then

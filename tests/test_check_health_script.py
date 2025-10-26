@@ -15,6 +15,18 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 SCRIPT_PATH = REPO_ROOT / "scripts" / "check_health.sh"
 
 
+def test_errors_when_compose_command_missing() -> None:
+    env = {"DOCKER_COMPOSE_BIN": "definitely-missing-binary"}
+
+    result = run_check_health(env=env)
+
+    assert result.returncode == 127
+    assert (
+        "Error: definitely-missing-binary is not available. Set DOCKER_COMPOSE_BIN if needed."
+        in result.stderr
+    )
+
+
 def run_check_health(
     args: list[str] | None = None,
     env: dict[str, str] | None = None,
