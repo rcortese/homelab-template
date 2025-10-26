@@ -447,7 +447,8 @@ if [[ "$OUTPUT_FORMAT" == "json" ]]; then
   export COMPOSE_PS_TEXT COMPOSE_PS_JSON PRIMARY_LOG_SERVICES AUTO_LOG_SERVICES ALL_LOG_SERVICES FAILED_SERVICES_STR \
     LOG_SUCCESS_FLAG SERVICE_PAYLOAD INSTANCE_NAME
 
-  json_payload="$(python3 - <<'PYTHON'
+  json_payload="$(
+    python3 - <<'PYTHON'
 import base64
 import json
 import os
@@ -516,7 +517,7 @@ result = {
 
 print(json.dumps(result, ensure_ascii=False, indent=2))
 PYTHON
-)"
+  )"
 
   if [[ -n "$OUTPUT_FILE" ]]; then
     printf '%s\n' "$json_payload" >"$OUTPUT_FILE"

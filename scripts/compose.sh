@@ -123,7 +123,7 @@ fi
 if [[ -n "${COMPOSE_FILES:-}" ]]; then
   # shellcheck disable=SC2206
   COMPOSE_FILES_LIST=(${COMPOSE_FILES})
-  if (( ${#EXTRA_COMPOSE_FILES[@]} > 0 )); then
+  if ((${#EXTRA_COMPOSE_FILES[@]} > 0)); then
     COMPOSE_FILES_LIST+=("${EXTRA_COMPOSE_FILES[@]}")
   fi
 elif [[ -n "$INSTANCE_NAME" && $metadata_loaded -eq 1 ]]; then
@@ -212,7 +212,7 @@ if ! command -v "${COMPOSE_CMD[0]}" >/dev/null 2>&1; then
   exit 127
 fi
 
-if (( ${#COMPOSE_ENV_FILES_RESOLVED[@]} > 0 )); then
+if ((${#COMPOSE_ENV_FILES_RESOLVED[@]} > 0)); then
   for env_file in "${COMPOSE_ENV_FILES_RESOLVED[@]}"; do
     COMPOSE_CMD+=(--env-file "$env_file")
   done
