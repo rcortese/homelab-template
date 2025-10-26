@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import subprocess
 from pathlib import Path
 
@@ -583,3 +584,60 @@ def test_falls_back_to_binary_when_container_unavailable(
         if line.strip()
     ]
     assert stub_calls, "fallback should execute sqlite stub directly"
+
+
+def test_accepts_custom_data_dir(
+    repo_copy: Path,
+    compose_stub: tuple[Path, Path],
+    sqlite_stub: tuple[Path, Path, Path],
+) -> None:
+    compose_stub_path, compose_log = compose_stub
+    sqlite_stub_path, sqlite_config, sqlite_log = sqlite_stub
+
+    data_dir = repo_copy / "alt-data"
+    data_dir.mkdir()
+    db_path = data_dir / "custom.db"
+    db_path.write_text("dummy", encoding="utf-8")
+
+    result: subprocess.CompletedProcess[str]
+    try:
+        result = _run_script(
+            repo_copy,
+            compose_stub_path,
+            compose_log,
+            sqlite_stub_path,
+            sqlite_config,
+            sqlite_log,
+            "core",
+            "--data-dir",
+            "alt-data",
+            env={"COMPOSE_STUB_SERVICES": "app"},
+        )
+    finally:
+        shutil.rmtree(data_dir, ignore_errors=True)
+
+    assert result.returncode == 0, result.stderr
+    assert str(db_path) in result.stdout
+
+
+def test_errors_when_data_dir_env_missing(
+    repo_copy: Path,
+    compose_stub: tuple[Path, Path],
+    sqlite_stub: tuple[Path, Path, Path],
+) -> None:
+    compose_stub_path, compose_log = compose_stub
+    sqlite_stub_path, sqlite_config, sqlite_log = sqlite_stub
+
+    result = _run_script(
+        repo_copy,
+        compose_stub_path,
+        compose_log,
+        sqlite_stub_path,
+        sqlite_config,
+        sqlite_log,
+        "core",
+        env={"DATA_DIR": "missing-dir"},
+    )
+
+    assert result.returncode == 1
+    assert "Erro: diretório de dados não encontrado" in result.stderr
