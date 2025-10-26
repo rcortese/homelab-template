@@ -93,9 +93,9 @@ normalize_compose_context() {
     declare -A __seen_flags=()
     local -a __normalized_cmd=()
     local __i=0
-    while (( __i < ${#COMPOSE_CMD[@]} )); do
+    while ((__i < ${#COMPOSE_CMD[@]})); do
       local __token="${COMPOSE_CMD[$__i]}"
-      if [[ "$__token" == "-f" ]] && (( __i + 1 < ${#COMPOSE_CMD[@]} )); then
+      if [[ "$__token" == "-f" ]] && ((__i + 1 < ${#COMPOSE_CMD[@]})); then
         local __value="${COMPOSE_CMD[$((__i + 1))]}"
         if [[ -z "${__seen_flags[$__value]:-}" ]]; then
           __normalized_cmd+=("$__token" "$__value")
