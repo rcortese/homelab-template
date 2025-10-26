@@ -148,6 +148,27 @@ def test_logs_reports_failure_when_all_services_fail(
     ]
 
 
+def test_logs_handles_comma_separated_health_services(
+    docker_stub: DockerStub,
+) -> None:
+    env = {
+        "HEALTH_SERVICES": "app-core,app-extra",
+        "DOCKER_STUB_FAIL_ALWAYS_FOR": "app-core",
+    }
+
+    result = run_check_health(env=env)
+
+    assert result.returncode == 0, result.stderr
+
+    calls = docker_stub.read_calls()
+    assert calls == [
+        ["compose", "config", "--services"],
+        ["compose", "ps"],
+        ["compose", "logs", "--tail=50", "app-core"],
+        ["compose", "logs", "--tail=50", "app-extra"],
+    ]
+
+
 def test_infers_compose_files_and_env_from_instance(
     docker_stub: DockerStub, repo_copy: Path
 ) -> None:
