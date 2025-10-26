@@ -1,0 +1,4 @@
+services:
+  baseonly:
+    image: example/base-only:latest
+    restart: unless-stopped

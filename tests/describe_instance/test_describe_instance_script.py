@@ -101,6 +101,10 @@ def test_table_summary_highlights_overlays(repo_copy: Path, tmp_path: Path) -> N
                     }
                 ],
             },
+            "baseonly": {
+                "ports": [],
+                "volumes": [],
+            },
         }
     }
 
@@ -124,6 +128,7 @@ def test_table_summary_highlights_overlays(repo_copy: Path, tmp_path: Path) -> N
     assert "compose/base.yml" in stdout
     assert "compose/apps/app/base.yml" in stdout
     assert "compose/apps/monitoring/base.yml" in stdout
+    assert "compose/apps/baseonly/base.yml" in stdout
     assert "compose/overlays/metrics.yml (overlay extra)" in stdout
     assert "Overlays extras aplicados:" in stdout
     assert "compose/overlays/logging.yml" in stdout
@@ -159,6 +164,10 @@ def test_json_summary_structure(repo_copy: Path, tmp_path: Path) -> None:
                 "ports": [],
                 "volumes": [],
             },
+            "baseonly": {
+                "ports": [],
+                "volumes": [],
+            },
         }
     }
 
@@ -187,6 +196,7 @@ def test_json_summary_structure(repo_copy: Path, tmp_path: Path) -> None:
         "compose/apps/app/core.yml",
         "compose/apps/monitoring/base.yml",
         "compose/apps/monitoring/core.yml",
+        "compose/apps/baseonly/base.yml",
         "compose/overlays/metrics.yml",
     ]
 
@@ -197,9 +207,10 @@ def test_json_summary_structure(repo_copy: Path, tmp_path: Path) -> None:
     assert payload["extra_overlays"] == ["compose/overlays/metrics.yml"]
 
     services = payload["services"]
-    assert [service["name"] for service in services] == ["app", "monitoring"]
+    names = [service["name"] for service in services]
+    assert sorted(names) == ["app", "baseonly", "monitoring"]
 
-    app_service = services[0]
+    app_service = next(service for service in services if service["name"] == "app")
     assert app_service["ports"] == ["8080 -> 80/tcp"]
     assert app_service["volumes"] == ["/srv/app/data -> /data/app (type=bind)"]
 
@@ -208,6 +219,6 @@ def test_json_summary_structure(repo_copy: Path, tmp_path: Path) -> None:
     parsed = [json.loads(line)["argv"] for line in log_lines]
     assert any(entry[-3:] == ["config", "--format", "json"] for entry in parsed)
 
-    monitoring_service = services[1]
+    monitoring_service = next(service for service in services if service["name"] == "monitoring")
     assert monitoring_service["ports"] == []
     assert monitoring_service["volumes"] == []

@@ -74,7 +74,7 @@ build_deploy_context() {
     return 1
   fi
 
-  if [[ -z "${COMPOSE_INSTANCE_FILES[$instance]-}" ]]; then
+  if [[ ! -v COMPOSE_INSTANCE_FILES[$instance] ]]; then
     deploy_context__report_missing_instance "$repo_root" "$instance" "${COMPOSE_INSTANCE_NAMES[@]}"
     return 1
   fi

@@ -32,6 +32,8 @@ load_compose_discovery() {
   local compose_dir_rel="compose"
   local apps_dir_rel="$compose_dir_rel/apps"
   local apps_dir="$repo_root/$apps_dir_rel"
+  local env_dir_rel="env"
+  local env_local_dir_rel="$env_dir_rel/local"
 
   BASE_COMPOSE_FILE="$compose_dir_rel/base.yml"
   local base_compose_abs="$repo_root/$BASE_COMPOSE_FILE"
@@ -68,6 +70,7 @@ load_compose_discovery() {
   fi
 
   local -A seen_instances=()
+  local -a apps_without_overrides=()
   local app_name app_base_rel app_base_abs
   local instance_file filename instance_rel instance_abs instance
 
@@ -122,23 +125,80 @@ load_compose_discovery() {
     done
 
     if [[ $found_for_app -eq 0 ]]; then
-      echo "[!] Nenhuma instância encontrada para a aplicação '$app_name'." >&2
-      return 1
+      apps_without_overrides+=("$app_name")
     fi
   done
 
-  if [[ ${#seen_instances[@]} -eq 0 ]]; then
-    echo "[!] Nenhuma instância encontrada em $apps_dir_rel" >&2
+  declare -A known_instances=()
+  for instance in "${!seen_instances[@]}"; do
+    known_instances[$instance]=1
+  done
+
+  shopt -s nullglob
+  local env_candidate env_instance
+  for env_candidate in "$repo_root/$env_dir_rel"/*.example.env; do
+    env_instance="${env_candidate##*/}"
+    env_instance="${env_instance%.example.env}"
+    if [[ -n "$env_instance" && "$env_instance" != "common" ]]; then
+      known_instances[$env_instance]=1
+    fi
+  done
+
+  if [[ -d "$repo_root/$env_local_dir_rel" ]]; then
+    for env_candidate in "$repo_root/$env_local_dir_rel"/*.env; do
+      env_instance="${env_candidate##*/}"
+      env_instance="${env_instance%.env}"
+      if [[ -n "$env_instance" && "$env_instance" != "common" ]]; then
+        known_instances[$env_instance]=1
+      fi
+    done
+  fi
+  shopt -u nullglob
+
+  if [[ ${#known_instances[@]} -eq 0 ]]; then
+    echo "[!] Nenhuma instância encontrada em $apps_dir_rel ou $env_dir_rel" >&2
     return 1
   fi
 
   local -a instance_names=()
-  for instance in "${!seen_instances[@]}"; do
+  for instance in "${!known_instances[@]}"; do
     instance_names+=("$instance")
   done
 
   if [[ ${#instance_names[@]} -gt 0 ]]; then
     mapfile -t instance_names < <(printf '%s\n' "${instance_names[@]}" | sort)
+  fi
+
+  for instance in "${instance_names[@]}"; do
+    if [[ ! -v COMPOSE_INSTANCE_FILES[$instance] ]]; then
+      COMPOSE_INSTANCE_FILES[$instance]=""
+    fi
+  done
+
+  if [[ ${#apps_without_overrides[@]} -gt 0 ]]; then
+    local app_without_override existing_apps already_listed
+    for instance in "${instance_names[@]}"; do
+      for app_without_override in "${apps_without_overrides[@]}"; do
+        existing_apps="${COMPOSE_INSTANCE_APP_NAMES[$instance]:-}"
+        already_listed=0
+        if [[ -n "$existing_apps" ]]; then
+          while IFS=$'\n' read -r existing_app; do
+            if [[ "$existing_app" == "$app_without_override" ]]; then
+              already_listed=1
+              break
+            fi
+          done <<<"$existing_apps"
+        fi
+
+        if [[ $already_listed -eq 0 ]]; then
+          if [[ -z "$existing_apps" ]]; then
+            COMPOSE_INSTANCE_APP_NAMES[$instance]="$app_without_override"
+          else
+            COMPOSE_INSTANCE_APP_NAMES[$instance]+=$'\n'"$app_without_override"
+          fi
+        fi
+      done
+    done
   fi
 
   COMPOSE_INSTANCE_NAMES=("${instance_names[@]}")

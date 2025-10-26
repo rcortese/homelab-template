@@ -43,7 +43,7 @@ build_compose_file_plan() {
     return 1
   fi
 
-  if [[ -z "${COMPOSE_INSTANCE_FILES[$instance_name]:-}" ]]; then
+  if [[ ! -v COMPOSE_INSTANCE_FILES[$instance_name] ]]; then
     return 1
   fi
 

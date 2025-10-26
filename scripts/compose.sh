@@ -101,7 +101,7 @@ if [[ -n "$INSTANCE_NAME" ]]; then
     eval "$compose_metadata"
     metadata_loaded=1
 
-    if [[ -z "${COMPOSE_INSTANCE_FILES[$INSTANCE_NAME]:-}" ]]; then
+    if [[ ! -v COMPOSE_INSTANCE_FILES[$INSTANCE_NAME] ]]; then
       echo "Error: instância desconhecida '$INSTANCE_NAME'." >&2
       echo "Disponíveis: ${COMPOSE_INSTANCE_NAMES[*]}" >&2
       exit 1

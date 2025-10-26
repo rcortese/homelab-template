@@ -43,7 +43,7 @@ setup_compose_defaults() {
       metadata_loaded=1
     fi
 
-    if [[ -z "${COMPOSE_FILES:-}" ]] && ((metadata_loaded == 1)) && [[ -n "${COMPOSE_INSTANCE_FILES[$instance]:-}" ]]; then
+    if [[ -z "${COMPOSE_FILES:-}" ]] && ((metadata_loaded == 1)) && [[ -v COMPOSE_INSTANCE_FILES[$instance] ]]; then
       local -a files_list=()
       if build_compose_file_plan "$instance" files_list; then
         COMPOSE_FILES="${files_list[*]}"

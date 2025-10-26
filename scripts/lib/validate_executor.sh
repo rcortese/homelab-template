@@ -16,9 +16,7 @@ validate_executor_prepare_plan() {
   local -n compose_args_ref=$6
   local -n env_args_ref=$7
 
-  local instance_files_raw="${COMPOSE_INSTANCE_FILES[$instance]:-}"
-
-  if [[ -z "$instance_files_raw" ]]; then
+  if [[ ! -v COMPOSE_INSTANCE_FILES[$instance] ]]; then
     mapfile -t potential_matches < <(
       find "$repo_root/compose/apps" -mindepth 2 -maxdepth 2 -name "${instance}.yml" -print 2>/dev/null
     )
@@ -38,6 +36,8 @@ validate_executor_prepare_plan() {
     echo "Error: instância desconhecida '$instance'." >&2
     return 2
   fi
+
+  local instance_files_raw="${COMPOSE_INSTANCE_FILES[$instance]}"
 
   mapfile -t instance_file_list < <(printf '%s\n' "$instance_files_raw")
 

@@ -45,8 +45,8 @@ load_compose_env_map() {
     env_template_rel="$env_dir_rel/${instance}.example.env"
     env_template_abs="$repo_root/$env_template_rel"
 
-    if [[ -z "${COMPOSE_INSTANCE_FILES[$instance]:-}" ]]; then
-      echo "[!] Nenhum arquivo compose registrado para a instância '$instance'." >&2
+    if [[ ! -v COMPOSE_INSTANCE_FILES[$instance] ]]; then
+      echo "[!] Instância '$instance' não encontrada nos metadados." >&2
       return 1
     fi
 

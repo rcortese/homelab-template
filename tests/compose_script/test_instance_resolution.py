@@ -46,6 +46,7 @@ def test_instance_uses_expected_env_and_compose_files(
         str((repo_copy / "compose" / "apps" / "app" / "core.yml").resolve()),
         str((repo_copy / "compose" / "apps" / "monitoring" / "base.yml").resolve()),
         str((repo_copy / "compose" / "apps" / "monitoring" / "core.yml").resolve()),
+        str((repo_copy / "compose" / "apps" / "baseonly" / "base.yml").resolve()),
     ]
 
 
@@ -77,6 +78,7 @@ def test_instance_resolves_manifests_when_invoked_from_scripts_dir(
         str((repo_copy / "compose" / "apps" / "app" / "core.yml").resolve()),
         str((repo_copy / "compose" / "apps" / "monitoring" / "base.yml").resolve()),
         str((repo_copy / "compose" / "apps" / "monitoring" / "core.yml").resolve()),
+        str((repo_copy / "compose" / "apps" / "baseonly" / "base.yml").resolve()),
     ]
 
 
