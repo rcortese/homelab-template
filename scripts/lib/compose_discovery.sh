@@ -157,6 +157,8 @@ load_compose_discovery() {
   fi
 
   COMPOSE_INSTANCE_NAMES=("${instance_names[@]}")
+  # Touch array to satisfy shellcheck: callers rely on these globals after sourcing.
+  : "${COMPOSE_INSTANCE_NAMES[@]}"
 
   return 0
 }

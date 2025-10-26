@@ -76,5 +76,10 @@ load_compose_env_map() {
     fi
   done
 
+  # Touch globals to satisfy shellcheck: consumers read these arrays after sourcing.
+  : "${COMPOSE_INSTANCE_ENV_LOCAL[@]}"
+  : "${COMPOSE_INSTANCE_ENV_TEMPLATES[@]}"
+  : "${COMPOSE_INSTANCE_ENV_FILES[@]}"
+
   return 0
 }

@@ -49,7 +49,9 @@ export COMPOSE_FILES="${DEPLOY_CONTEXT[COMPOSE_FILES]}"
 
 COMPOSE_EXEC_CMD=("$REPO_ROOT/scripts/compose.sh" "$INSTANCE" -- up -d)
 
-STEP_RUNNER_DRY_RUN="$DRY_RUN"
+run_deploy_step() {
+  STEP_RUNNER_DRY_RUN="$DRY_RUN" run_step "$@"
+}
 
 mapfile -t PERSISTENT_DIRS <<<"${DEPLOY_CONTEXT[PERSISTENT_DIRS]}"
 DATA_UID="${DEPLOY_CONTEXT[DATA_UID]}"
@@ -63,13 +65,13 @@ cat <<SUMMARY_EOF
 SUMMARY_EOF
 
 if [[ $RUN_STRUCTURE -eq 1 ]]; then
-  if ! run_step "Validando estrutura do repositório" "$REPO_ROOT/scripts/check_structure.sh"; then
+  if ! run_deploy_step "Validando estrutura do repositório" "$REPO_ROOT/scripts/check_structure.sh"; then
     exit $?
   fi
 fi
 
 if [[ $RUN_VALIDATE -eq 1 ]]; then
-  if ! run_step "Validando manifest da instância" env "COMPOSE_INSTANCES=${INSTANCE}" "$REPO_ROOT/scripts/validate_compose.sh"; then
+  if ! run_deploy_step "Validando manifest da instância" env "COMPOSE_INSTANCES=${INSTANCE}" "$REPO_ROOT/scripts/validate_compose.sh"; then
     exit $?
   fi
 fi
@@ -108,12 +110,12 @@ else
   echo "[*] Diretórios persistentes preparados (${PERSISTENT_DIRS[*]}). Owner desejado ${APP_DATA_UID_GID} não aplicado (permissões insuficientes)."
 fi
 
-if ! run_step "Aplicando docker compose (up -d)" "${COMPOSE_EXEC_CMD[@]}"; then
+if ! run_deploy_step "Aplicando docker compose (up -d)" "${COMPOSE_EXEC_CMD[@]}"; then
   exit $?
 fi
 
 if [[ $RUN_HEALTH -eq 1 ]]; then
-  if ! run_step "Executando health check pós-deploy" "$REPO_ROOT/scripts/check_health.sh" "$INSTANCE"; then
+  if ! run_deploy_step "Executando health check pós-deploy" "$REPO_ROOT/scripts/check_health.sh" "$INSTANCE"; then
     exit $?
   fi
 else

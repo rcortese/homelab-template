@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# shellcheck source-path=SCRIPTDIR/lib
 # Usage: scripts/validate_compose.sh
 #
 # Arguments:
@@ -16,10 +17,13 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 ENV_LOADER="$SCRIPT_DIR/lib/env_loader.sh"
 
 # shellcheck source=lib/compose_file_utils.sh
+# shellcheck disable=SC1091
 source "$SCRIPT_DIR/lib/compose_file_utils.sh"
 # shellcheck source=lib/validate_cli.sh
+# shellcheck disable=SC1091
 source "$SCRIPT_DIR/lib/validate_cli.sh"
 # shellcheck source=lib/validate_executor.sh
+# shellcheck disable=SC1091
 source "$SCRIPT_DIR/lib/validate_executor.sh"
 
 if ! compose_metadata="$("$SCRIPT_DIR/lib/compose_instances.sh" "$REPO_ROOT")"; then
@@ -31,6 +35,7 @@ eval "$compose_metadata"
 
 base_file="$REPO_ROOT/$BASE_COMPOSE_FILE"
 
+# shellcheck disable=SC2034 # referenced indirectly via nameref in validate_cli_parse_instances
 declare -a instances_to_validate=()
 if validate_cli_parse_instances instances_to_validate "$@"; then
   :
