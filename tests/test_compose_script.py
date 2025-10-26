@@ -89,3 +89,12 @@ def test_fallback_to_docker_compose(docker_stub: DockerStub) -> None:
 
     assert result.returncode == 0
     assert docker_stub.read_calls() == [["compose", "ps"]]
+
+
+def test_unknown_instance_returns_error(docker_stub: DockerStub) -> None:
+    result = run_compose(args=["unknown"])
+
+    assert result.returncode == 1
+    assert "instância desconhecida" in result.stderr
+    assert "Disponíveis:" in result.stderr
+    assert docker_stub.read_calls() == []
