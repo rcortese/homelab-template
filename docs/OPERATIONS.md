@@ -33,7 +33,15 @@ Consulte o resumo na tabela acima. Inclua `scripts/check_env_sync.py` nas execu�
 
 ## scripts/check_env_sync.py
 
-Além do modo padrão, o parâmetro `--repo-root` permite validar diretórios alternativos (útil ao rodar de dentro de `scripts/`). A saída permanece ideal para CI por sinalizar divergências com códigos de retorno distintos de zero.
+- **Objetivo:** comparar os manifests (`compose/base.yml` + overrides detectados) com os arquivos `env/*.example.env` correspondentes e sinalizar divergências.
+- **Uso típico:**
+  ```bash
+  scripts/check_env_sync.py
+  scripts/check_env_sync.py --repo-root /caminho/alternativo
+  ```
+- **Saída:** lista variáveis ausentes, obsoletas ou instâncias sem template, retornando código de saída diferente de zero quando encontrar problemas — ideal para CI.
+- **Boas práticas:** execute o script após mudanças em Compose ou nos arquivos `.env` de exemplo e inclua-o no pipeline de validação local antes de abrir PRs.
+  > **Alerta:** rodar a verificação antes de abrir PRs evita que variáveis órfãs avancem para revisão.
 
 ## scripts/bootstrap_instance.sh
 
@@ -61,6 +69,7 @@ Use `--base-dir` para executar fora da raiz e `--with-docs` para gerar documenta
     ```
 
   > As variáveis podem ser exportadas previamente (`export COMPOSE_INSTANCES=...`) ou prefixadas ao comando, mantendo o fluxo simples.
+  > **Alerta:** use a validação para confirmar se as combinações padrão de Compose permanecem compatíveis com os perfis ativos antes de implantações ou PRs.
 
 ## scripts/deploy_instance.sh
 
