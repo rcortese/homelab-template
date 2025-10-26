@@ -6,269 +6,72 @@
 # dispara um health check para confirmar o estado pós `docker compose up`.
 set -euo pipefail
 
-print_help() {
-  cat <<'USAGE'
-Uso: scripts/deploy_instance.sh <instancia> [flags]
-
-Realiza um deploy guiado da instância (core/media), carregando automaticamente
-os arquivos compose necessários (base + override da instância) e executando
-validações auxiliares.
-
-Argumentos posicionais:
-  instancia       Nome da instância (ex.: core, media).
-
-Flags:
-  --dry-run       Apenas exibe os comandos que seriam executados.
-  --force         Pula confirmações interativas (útil localmente ou em CI).
-  --skip-structure  Não executa scripts/check_structure.sh antes do deploy.
-  --skip-validate   Não executa scripts/validate_compose.sh antes do deploy.
-  --skip-health     Não executa scripts/check_health.sh após o deploy.
-  -h, --help      Mostra esta ajuda e sai.
-
-Variáveis de ambiente relevantes:
-  CI              Quando definida, assume modo não interativo (equivalente a --force).
-USAGE
-}
-
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-# shellcheck source=./lib/env_helpers.sh
+# shellcheck source=./lib/deploy_args.sh
 # shellcheck disable=SC1091
-source "$SCRIPT_DIR/lib/env_helpers.sh"
+source "$SCRIPT_DIR/lib/deploy_args.sh"
 
-if ! compose_metadata="$("$SCRIPT_DIR/lib/compose_instances.sh" "$REPO_ROOT")"; then
-  echo "[!] Não foi possível carregar metadados das instâncias." >&2
+# shellcheck source=./lib/deploy_context.sh
+# shellcheck disable=SC1091
+source "$SCRIPT_DIR/lib/deploy_context.sh"
+
+# shellcheck source=./lib/step_runner.sh
+# shellcheck disable=SC1091
+source "$SCRIPT_DIR/lib/step_runner.sh"
+
+if ! eval "$(parse_deploy_args "$@")"; then
   exit 1
 fi
 
-eval "$compose_metadata"
+if [[ "${DEPLOY_ARGS[SHOW_HELP]}" -eq 1 ]]; then
+  print_help
+  exit 0
+fi
 
-INSTANCE=""
-FORCE=0
-DRY_RUN=0
-RUN_STRUCTURE=1
-RUN_VALIDATE=1
-RUN_HEALTH=1
+INSTANCE="${DEPLOY_ARGS[INSTANCE]}"
+FORCE="${DEPLOY_ARGS[FORCE]}"
+DRY_RUN="${DEPLOY_ARGS[DRY_RUN]}"
+RUN_STRUCTURE="${DEPLOY_ARGS[RUN_STRUCTURE]}"
+RUN_VALIDATE="${DEPLOY_ARGS[RUN_VALIDATE]}"
+RUN_HEALTH="${DEPLOY_ARGS[RUN_HEALTH]}"
 
-append_unique_file() {
-  local -n __target_array="$1"
-  local __file="$2"
-  local existing
-
-  if [[ -z "$__file" ]]; then
-    return
-  fi
-
-  for existing in "${__target_array[@]}"; do
-    if [[ "$existing" == "$__file" ]]; then
-      return
-    fi
-  done
-
-  __target_array+=("$__file")
-}
-
-while [[ $# -gt 0 ]]; do
-  case "$1" in
-  -h | --help)
-    print_help
-    exit 0
-    ;;
-  --force)
-    FORCE=1
-    shift
-    continue
-    ;;
-  --dry-run)
-    DRY_RUN=1
-    shift
-    continue
-    ;;
-  --skip-structure)
-    RUN_STRUCTURE=0
-    shift
-    continue
-    ;;
-  --skip-validate)
-    RUN_VALIDATE=0
-    shift
-    continue
-    ;;
-  --skip-health)
-    RUN_HEALTH=0
-    shift
-    continue
-    ;;
-  -*)
-    echo "[!] Flag desconhecida: $1" >&2
-    echo >&2
-    print_help >&2
-    exit 1
-    ;;
-  *)
-    if [[ -z "$INSTANCE" ]]; then
-      INSTANCE="$1"
-    else
-      echo "[!] Parâmetro inesperado: $1" >&2
-      echo >&2
-      print_help >&2
-      exit 1
-    fi
-    shift
-    ;;
-  esac
-done
-
-if [[ -z "$INSTANCE" ]]; then
-  echo "[!] Instância não informada." >&2
-  echo >&2
-  print_help >&2
+deploy_context_eval=""
+if ! deploy_context_eval="$(build_deploy_context "$REPO_ROOT" "$INSTANCE")"; then
   exit 1
 fi
+eval "$deploy_context_eval"
 
-if [[ -z "${COMPOSE_INSTANCE_FILES[$INSTANCE]:-}" ]]; then
-  mapfile -t candidate_files < <(
-    find "$REPO_ROOT/compose/apps" -mindepth 2 -maxdepth 2 -name "${INSTANCE}.yml" -print 2>/dev/null
-  )
-
-  if [[ ${#candidate_files[@]} -gt 0 ]]; then
-    echo "[!] Metadados ausentes para instância '$INSTANCE'." >&2
-  else
-    echo "[!] Instância '$INSTANCE' inválida." >&2
-  fi
-  echo "    Disponíveis: ${COMPOSE_INSTANCE_NAMES[*]}" >&2
-  exit 1
-fi
-
-LOCAL_ENV_FILE="${COMPOSE_INSTANCE_ENV_LOCAL[$INSTANCE]:-}"
-TEMPLATE_FILE="${COMPOSE_INSTANCE_ENV_TEMPLATES[$INSTANCE]:-}"
-
-if [[ -z "$LOCAL_ENV_FILE" ]]; then
-  template_display="${TEMPLATE_FILE:-env/${INSTANCE}.example.env}"
-
-  if [[ -n "$TEMPLATE_FILE" && -f "$REPO_ROOT/$TEMPLATE_FILE" ]]; then
-    echo "[!] Arquivo env/local/${INSTANCE}.env não encontrado." >&2
-    echo "    Copie o template padrão antes de continuar:" >&2
-    echo "    mkdir -p env/local" >&2
-    echo "    cp ${TEMPLATE_FILE} env/local/${INSTANCE}.env" >&2
-  else
-    echo "[!] Nenhum arquivo .env foi encontrado para a instância '$INSTANCE'." >&2
-    echo "    Esperado: env/local/${INSTANCE}.env ou ${template_display}" >&2
-  fi
-  exit 1
-fi
-
-ENV_FILE="$LOCAL_ENV_FILE"
-ENV_FILE_ABS="$REPO_ROOT/$ENV_FILE"
-
-if [[ ! -f "$ENV_FILE_ABS" ]]; then
-  echo "[!] Arquivo ${ENV_FILE} não encontrado." >&2
-  if [[ -n "$TEMPLATE_FILE" && -f "$REPO_ROOT/$TEMPLATE_FILE" ]]; then
-    echo "    Copie o template padrão antes de continuar:" >&2
-    echo "    cp ${TEMPLATE_FILE} ${ENV_FILE}" >&2
-  elif [[ -n "$TEMPLATE_FILE" ]]; then
-    echo "    Template correspondente (${TEMPLATE_FILE}) também não foi localizado." >&2
-  fi
-  exit 1
-fi
-
-if [[ -n "$ENV_FILE_ABS" ]]; then
-  load_env_pairs "$ENV_FILE_ABS" \
-    COMPOSE_EXTRA_FILES \
-    APP_DATA_UID \
-    APP_DATA_GID
-fi
-
-app_name="${COMPOSE_INSTANCE_APP_NAMES[$INSTANCE]:-}"
-if [[ -z "$app_name" ]]; then
-  echo "[!] Aplicação correspondente à instância '$INSTANCE' não encontrada." >&2
-  exit 1
-fi
-
-APP_DATA_DIR="data/${app_name}-${INSTANCE}"
-export APP_DATA_DIR
-
-extra_compose_files=()
-if [[ -n "${COMPOSE_EXTRA_FILES:-}" ]]; then
-  IFS=$' \t\n' read -r -a extra_compose_files <<<"${COMPOSE_EXTRA_FILES//,/ }"
-fi
-
-mapfile -t INSTANCE_COMPOSE_FILES < <(printf '%s\n' "${COMPOSE_INSTANCE_FILES[$INSTANCE]}")
-COMPOSE_FILES_LIST=()
-
-append_unique_file COMPOSE_FILES_LIST "$BASE_COMPOSE_FILE"
-append_unique_file COMPOSE_FILES_LIST "compose/apps/${app_name}/base.yml"
-
-for compose_file in "${INSTANCE_COMPOSE_FILES[@]}"; do
-  append_unique_file COMPOSE_FILES_LIST "$compose_file"
-done
-
-if [[ ${#extra_compose_files[@]} -gt 0 ]]; then
-  COMPOSE_FILES_LIST+=("${extra_compose_files[@]}")
-fi
-
-COMPOSE_ENV_FILE="$ENV_FILE"
-COMPOSE_FILES="${COMPOSE_FILES_LIST[*]}"
-
-export COMPOSE_ENV_FILE
-export COMPOSE_FILES
+export APP_DATA_DIR="${DEPLOY_CONTEXT[APP_DATA_DIR]}"
+export COMPOSE_ENV_FILE="${DEPLOY_CONTEXT[COMPOSE_ENV_FILE]}"
+export COMPOSE_FILES="${DEPLOY_CONTEXT[COMPOSE_FILES]}"
 
 COMPOSE_EXEC_CMD=("$REPO_ROOT/scripts/compose.sh" "$INSTANCE" -- up -d)
 
-cat <<EOF
+STEP_RUNNER_DRY_RUN="$DRY_RUN"
+
+mapfile -t PERSISTENT_DIRS <<<"${DEPLOY_CONTEXT[PERSISTENT_DIRS]}"
+DATA_UID="${DEPLOY_CONTEXT[DATA_UID]}"
+DATA_GID="${DEPLOY_CONTEXT[DATA_GID]}"
+APP_DATA_UID_GID="${DEPLOY_CONTEXT[APP_DATA_UID_GID]}"
+
+cat <<SUMMARY_EOF
 [*] Instância: $INSTANCE
 [*] COMPOSE_ENV_FILE=${COMPOSE_ENV_FILE}
 [*] COMPOSE_FILES=${COMPOSE_FILES}
-EOF
-
-format_cmd() {
-  local output=""
-  for arg in "$@"; do
-    output+="$(printf '%q ' "$arg")"
-  done
-  printf '%s' "${output% }"
-}
-
-run_step() {
-  local description="$1"
-  shift
-  local cmd_display
-  local cmd_exec=()
-
-  if [[ $# -eq 0 ]]; then
-    echo "[!] Nenhum comando fornecido para run_step." >&2
-    exit 1
-  fi
-
-  if [[ $# -eq 1 ]]; then
-    cmd_display="$1"
-    cmd_exec=(bash -lc "$1")
-  else
-    cmd_exec=("$@")
-    cmd_display="$(format_cmd "${cmd_exec[@]}")"
-  fi
-
-  echo "[*] ${description}"
-  echo "    ${cmd_display}"
-
-  if [[ $DRY_RUN -eq 1 ]]; then
-    return 0
-  fi
-
-  if ! "${cmd_exec[@]}"; then
-    local status=$?
-    echo "[!] Falha ao executar passo: ${description}" >&2
-    exit $status
-  fi
-}
+SUMMARY_EOF
 
 if [[ $RUN_STRUCTURE -eq 1 ]]; then
-  run_step "Validando estrutura do repositório" "$REPO_ROOT/scripts/check_structure.sh"
+  if ! run_step "Validando estrutura do repositório" "$REPO_ROOT/scripts/check_structure.sh"; then
+    exit $?
+  fi
 fi
 
 if [[ $RUN_VALIDATE -eq 1 ]]; then
-  run_step "Validando manifest da instância" env "COMPOSE_INSTANCES=${INSTANCE}" "$REPO_ROOT/scripts/validate_compose.sh"
+  if ! run_step "Validando manifest da instância" env "COMPOSE_INSTANCES=${INSTANCE}" "$REPO_ROOT/scripts/validate_compose.sh"; then
+    exit $?
+  fi
 fi
 
 if [[ $DRY_RUN -eq 1 ]]; then
@@ -293,11 +96,6 @@ if [[ $FORCE -ne 1 && -z "${CI:-}" ]]; then
   esac
 fi
 
-DATA_UID="${APP_DATA_UID:-1000}"
-DATA_GID="${APP_DATA_GID:-1000}"
-
-PERSISTENT_DIRS=("$REPO_ROOT/$APP_DATA_DIR" "$REPO_ROOT/backups")
-APP_DATA_UID_GID="${DATA_UID}:${DATA_GID}"
 mkdir -p "${PERSISTENT_DIRS[@]}"
 
 if [[ "$(id -u)" -eq 0 ]]; then
@@ -310,10 +108,14 @@ else
   echo "[*] Diretórios persistentes preparados (${PERSISTENT_DIRS[*]}). Owner desejado ${APP_DATA_UID_GID} não aplicado (permissões insuficientes)."
 fi
 
-run_step "Aplicando docker compose (up -d)" "${COMPOSE_EXEC_CMD[@]}"
+if ! run_step "Aplicando docker compose (up -d)" "${COMPOSE_EXEC_CMD[@]}"; then
+  exit $?
+fi
 
 if [[ $RUN_HEALTH -eq 1 ]]; then
-  run_step "Executando health check pós-deploy" "$REPO_ROOT/scripts/check_health.sh" "$INSTANCE"
+  if ! run_step "Executando health check pós-deploy" "$REPO_ROOT/scripts/check_health.sh" "$INSTANCE"; then
+    exit $?
+  fi
 else
   echo "[*] Health check automático ignorado (flag --skip-health)."
 fi
