@@ -38,3 +38,24 @@ load_env_pairs() {
 
   return 0
 }
+
+resolve_app_data_dir_mount() {
+  local input_value="${1:-}"
+
+  if [[ -z "$input_value" ]]; then
+    printf '%s' ""
+    return 0
+  fi
+
+  if [[ "$input_value" == /* ]]; then
+    printf '%s' "$input_value"
+    return 0
+  fi
+
+  local sanitized="$input_value"
+  while [[ "$sanitized" == ./* ]]; do
+    sanitized="${sanitized#./}"
+  done
+
+  printf '../%s' "$sanitized"
+}
