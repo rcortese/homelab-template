@@ -32,6 +32,9 @@ USAGE
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
+# shellcheck source=./lib/compose_plan.sh
+source "$SCRIPT_DIR/lib/compose_plan.sh"
+
 INSTANCE_NAME=""
 COMPOSE_ARGS=()
 
@@ -73,24 +76,6 @@ COMPOSE_FILES_LIST=()
 metadata_loaded=0
 declare -a resolved_instance_app_names=()
 
-append_unique_file() {
-  local -n __target_array="$1"
-  local __file="$2"
-  local existing
-
-  if [[ -z "$__file" ]]; then
-    return
-  fi
-
-  for existing in "${__target_array[@]}"; do
-    if [[ "$existing" == "$__file" ]]; then
-      return
-    fi
-  done
-
-  __target_array+=("$__file")
-}
-
 if [[ -n "${COMPOSE_FILES:-}" ]]; then
   # shellcheck disable=SC2206
   COMPOSE_FILES_LIST=(${COMPOSE_FILES})
@@ -119,36 +104,6 @@ elif [[ -n "$INSTANCE_NAME" ]]; then
     mapfile -t instance_app_names < <(printf '%s\n' "$apps_raw")
     resolved_instance_app_names=("${instance_app_names[@]}")
   fi
-
-  declare -A instance_overrides_by_app=()
-  for compose_file in "${instance_compose_files[@]}"; do
-    [[ -z "$compose_file" ]] && continue
-    app_for_file="${compose_file#compose/apps/}"
-    app_for_file="${app_for_file%%/*}"
-    if [[ -z "$app_for_file" ]]; then
-      continue
-    fi
-    if [[ -n "${instance_overrides_by_app[$app_for_file]:-}" ]]; then
-      instance_overrides_by_app[$app_for_file]+=$'\n'"$compose_file"
-    else
-      instance_overrides_by_app[$app_for_file]="$compose_file"
-    fi
-  done
-
-  for app_name in "${instance_app_names[@]}"; do
-    append_unique_file COMPOSE_FILES_LIST "compose/apps/${app_name}/base.yml"
-    if [[ -n "${instance_overrides_by_app[$app_name]:-}" ]]; then
-      mapfile -t instance_compose_files < <(printf '%s\n' "${instance_overrides_by_app[$app_name]}")
-      for override_file in "${instance_compose_files[@]}"; do
-        append_unique_file COMPOSE_FILES_LIST "$override_file"
-      done
-    fi
-  done
-
-  mapfile -t instance_compose_files < <(printf '%s\n' "${COMPOSE_INSTANCE_FILES[$INSTANCE_NAME]}")
-  for compose_file in "${instance_compose_files[@]}"; do
-    append_unique_file COMPOSE_FILES_LIST "$compose_file"
-  done
 fi
 
 if [[ -z "${COMPOSE_ENV_FILE:-}" && -n "$INSTANCE_NAME" && $metadata_loaded -eq 1 ]]; then
