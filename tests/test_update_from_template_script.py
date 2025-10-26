@@ -121,7 +121,8 @@ def test_dry_run_outputs_expected_commands(tmp_path):
     assert result.returncode == 0
     assert "Modo dry-run habilitado" in result.stdout
     assert "git fetch template main" in result.stdout
-    assert "git rebase --onto template/main" in result.stdout
+    assert first_commit in result.stdout
+    assert f"git rebase --onto template/main {first_commit}^ main" in result.stdout
 
 
 def test_script_fails_with_pending_changes(tmp_path):
