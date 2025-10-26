@@ -82,6 +82,22 @@ Este documento apresenta um ponto de partida para descrever processos operaciona
 - **Objetivo:** consultar status de serviços após deploys, restores ou troubleshooting.
 - **Adaptação necessária:** documente quais endpoints, comandos ou logs devem ser verificados para cada ambiente.
 
+## scripts/check_db_integrity.sh
+
+- **Objetivo:** suspender temporariamente os serviços ativos da instância e validar a integridade de bancos SQLite armazenados em `data/` (ou em um diretório customizado).
+- **Parâmetros úteis:**
+  - `--data-dir` — diretório raiz onde os arquivos `.db` serão buscados.
+  - `--no-resume` — evita retomar automaticamente os serviços ao final da verificação (útil em investigações manuais).
+  - `SQLITE3_BIN` — variável de ambiente para apontar um binário alternativo do `sqlite3`.
+- **Fluxo padrão:**
+  ```bash
+  scripts/check_db_integrity.sh core
+  ```
+- **Observações operacionais:**
+  - Backups com sufixo `.bak` são gerados automaticamente antes de sobrescrever um banco recuperado.
+  - Sempre que uma inconsistência é detectada (mesmo após recuperação), alertas são emitidos na saída de erro padrão para facilitar integrações com sistemas de monitoramento.
+  - Combine com janelas de manutenção curtas, pois os serviços permanecem pausados durante toda a inspeção.
+
 ## scripts/update_from_template.sh
 
 - **Objetivo:** re-aplicar personalizações locais sobre a versão mais recente do template oficial usando `git rebase --onto`.
