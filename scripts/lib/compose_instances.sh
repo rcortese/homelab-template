@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 
-# shellcheck source=./compose_discovery.sh
+# shellcheck source=scripts/lib/compose_discovery.sh
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/compose_discovery.sh"
 
-# shellcheck source=./compose_env_map.sh
+# shellcheck source=scripts/lib/compose_env_map.sh
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/compose_env_map.sh"
 
 load_compose_instances() {

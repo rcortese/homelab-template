@@ -43,6 +43,12 @@ else
   exit $cli_status
 fi
 
+instances_count=${#instances_to_validate[@]}
+if ((instances_count == 0)); then
+  echo "Error: nenhuma instância disponível para validação após o processamento da CLI." >&2
+  exit 1
+fi
+
 if [[ -n "${DOCKER_COMPOSE_BIN:-}" ]]; then
   # Allow overriding the docker compose binary (e.g., "docker-compose").
   # shellcheck disable=SC2206
