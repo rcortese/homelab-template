@@ -17,6 +17,12 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
+if [[ "${PWD:-}" != "$REPO_ROOT" ]]; then
+  cd "$REPO_ROOT"
+fi
+
+REPO_ROOT="$(pwd)"
+
 # shellcheck source=./lib/env_helpers.sh
 # shellcheck disable=SC1091
 source "$SCRIPT_DIR/lib/env_helpers.sh"
@@ -50,12 +56,64 @@ esac
 
 INSTANCE_NAME="${1:-}"
 
-if ! compose_defaults_dump="$("$SCRIPT_DIR/lib/compose_defaults.sh" "$INSTANCE_NAME" "$REPO_ROOT")"; then
+if ! compose_defaults_dump="$("$SCRIPT_DIR/lib/compose_defaults.sh" "$INSTANCE_NAME" ".")"; then
   echo "[!] Não foi possível preparar variáveis padrão do docker compose." >&2
   exit 1
 fi
 
 eval "$compose_defaults_dump"
+normalize_compose_context() {
+  if [[ -n "${COMPOSE_FILES:-}" ]]; then
+    local sanitized="${COMPOSE_FILES//$'\n'/ }"
+    local -a files_list=()
+    if [[ -n "$sanitized" ]]; then
+      # shellcheck disable=SC2206
+      files_list=($sanitized)
+    fi
+
+    if [[ ${#files_list[@]} -gt 0 ]]; then
+      declare -A __seen_files=()
+      local -a __deduped=()
+      local __file
+      for __file in "${files_list[@]}"; do
+        [[ -z "$__file" ]] && continue
+        if [[ -n "${__seen_files[$__file]:-}" ]]; then
+          continue
+        fi
+        __deduped+=("$__file")
+        __seen_files["$__file"]=1
+      done
+      COMPOSE_FILES="${__deduped[*]}"
+      unset __deduped
+      unset __seen_files
+    fi
+  fi
+
+  if [[ ${#COMPOSE_CMD[@]} -gt 0 ]]; then
+    declare -A __seen_flags=()
+    local -a __normalized_cmd=()
+    local __i=0
+    while (( __i < ${#COMPOSE_CMD[@]} )); do
+      local __token="${COMPOSE_CMD[$__i]}"
+      if [[ "$__token" == "-f" ]] && (( __i + 1 < ${#COMPOSE_CMD[@]} )); then
+        local __value="${COMPOSE_CMD[$((__i + 1))]}"
+        if [[ -z "${__seen_flags[$__value]:-}" ]]; then
+          __normalized_cmd+=("$__token" "$__value")
+          __seen_flags["$__value"]=1
+        fi
+        __i=$((__i + 2))
+        continue
+      fi
+      __normalized_cmd+=("$__token")
+      __i=$((__i + 1))
+    done
+    COMPOSE_CMD=("${__normalized_cmd[@]}")
+    unset __normalized_cmd
+    unset __seen_flags
+  fi
+}
+
+normalize_compose_context
 
 if ! command -v "${COMPOSE_CMD[0]}" >/dev/null 2>&1; then
   echo "Error: ${COMPOSE_CMD[0]} is not available. Set DOCKER_COMPOSE_BIN if needed." >&2
@@ -70,12 +128,13 @@ if [[ -z "${HEALTH_SERVICES:-}" && -n "${COMPOSE_ENV_FILE:-}" ]]; then
   if [[ -f "$env_file" ]]; then
     load_env_pairs "$env_file" COMPOSE_EXTRA_FILES HEALTH_SERVICES SERVICE_NAME
 
-    if ! compose_defaults_dump="$("$SCRIPT_DIR/lib/compose_defaults.sh" "$INSTANCE_NAME" "$REPO_ROOT")"; then
+    if ! compose_defaults_dump="$("$SCRIPT_DIR/lib/compose_defaults.sh" "$INSTANCE_NAME" ".")"; then
       echo "[!] Não foi possível preparar variáveis padrão do docker compose." >&2
       exit 1
     fi
 
     eval "$compose_defaults_dump"
+    normalize_compose_context
   fi
 fi
 
