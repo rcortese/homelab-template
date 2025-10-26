@@ -16,6 +16,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 ENV_LOADER="$SCRIPT_DIR/lib/env_loader.sh"
 
+# shellcheck source=lib/compose_command.sh
+source "$SCRIPT_DIR/lib/compose_command.sh"
+
 # shellcheck source=lib/compose_file_utils.sh
 source "$SCRIPT_DIR/lib/compose_file_utils.sh"
 # shellcheck source=lib/validate_cli.sh
@@ -43,23 +46,9 @@ else
   exit $cli_status
 fi
 
-instances_count=${#instances_to_validate[@]}
-if ((instances_count == 0)); then
-  echo "Error: nenhuma instância disponível para validação após o processamento da CLI." >&2
-  exit 1
-fi
-
-if [[ -n "${DOCKER_COMPOSE_BIN:-}" ]]; then
-  # Allow overriding the docker compose binary (e.g., "docker-compose").
-  # shellcheck disable=SC2206
-  compose_cmd=(${DOCKER_COMPOSE_BIN})
-else
-  compose_cmd=(docker compose)
-fi
-
-if ! command -v "${compose_cmd[0]}" >/dev/null 2>&1; then
-  echo "Error: ${compose_cmd[0]} is not available. Set DOCKER_COMPOSE_BIN if needed." >&2
-  exit 127
+declare -a compose_cmd=()
+if ! compose_resolve_command compose_cmd; then
+  exit $?
 fi
 
 validate_executor_run_instances "$REPO_ROOT" "$base_file" "$ENV_LOADER" instances_to_validate "${compose_cmd[@]}"

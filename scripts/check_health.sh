@@ -32,6 +32,9 @@ fi
 
 REPO_ROOT="$(pwd)"
 
+# shellcheck source=./lib/compose_command.sh
+source "$SCRIPT_DIR/lib/compose_command.sh"
+
 # shellcheck source=./lib/env_helpers.sh
 source "$SCRIPT_DIR/lib/env_helpers.sh"
 
@@ -224,10 +227,11 @@ normalize_compose_context() {
 
 normalize_compose_context
 
-if ! command -v "${COMPOSE_CMD[0]}" >/dev/null 2>&1; then
-  echo "Error: ${COMPOSE_CMD[0]} is not available. Set DOCKER_COMPOSE_BIN if needed." >&2
-  exit 127
+declare -a __compose_cmd_probe=()
+if ! compose_resolve_command __compose_cmd_probe; then
+  exit $?
 fi
+unset __compose_cmd_probe
 
 if [[ -z "${HEALTH_SERVICES:-}" ]]; then
   declare -a health_env_files=()

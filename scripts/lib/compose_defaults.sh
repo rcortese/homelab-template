@@ -8,6 +8,9 @@ set -euo pipefail
 
 LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+# shellcheck source=./scripts/lib/compose_command.sh
+source "${LIB_DIR}/compose_command.sh"
+
 # shellcheck source=./scripts/lib/compose_plan.sh
 source "${LIB_DIR}/compose_plan.sh"
 
@@ -91,11 +94,11 @@ setup_compose_defaults() {
     COMPOSE_ENV_FILES=""
   fi
 
-  if [[ -z "${DOCKER_COMPOSE_BIN:-}" ]]; then
-    COMPOSE_CMD=(docker compose)
+  local -a compose_cmd_resolved=()
+  if compose_resolve_command compose_cmd_resolved; then
+    COMPOSE_CMD=("${compose_cmd_resolved[@]}")
   else
-    # shellcheck disable=SC2206
-    COMPOSE_CMD=(${DOCKER_COMPOSE_BIN})
+    return $?
   fi
 
   if ((${#env_files_abs[@]} > 0)); then
