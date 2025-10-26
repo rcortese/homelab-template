@@ -16,7 +16,7 @@ def test_infers_compose_files_and_env_from_instance(
         args=["core"],
         cwd=repo_copy,
         script_path=script_path,
-        env={"DOCKER_STUB_SERVICES_OUTPUT": "app\nmonitoring"},
+        env={"DOCKER_STUB_SERVICES_OUTPUT": "app\nmonitoring\nbaseonly"},
     )
 
     assert result.returncode == 0, result.stderr
@@ -32,6 +32,7 @@ def test_infers_compose_files_and_env_from_instance(
         str((repo_copy / "compose" / "apps" / "app" / "core.yml").resolve()),
         str((repo_copy / "compose" / "apps" / "monitoring" / "base.yml").resolve()),
         str((repo_copy / "compose" / "apps" / "monitoring" / "core.yml").resolve()),
+        str((repo_copy / "compose" / "apps" / "baseonly" / "base.yml").resolve()),
     ]
     assert calls == [
         _expected_compose_call(expected_env_files, expected_files, "config", "--services"),
@@ -47,7 +48,7 @@ def test_executes_from_scripts_directory(docker_stub: DockerStub, repo_copy: Pat
         args=["core"],
         cwd=scripts_dir,
         script_path="./check_health.sh",
-        env={"DOCKER_STUB_SERVICES_OUTPUT": "app\nmonitoring"},
+        env={"DOCKER_STUB_SERVICES_OUTPUT": "app\nmonitoring\nbaseonly"},
     )
 
     assert result.returncode == 0, result.stderr
@@ -63,6 +64,7 @@ def test_executes_from_scripts_directory(docker_stub: DockerStub, repo_copy: Pat
         str((repo_copy / "compose" / "apps" / "app" / "core.yml").resolve()),
         str((repo_copy / "compose" / "apps" / "monitoring" / "base.yml").resolve()),
         str((repo_copy / "compose" / "apps" / "monitoring" / "core.yml").resolve()),
+        str((repo_copy / "compose" / "apps" / "baseonly" / "base.yml").resolve()),
     ]
     assert calls == [
         _expected_compose_call(expected_env_files, expected_files, "config", "--services"),
@@ -70,4 +72,5 @@ def test_executes_from_scripts_directory(docker_stub: DockerStub, repo_copy: Pat
         _expected_compose_call(expected_env_files, expected_files, "logs", "--tail=50", "app-core"),
         _expected_compose_call(expected_env_files, expected_files, "logs", "--tail=50", "app"),
         _expected_compose_call(expected_env_files, expected_files, "logs", "--tail=50", "monitoring"),
+        _expected_compose_call(expected_env_files, expected_files, "logs", "--tail=50", "baseonly"),
     ]

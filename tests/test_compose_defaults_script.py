@@ -9,12 +9,23 @@ SCRIPT_RELATIVE = Path("scripts") / "lib" / "compose_defaults.sh"
 
 
 def _run_script(script_path: Path, *args: str, env: dict[str, str] | None = None) -> str:
+    stub_dir = script_path.parent / ".docker-stub"
+    stub_dir.mkdir(exist_ok=True)
+    docker_stub = stub_dir / "docker"
+    docker_stub.write_text("#!/usr/bin/env bash\nexit 0\n", encoding="utf-8")
+    docker_stub.chmod(0o755)
+
+    env_vars = os.environ.copy()
+    if env:
+        env_vars.update(env)
+    env_vars["PATH"] = f"{stub_dir}{os.pathsep}{env_vars.get('PATH', '')}"
+
     result = subprocess.run(
         [str(script_path), *args],
         capture_output=True,
         text=True,
         check=False,
-        env=env,
+        env=env_vars,
         cwd=script_path.parent.parent.parent,
     )
     assert result.returncode == 0, result.stderr
@@ -64,6 +75,7 @@ def test_defaults_for_core_instance(repo_copy: Path) -> None:
         "compose/apps/app/core.yml",
         "compose/apps/monitoring/base.yml",
         "compose/apps/monitoring/core.yml",
+        "compose/apps/baseonly/base.yml",
     ]
     expected_files = [
         str((repo_copy / path).resolve())
@@ -281,6 +293,7 @@ def test_loads_extra_files_from_env_file(repo_copy: Path) -> None:
         "compose/apps/app/core.yml",
         "compose/apps/monitoring/base.yml",
         "compose/apps/monitoring/core.yml",
+        "compose/apps/baseonly/base.yml",
         *overlays,
     ]
     expected_files = [str((repo_copy / path).resolve()) for path in expected_relative]

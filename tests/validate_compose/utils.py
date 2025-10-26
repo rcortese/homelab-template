@@ -100,6 +100,7 @@ def _discover_instance_metadata(repo_root: Path) -> tuple[InstanceMetadata, ...]
 
     instance_files: dict[str, list[Path]] = {}
     instance_app_names: dict[str, list[str]] = {}
+    apps_without_overrides: list[str] = []
 
     for app_dir in sorted(path for path in apps_dir.iterdir() if path.is_dir()):
         base_override = app_dir / "base.yml"
@@ -128,14 +129,41 @@ def _discover_instance_metadata(repo_root: Path) -> tuple[InstanceMetadata, ...]
                 instance_app_names[instance_name].append(app_dir.name)
 
         if not found_override:
-            raise ValueError(f"Nenhuma instância encontrada para a aplicação '{app_dir.name}'.")
+            apps_without_overrides.append(app_dir.name)
 
-    if not instance_files:
-        raise ValueError("Nenhuma instância encontrada em compose/apps.")
+    known_instances: set[str] = set(instance_files)
+    env_dir = repo_root / "env"
+    env_local_dir = env_dir / "local"
+
+    for template in sorted(env_dir.glob("*.example.env")):
+        name = template.name.replace(".example.env", "")
+        if name and name != "common":
+            known_instances.add(name)
+
+    if env_local_dir.is_dir():
+        for env_file in sorted(env_local_dir.glob("*.env")):
+            name = env_file.stem
+            if name and name != "common":
+                known_instances.add(name)
+
+    if not known_instances:
+        raise ValueError("Nenhuma instância encontrada em compose/apps ou env.")
+
+    instance_names = sorted(known_instances)
+
+    for name in instance_names:
+        instance_files.setdefault(name, [])
+        instance_app_names.setdefault(name, [])
+
+    if apps_without_overrides:
+        for app_name in apps_without_overrides:
+            for name in instance_names:
+                if app_name not in instance_app_names[name]:
+                    instance_app_names[name].append(app_name)
 
     metadata: list[InstanceMetadata] = []
 
-    for name in sorted(instance_files):
+    for name in instance_names:
         local_rel = Path("env/local") / f"{name}.env"
         template_rel = Path("env") / f"{name}.example.env"
 
@@ -164,7 +192,7 @@ def _discover_instance_metadata(repo_root: Path) -> tuple[InstanceMetadata, ...]
             InstanceMetadata(
                 name=name,
                 app_names=tuple(instance_app_names.get(name, ())),
-                override_files=tuple(instance_files[name]),
+                override_files=tuple(instance_files.get(name, ())),
                 env_file=env_file,
                 env_local=env_local,
                 env_template=env_template,

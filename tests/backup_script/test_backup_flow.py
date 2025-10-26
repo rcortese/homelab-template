@@ -64,7 +64,7 @@ def test_successful_backup_creates_snapshot_and_restarts_stack(
 
     assert result.returncode == 0, result.stderr
     assert "Backup da instância 'core' concluído" in result.stdout
-    assert "Aplicações detectadas para religar: app monitoring" in result.stdout
+    assert "Aplicações detectadas para religar: app monitoring baseonly" in result.stdout
 
     backup_dir = repo_copy / "backups" / "core-20240101-030405"
     assert backup_dir.is_dir()
@@ -75,7 +75,7 @@ def test_successful_backup_creates_snapshot_and_restarts_stack(
     assert calls == [
         "core ps --status running --services",
         "core down",
-        "core up -d app monitoring",
+        "core up -d app monitoring baseonly",
     ]
 
 
@@ -126,7 +126,7 @@ def test_copy_failure_still_attempts_restart(repo_copy: Path, monkeypatch) -> No
     assert calls == [
         "core ps --status running --services",
         "core down",
-        "core up -d app monitoring",
+        "core up -d app monitoring baseonly",
     ]
     assert cp_log.read_text(encoding="utf-8").splitlines() == [
         "-a",
@@ -172,13 +172,13 @@ def test_detected_apps_ignore_unknown_entries(repo_copy: Path, monkeypatch) -> N
     result = run_backup(repo_copy, "core")
 
     assert result.returncode == 0, result.stderr
-    assert "Aplicações detectadas para religar: app monitoring" in result.stdout
+    assert "Aplicações detectadas para religar: app monitoring baseonly" in result.stdout
 
     calls = compose_log.read_text(encoding="utf-8").splitlines()
     assert calls == [
         "core ps --status running --services",
         "core down",
-        "core up -d app monitoring",
+        "core up -d app monitoring baseonly",
     ]
 
 
@@ -206,11 +206,11 @@ def test_fallback_to_known_apps_when_no_active_dirs(repo_copy: Path, monkeypatch
 
     assert result.returncode == 0, result.stderr
     assert "Nenhuma aplicação ativa identificada; religando stack completa." not in result.stdout
-    assert "Aplicações detectadas para religar: app monitoring" in result.stdout
+    assert "Aplicações detectadas para religar: app monitoring baseonly" in result.stdout
 
     calls = compose_log.read_text(encoding="utf-8").splitlines()
     assert calls == [
         "core ps --status running --services",
         "core down",
-        "core up -d app monitoring",
+        "core up -d app monitoring baseonly",
     ]

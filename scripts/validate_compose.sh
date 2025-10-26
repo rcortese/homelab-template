@@ -47,8 +47,11 @@ else
 fi
 
 declare -a compose_cmd=()
-if ! compose_resolve_command compose_cmd; then
-  exit $?
+if compose_resolve_command compose_cmd; then
+  :
+else
+  status=$?
+  exit $status
 fi
 
 validate_executor_run_instances "$REPO_ROOT" "$base_file" "$ENV_LOADER" instances_to_validate "${compose_cmd[@]}"

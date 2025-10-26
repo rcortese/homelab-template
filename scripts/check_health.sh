@@ -147,9 +147,12 @@ fi
 
 INSTANCE_NAME="${1:-}"
 
-if ! compose_defaults_dump="$("$SCRIPT_DIR/lib/compose_defaults.sh" "$INSTANCE_NAME" ".")"; then
+if compose_defaults_dump="$("$SCRIPT_DIR/lib/compose_defaults.sh" "$INSTANCE_NAME" ".")"; then
+  :
+else
+  status=$?
   echo "[!] Não foi possível preparar variáveis padrão do docker compose." >&2
-  exit 1
+  exit $status
 fi
 
 eval "$compose_defaults_dump"

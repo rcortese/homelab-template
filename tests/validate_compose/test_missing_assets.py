@@ -20,8 +20,8 @@ def test_missing_compose_file_in_temporary_copy(
     shutil.copytree(REPO_ROOT / "scripts", repo_copy / "scripts")
     shutil.copytree(REPO_ROOT / "env", repo_copy / "env")
 
-    missing_instance = repo_copy / "compose" / "apps" / "app" / "media.yml"
-    missing_instance.unlink()
+    missing_file = repo_copy / "compose" / "apps" / "baseonly" / "base.yml"
+    missing_file.unlink()
 
     result = subprocess.run(
         [str(repo_copy / "scripts" / "validate_compose.sh")],
@@ -29,10 +29,10 @@ def test_missing_compose_file_in_temporary_copy(
         text=True,
         check=False,
         cwd=repo_copy,
-        env={**os.environ, "COMPOSE_INSTANCES": "media"},
+        env={**os.environ, "COMPOSE_INSTANCES": "core"},
     )
 
     assert result.returncode == 1
-    assert "arquivo ausente" in result.stderr
-    assert "media" in result.stderr
+    assert "baseonly" in result.stderr
+    assert "metadados" in result.stderr
     assert docker_stub.read_calls() == []

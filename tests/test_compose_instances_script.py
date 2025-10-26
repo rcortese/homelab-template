@@ -22,6 +22,7 @@ def _collect_compose_metadata(repo_root: Path) -> tuple[
 
     instance_files: dict[str, list[str]] = defaultdict(list)
     instance_app_names: dict[str, list[str]] = defaultdict(list)
+    apps_without_overrides: list[str] = []
 
     for app_dir in sorted(path for path in apps_dir.iterdir() if path.is_dir()):
         base_file = app_dir / "base.yml"
@@ -47,12 +48,37 @@ def _collect_compose_metadata(repo_root: Path) -> tuple[
                 instance_app_names[instance_name].append(app_name)
 
         if not found_override:
-            raise AssertionError(f"No instance files discovered for app {app_dir.name}")
+            apps_without_overrides.append(app_dir.name)
 
-    if not instance_files:
+    known_instances = set(instance_files)
+    env_dir = repo_root / "env"
+    env_local_dir = env_dir / "local"
+
+    for template in sorted(env_dir.glob("*.example.env")):
+        name = template.name.replace(".example.env", "")
+        if name and name != "common":
+            known_instances.add(name)
+
+    if env_local_dir.is_dir():
+        for env_file in sorted(env_local_dir.glob("*.env")):
+            name = env_file.stem
+            if name and name != "common":
+                known_instances.add(name)
+
+    if not known_instances:
         raise AssertionError("No compose instances discovered in repo copy")
 
-    instance_names = sorted(instance_files)
+    instance_names = sorted(known_instances)
+
+    for name in instance_names:
+        instance_files.setdefault(name, [])
+        instance_app_names.setdefault(name, [])
+
+    if apps_without_overrides:
+        for app_name in apps_without_overrides:
+            for name in instance_names:
+                if app_name not in instance_app_names[name]:
+                    instance_app_names[name].append(app_name)
 
     env_local_map: dict[str, str] = {}
     env_template_map: dict[str, str] = {}
@@ -189,6 +215,31 @@ def test_compose_instances_outputs_expected_metadata(repo_copy: Path) -> None:
 
     env_files_line = find_declare_line(result.stdout, "COMPOSE_INSTANCE_ENV_FILES")
     assert parse_mapping(env_files_line) == expected_env_files_map
+
+
+def test_instances_include_apps_without_overrides(repo_copy: Path) -> None:
+    result = run_compose_instances(repo_copy)
+
+    assert result.returncode == 0, result.stderr
+
+    names_line = find_declare_line(result.stdout, "COMPOSE_INSTANCE_NAMES")
+    instance_names = parse_indexed_values(names_line)
+
+    app_names_line = find_declare_line(result.stdout, "COMPOSE_INSTANCE_APP_NAMES")
+    app_names_map = parse_mapping(app_names_line)
+
+    files_line = find_declare_line(result.stdout, "COMPOSE_INSTANCE_FILES")
+    files_map = parse_mapping(files_line)
+
+    for instance in instance_names:
+        apps = [entry for entry in app_names_map.get(instance, "").splitlines() if entry]
+        assert "baseonly" in apps
+        overrides = [entry for entry in files_map.get(instance, "").splitlines() if entry]
+        assert instance in files_map, f"Instance '{instance}' not present in files map"
+        if instance == "core":
+            assert any(
+                entry.endswith("compose/apps/app/core.yml") for entry in overrides
+            ), "Expected core overrides to remain registered"
 
 
 def test_missing_base_file_causes_failure(repo_copy: Path) -> None:

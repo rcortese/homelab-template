@@ -38,6 +38,7 @@ def test_prefers_local_env_when_available(repo_copy: Path, docker_stub: DockerSt
             repo_copy / "compose" / "apps" / "app" / "core.yml",
             repo_copy / "compose" / "apps" / "monitoring" / "base.yml",
             repo_copy / "compose" / "apps" / "monitoring" / "core.yml",
+            repo_copy / "compose" / "apps" / "baseonly" / "base.yml",
         ],
         "config",
     )
@@ -86,6 +87,7 @@ def test_includes_extra_files_from_env_file(repo_copy: Path, docker_stub: Docker
             repo_copy / "compose" / "apps" / "app" / "core.yml",
             repo_copy / "compose" / "apps" / "monitoring" / "base.yml",
             repo_copy / "compose" / "apps" / "monitoring" / "core.yml",
+            repo_copy / "compose" / "apps" / "baseonly" / "base.yml",
             repo_copy / "compose" / "overlays" / "metrics.yml",
             repo_copy / "compose" / "overlays" / "logging.yml",
         ],
@@ -142,6 +144,7 @@ def test_env_override_for_extra_files(repo_copy: Path, docker_stub: DockerStub) 
             repo_copy / "compose" / "apps" / "app" / "core.yml",
             repo_copy / "compose" / "apps" / "monitoring" / "base.yml",
             repo_copy / "compose" / "apps" / "monitoring" / "core.yml",
+            repo_copy / "compose" / "apps" / "baseonly" / "base.yml",
             repo_copy / "compose" / "overlays" / "custom.yml",
         ],
         "config",
