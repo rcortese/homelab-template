@@ -55,6 +55,21 @@ Este documento apresenta um ponto de partida para descrever processos operaciona
 - **Flags principais:** `--force`, `--skip-structure`, `--skip-validate`, `--skip-health`.
 - **Dica:** defina `COMPOSE_EXTRA_FILES` no `.env` da instância para incluir overlays específicos (ex.: `compose/overlays/observability.yml`).
 
+## scripts/fix_permission_issues.sh
+
+- **Objetivo:** normalizar permissões de diretórios persistentes definidos na instância antes de executar serviços Docker.
+- **Contexto:** lê os valores calculados por `scripts/lib/deploy_context.sh`, utilizando `APP_DATA_DIR`, `APP_DATA_UID` e `APP_DATA_GID` definidos no `.env` da instância (ou valores padrão `data/<app>` e `1000:1000`).
+- **Uso típico:**
+  ```bash
+  scripts/fix_permission_issues.sh <instancia>
+  scripts/fix_permission_issues.sh <instancia> --dry-run
+  ```
+- **Comportamento:**
+  - garante que os diretórios de dados e `backups/` existam (`mkdir -p`);
+  - aplica `chown <uid>:<gid>` quando executado com privilégios suficientes;
+  - valida o owner final e emite avisos se persistirem divergências.
+- **Boas práticas:** personalize `APP_DATA_DIR` para apontar o armazenamento desejado (por exemplo, volumes montados no host) e documente o `UID:GID` esperado para evitar conflitos em ambientes multiusuário.
+
 ## scripts/compose.sh
 
 - **Objetivo:** encapsular chamadas ao `docker compose` utilizando convenções do template.
