@@ -19,13 +19,21 @@ def create_consumer_repo(tmp_path):
     scripts_dir = consumer / "scripts"
     scripts_dir.mkdir(parents=True)
     shutil.copy2(SCRIPT_PATH, scripts_dir / "update_from_template.sh")
+    shutil.copytree(
+        REPO_ROOT / "scripts" / "lib",
+        scripts_dir / "lib",
+        dirs_exist_ok=True,
+    )
 
     run(["git", "init"], cwd=consumer)
     run(["git", "config", "user.email", "ci@example.com"], cwd=consumer)
     run(["git", "config", "user.name", "CI"], cwd=consumer)
 
     (consumer / "base.txt").write_text("template base\n", encoding="utf-8")
-    run(["git", "add", "base.txt", "scripts/update_from_template.sh"], cwd=consumer)
+    run(
+        ["git", "add", "base.txt", "scripts/update_from_template.sh", "scripts/lib"],
+        cwd=consumer,
+    )
     run(["git", "commit", "-m", "Template base"], cwd=consumer)
 
     return consumer

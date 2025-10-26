@@ -54,37 +54,12 @@ error() {
   exit 1
 }
 
-require_interactive_input() {
-  local message="$1"
-  if [[ ! -t 0 ]]; then
-    error "$message"
-  fi
-}
-
-prompt_required_value() {
-  local prompt_message="$1"
-  local value=""
-  while true; do
-    read -r -p "$prompt_message: " value
-    if [[ -n "${value// /}" ]]; then
-      printf '%s' "$value"
-      return 0
-    fi
-    echo "Valor obrigatório. Tente novamente." >&2
-  done
-}
-
-prompt_value_with_default() {
-  local prompt_message="$1"
-  local default_value="$2"
-  local value=""
-  read -r -p "$prompt_message [$default_value]: " value
-  if [[ -n "${value// /}" ]]; then
-    printf '%s' "$value"
-  else
-    printf '%s' "$default_value"
-  fi
-}
+# shellcheck source=scripts/lib/template_prompts.sh
+source "$SCRIPT_DIR/lib/template_prompts.sh"
+# shellcheck source=scripts/lib/template_validate.sh
+source "$SCRIPT_DIR/lib/template_validate.sh"
+# shellcheck source=scripts/lib/template_sync.sh
+source "$SCRIPT_DIR/lib/template_sync.sh"
 
 template_remote="${TEMPLATE_REMOTE:-}"
 original_commit="${ORIGINAL_COMMIT_ID:-}"
@@ -130,7 +105,7 @@ done
 
 cd "$REPO_ROOT"
 
-if ! git rev-parse --git-dir >/dev/null 2>&1; then
+if ! template_validate_git_repository; then
   error "este diretório não é um repositório Git."
 fi
 
@@ -172,50 +147,43 @@ fi
 [[ -n "$first_local_commit" ]] || error "hash do primeiro commit local não informado. Use --first-local-commit ou defina FIRST_COMMIT_ID."
 [[ -n "$target_branch" ]] || error "branch alvo não informada. Use --target-branch ou defina TARGET_BRANCH."
 
-if ! git rev-parse --verify "$original_commit^{commit}" >/dev/null 2>&1; then
+if ! template_validate_commit_exists "$original_commit"; then
   error "commit original $original_commit não foi encontrado."
 fi
 
-if ! git rev-parse --verify "$first_local_commit^{commit}" >/dev/null 2>&1; then
+if ! template_validate_commit_exists "$first_local_commit"; then
   error "primeiro commit local $first_local_commit não foi encontrado."
 fi
 
-if ! git remote get-url "$template_remote" >/dev/null 2>&1; then
+if ! template_validate_remote_exists "$template_remote"; then
   error "remote '$template_remote' não está configurado."
 fi
 
-if ! git merge-base --is-ancestor "$original_commit" "$first_local_commit"; then
+if ! template_validate_is_ancestor "$original_commit" "$first_local_commit"; then
   error "o commit $original_commit não é ancestral de $first_local_commit. Verifique os identificadores informados."
 fi
 
-if ! git merge-base --is-ancestor "$first_local_commit" HEAD; then
+if ! template_validate_is_ancestor "$first_local_commit" HEAD; then
   current_branch_name="$(git rev-parse --abbrev-ref HEAD)"
   error "o commit $first_local_commit não faz parte da branch atual ($current_branch_name)."
 fi
 
-if ! git ls-remote --exit-code "$template_remote" "$target_branch" >/dev/null 2>&1; then
+if ! template_validate_remote_branch_exists "$template_remote" "$target_branch"; then
   error "branch '$target_branch' não encontrado no remote '$template_remote'."
 fi
 
 current_branch="$(git rev-parse --abbrev-ref HEAD)"
 remote_ref="$template_remote/$target_branch"
 
-if [[ -n "$(git status --porcelain)" ]]; then
+if ! template_validate_worktree_clean; then
   error "existem alterações locais não commitadas. finalize ou descarte-as antes de continuar."
 fi
 
 if [[ "$dry_run" == true ]]; then
-  echo "Modo dry-run habilitado. Nenhum comando será executado."
-  echo "Comandos planejados:"
-  echo "  git fetch $template_remote $target_branch"
-  echo "  git rebase --onto $remote_ref $original_commit $current_branch"
+  template_sync_dry_run "$template_remote" "$target_branch" "$remote_ref" "$original_commit" "$current_branch"
   exit 0
 fi
 
-echo "Buscando atualizações do template em $remote_ref..."
-git fetch "$template_remote" "$target_branch"
-
-echo "Reaplicando commits locais a partir de $first_local_commit sobre $remote_ref..."
-git rebase --onto "$remote_ref" "$original_commit" "$current_branch"
+template_sync_execute "$template_remote" "$target_branch" "$remote_ref" "$original_commit" "$first_local_commit" "$current_branch"
 
 echo "Atualização concluída. Revise os commits reaplicados e execute os testes da stack."
