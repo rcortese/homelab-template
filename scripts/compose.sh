@@ -104,6 +104,11 @@ if [[ -z "${COMPOSE_ENV_FILE:-}" && -n "$INSTANCE_NAME" ]]; then
   fi
 fi
 
+if ! cd "$REPO_ROOT"; then
+  echo "Error: não foi possível acessar o diretório do repositório: $REPO_ROOT" >&2
+  exit 1
+fi
+
 if [[ -n "${DOCKER_COMPOSE_BIN:-}" ]]; then
   # Permite sobrescrever o binário do docker compose (ex.: "docker-compose").
   # shellcheck disable=SC2206
