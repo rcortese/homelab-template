@@ -30,14 +30,14 @@ validate_cli_parse_instances() {
 
   if [[ -n "$first_arg" ]]; then
     case "$first_arg" in
-      -h | --help)
-        validate_cli_print_help
-        return 2
-        ;;
-      *)
-        echo "Argumento não reconhecido: $first_arg" >&2
-        return 1
-        ;;
+    -h | --help)
+      validate_cli_print_help
+      return 2
+      ;;
+    *)
+      echo "Argumento não reconhecido: $first_arg" >&2
+      return 1
+      ;;
     esac
   fi
 
