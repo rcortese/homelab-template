@@ -17,7 +17,8 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-# shellcheck source=lib/env_helpers.sh
+# shellcheck source=./lib/env_helpers.sh
+# shellcheck disable=SC1091
 source "$SCRIPT_DIR/lib/env_helpers.sh"
 
 print_help() {
