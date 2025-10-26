@@ -120,6 +120,35 @@ def test_appends_extra_files_when_defined(repo_copy: Path) -> None:
     assert _extract_file_args(compose_cmd) == expected_files
 
 
+def test_handles_comma_and_newline_separated_extra_files(repo_copy: Path) -> None:
+    script_path = repo_copy / SCRIPT_RELATIVE
+    env = os.environ.copy()
+    env.update(
+        {
+            "COMPOSE_FILES": "compose/base.yml compose/apps/app/base.yml compose/apps/app/core.yml",
+            "COMPOSE_EXTRA_FILES": (
+                "compose/overlays/metrics.yml, compose/overlays/logging.yml\n"
+                "compose/overlays/metrics.yml"
+            ),
+        }
+    )
+
+    stdout = _run_script(script_path, "core", str(repo_copy), env=env)
+
+    compose_files = _extract_value(r'COMPOSE_FILES="([^"]+)"', stdout)
+    expected_files = [
+        "compose/base.yml",
+        "compose/apps/app/base.yml",
+        "compose/apps/app/core.yml",
+        "compose/overlays/metrics.yml",
+        "compose/overlays/logging.yml",
+    ]
+    assert compose_files == " ".join(expected_files)
+
+    compose_cmd = _extract_compose_cmd(stdout)
+    assert _extract_file_args(compose_cmd) == expected_files
+
+
 def test_loads_extra_files_from_env_file(repo_copy: Path) -> None:
     script_path = repo_copy / SCRIPT_RELATIVE
     env_file = repo_copy / "env" / "local" / "core.env"
