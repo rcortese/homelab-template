@@ -38,7 +38,13 @@ pip install -r requirements-dev.txt
 
 ## 4. Rode as validações consolidadas
 
-Com os `.env` locais criados e as dependências instaladas, execute a sequência abaixo para confirmar se a estrutura continua íntegra:
+Com os `.env` locais criados e as dependências instaladas, utilize o atalho compatível com o README para confirmar se a estrutura continua íntegra:
+
+```bash
+scripts/check_all.sh
+```
+
+O agregador `scripts/check_all.sh` encadeia exatamente a sequência de validações abaixo, que você também pode executar manualmente como detalhamento ou alternativa:
 
 ```bash
 scripts/check_structure.sh
