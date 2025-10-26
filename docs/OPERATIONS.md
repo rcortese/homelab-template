@@ -19,6 +19,7 @@ Este documento apresenta um ponto de partida para descrever processos operaciona
   ```
 - **Quando executar:** antes de abrir PRs que reorganizam arquivos ou em pipelines de CI.
 
+<a id="scriptsvalidate_compose.sh"></a>
 ## scripts/validate_compose.sh
 
 - **Objetivo:** verificar se as combinações padrão de Docker Compose continuam válidas.

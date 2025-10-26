@@ -118,7 +118,11 @@ if ! command -v "${COMPOSE_CMD[0]}" >/dev/null 2>&1; then
 fi
 
 if [[ -n "${COMPOSE_ENV_FILE:-}" ]]; then
-  COMPOSE_CMD+=(--env-file "$COMPOSE_ENV_FILE")
+  env_file="$COMPOSE_ENV_FILE"
+  if [[ "$env_file" != /* ]]; then
+    env_file="$REPO_ROOT/$env_file"
+  fi
+  COMPOSE_CMD+=(--env-file "$env_file")
 fi
 
 if [[ ${#COMPOSE_FILES_LIST[@]} -gt 0 ]]; then
