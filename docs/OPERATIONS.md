@@ -70,6 +70,23 @@ Este documento apresenta um ponto de partida para descrever processos operaciona
   - valida o owner final e emite avisos se persistirem divergências.
 - **Boas práticas:** siga a convenção `data/<app>-<instância>` sempre que possível para manter a organização padrão. Sobrescreva `APP_DATA_DIR` apenas quando precisar apontar para armazenamento alternativo (por exemplo, volumes montados no host, dispositivos dedicados ou diretórios com requisitos especiais) e documente o `UID:GID` esperado para evitar conflitos em ambientes multiusuário.
 
+## scripts/backup.sh
+
+- **Objetivo:** pausar a stack da instância, copiar os dados persistidos e gerar um snapshot versionado em `backups/<instância>-<timestamp>` antes de reativar os serviços.
+- **Dependências:**
+  - o `.env` da instância deve estar atualizado para que `scripts/lib/deploy_context.sh` identifique `APP_DATA_DIR`, `COMPOSE_FILES` e demais variáveis utilizadas na montagem da stack;
+  - o diretório `backups/` precisa estar acessível para gravação (o script cria subpastas automaticamente, mas respeita permissões do host);
+  - recomenda-se garantir que o `.env` esteja carregado (`source env/<instancia>.env`) quando houver exports adicionais exigidos pelos serviços.
+- **Uso básico:**
+  ```bash
+  scripts/backup.sh core
+  ```
+  O comando acima gera um snapshot completo da instância `core` e registra o local do artefato no final da execução. Consulte [`docs/BACKUP_RESTORE.md`](./BACKUP_RESTORE.md) para práticas recomendadas de retenção e processos de restauração.
+- **Dicas de personalização para forks:**
+  - Exporte variáveis complementares (por exemplo, `EXTRA_BACKUP_PATHS` ou credenciais de repositórios externos) antes de chamar o script, permitindo que wrappers locais incluam diretórios extras ou enviem os artefatos para armazenamento remoto.
+  - Ajuste o `.env` da instância para apontar `APP_DATA_DIR` ou `COMPOSE_EXTRA_FILES` específicos quando o layout de dados divergir do padrão `data/<app>-<instância>`.
+  - Amplie o fluxo em wrappers externos adicionando hooks pré/pós-backup (scripts auxiliares, notificações ou compressão) mantendo a lógica central de parada/cópia/restart encapsulada aqui.
+
 ## scripts/compose.sh
 
 - **Objetivo:** encapsular chamadas ao `docker compose` utilizando convenções do template.
