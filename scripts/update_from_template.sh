@@ -21,7 +21,7 @@ Uso: scripts/update_from_template.sh [opções]
 
 Sincroniza o repositório atual com o template de origem utilizando git rebase --onto.
 
-Parâmetros obrigatórios (podem ser definidos via variáveis de ambiente):
+Parâmetros obrigatórios (podem ser definidos via variáveis de ambiente ou informados interativamente quando o script é executado em um terminal):
   --remote <nome>                 ou TEMPLATE_REMOTE
   --original-commit <hash>        ou ORIGINAL_COMMIT_ID
   --first-local-commit <hash>     ou FIRST_COMMIT_ID
@@ -49,6 +49,38 @@ error() {
   echo >&2
   usage >&2
   exit 1
+}
+
+require_interactive_input() {
+  local message="$1"
+  if [[ ! -t 0 ]]; then
+    error "$message"
+  fi
+}
+
+prompt_required_value() {
+  local prompt_message="$1"
+  local value=""
+  while true; do
+    read -r -p "$prompt_message: " value
+    if [[ -n "${value// /}" ]]; then
+      printf '%s' "$value"
+      return 0
+    fi
+    echo "Valor obrigatório. Tente novamente." >&2
+  done
+}
+
+prompt_value_with_default() {
+  local prompt_message="$1"
+  local default_value="$2"
+  local value=""
+  read -r -p "$prompt_message [$default_value]: " value
+  if [[ -n "${value// /}" ]]; then
+    printf '%s' "$value"
+  else
+    printf '%s' "$default_value"
+  fi
 }
 
 template_remote="${TEMPLATE_REMOTE:-}"
@@ -93,16 +125,49 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-[[ -n "$template_remote" ]] || error "remote do template não informado. Use --remote ou defina TEMPLATE_REMOTE."
-[[ -n "$original_commit" ]] || error "hash do commit original do template não informado. Use --original-commit ou defina ORIGINAL_COMMIT_ID."
-[[ -n "$first_local_commit" ]] || error "hash do primeiro commit local não informado. Use --first-local-commit ou defina FIRST_COMMIT_ID."
-[[ -n "$target_branch" ]] || error "branch alvo não informado. Use --target-branch ou defina TARGET_BRANCH."
-
 cd "$REPO_ROOT"
 
 if ! git rev-parse --git-dir >/dev/null 2>&1; then
   error "este diretório não é um repositório Git."
 fi
+
+default_template_remote=""
+if git remote | grep -Fxq "template"; then
+  default_template_remote="template"
+elif git remote | grep -Fxq "upstream"; then
+  default_template_remote="upstream"
+fi
+
+if [[ -z "$template_remote" ]]; then
+  require_interactive_input "remote do template não informado. Use --remote, defina TEMPLATE_REMOTE ou responda às perguntas interativas."
+  if [[ -n "$default_template_remote" ]]; then
+    template_remote="$(prompt_value_with_default "Informe o nome do remote do template" "$default_template_remote")"
+  else
+    template_remote="$(prompt_required_value "Informe o nome do remote do template")"
+  fi
+fi
+
+if [[ -z "$target_branch" ]]; then
+  require_interactive_input "branch alvo não informada. Use --target-branch, defina TARGET_BRANCH ou responda às perguntas interativas."
+  target_branch="$(prompt_value_with_default "Informe a branch do template" "main")"
+fi
+
+if [[ -z "$original_commit" ]]; then
+  require_interactive_input "hash do commit original do template não informado. Use --original-commit, defina ORIGINAL_COMMIT_ID ou responda às perguntas interativas."
+  echo "Dica: utilize 'git merge-base <remote>/<branch> HEAD' para encontrar o ancestral comum." >&2
+  original_commit="$(prompt_required_value "Informe o hash do commit original do template")"
+fi
+
+if [[ -z "$first_local_commit" ]]; then
+  require_interactive_input "hash do primeiro commit local não informado. Use --first-local-commit, defina FIRST_COMMIT_ID ou responda às perguntas interativas."
+  echo "Dica: use 'git log --oneline <hash-original>..HEAD' para localizar o primeiro commit exclusivo." >&2
+  first_local_commit="$(prompt_required_value "Informe o hash do primeiro commit local exclusivo")"
+fi
+
+[[ -n "$template_remote" ]] || error "remote do template não informado. Use --remote ou defina TEMPLATE_REMOTE."
+[[ -n "$original_commit" ]] || error "hash do commit original do template não informado. Use --original-commit ou defina ORIGINAL_COMMIT_ID."
+[[ -n "$first_local_commit" ]] || error "hash do primeiro commit local não informado. Use --first-local-commit ou defina FIRST_COMMIT_ID."
+[[ -n "$target_branch" ]] || error "branch alvo não informada. Use --target-branch ou defina TARGET_BRANCH."
 
 if ! git rev-parse --verify "$original_commit^{commit}" >/dev/null 2>&1; then
   error "commit original $original_commit não foi encontrado."
