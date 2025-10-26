@@ -195,6 +195,7 @@ def _run_script(
     *args: str,
     env: dict[str, str] | None = None,
     sqlite_mode: str | None = "binary",
+    use_sqlite_stub: bool = True,
 ) -> subprocess.CompletedProcess[str]:
     script_path = repo_copy / SCRIPT_RELATIVE
     result_env = os.environ.copy()
@@ -202,11 +203,27 @@ def _run_script(
         {
             "DOCKER_COMPOSE_BIN": str(compose_stub_path),
             "COMPOSE_STUB_LOG": str(compose_log),
-            "SQLITE3_BIN": str(sqlite_stub_path),
-            "SQLITE3_STUB_CONFIG": str(sqlite_config),
-            "SQLITE3_STUB_LOG": str(sqlite_log),
         }
     )
+    if use_sqlite_stub:
+        result_env.update(
+            {
+                "SQLITE3_BIN": str(sqlite_stub_path),
+                "SQLITE3_STUB_CONFIG": str(sqlite_config),
+                "SQLITE3_STUB_LOG": str(sqlite_log),
+            }
+        )
+    else:
+        result_env.pop("SQLITE3_BIN", None)
+        result_env.pop("SQLITE3_STUB_CONFIG", None)
+        result_env.pop("SQLITE3_STUB_LOG", None)
+        stub_dir = str(sqlite_stub_path.parent)
+        path_value = result_env.get("PATH", "")
+        if path_value:
+            cleaned_path = os.pathsep.join(
+                entry for entry in path_value.split(os.pathsep) if entry != stub_dir
+            )
+            result_env["PATH"] = cleaned_path
     if sqlite_mode is not None:
         result_env["SQLITE3_MODE"] = sqlite_mode
     if env:
@@ -439,6 +456,95 @@ def test_runs_sqlite_via_container_when_requested(
     ]
     assert docker_calls, "docker stub should be invoked in container mode"
     assert any("sqlite3" in call for call in docker_calls)
+
+
+def test_binary_mode_requires_sqlite_binary(
+    repo_copy: Path,
+    compose_stub: tuple[Path, Path],
+    sqlite_stub: tuple[Path, Path, Path],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    compose_stub_path, compose_log = compose_stub
+    sqlite_stub_path, sqlite_config, sqlite_log = sqlite_stub
+
+    (repo_copy / "data").mkdir()
+
+    original_path = os.environ.get("PATH")
+    cleaned_path = os.pathsep.join(
+        entry
+        for entry in (original_path or "").split(os.pathsep)
+        if entry and entry != str(sqlite_stub_path.parent)
+    )
+    effective_path = cleaned_path or (original_path or os.defpath)
+    monkeypatch.setenv("PATH", effective_path)
+    try:
+        result = _run_script(
+            repo_copy,
+            compose_stub_path,
+            compose_log,
+            sqlite_stub_path,
+            sqlite_config,
+            sqlite_log,
+            "core",
+            sqlite_mode="binary",
+            use_sqlite_stub=False,
+            env={"SQLITE3_BIN": "/nonexistent/sqlite3"},
+        )
+    finally:
+        if original_path is None:
+            monkeypatch.delenv("PATH", raising=False)
+        else:
+            monkeypatch.setenv("PATH", original_path)
+
+    assert result.returncode == 127
+    assert "Erro: sqlite3 não encontrado (binário:" in result.stderr
+
+
+def test_container_mode_errors_when_runtime_and_binary_missing(
+    repo_copy: Path,
+    compose_stub: tuple[Path, Path],
+    sqlite_stub: tuple[Path, Path, Path],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    compose_stub_path, compose_log = compose_stub
+    sqlite_stub_path, sqlite_config, sqlite_log = sqlite_stub
+
+    (repo_copy / "data").mkdir()
+
+    original_path = os.environ.get("PATH")
+    cleaned_path = os.pathsep.join(
+        entry
+        for entry in (original_path or "").split(os.pathsep)
+        if entry and entry != str(sqlite_stub_path.parent)
+    )
+    effective_path = cleaned_path or (original_path or os.defpath)
+    monkeypatch.setenv("PATH", effective_path)
+    try:
+        result = _run_script(
+            repo_copy,
+            compose_stub_path,
+            compose_log,
+            sqlite_stub_path,
+            sqlite_config,
+            sqlite_log,
+            "core",
+            env={
+                "SQLITE3_CONTAINER_RUNTIME": "fake-runtime",
+                "SQLITE3_BIN": "/nonexistent/sqlite3",
+            },
+            sqlite_mode="container",
+            use_sqlite_stub=False,
+        )
+    finally:
+        if original_path is None:
+            monkeypatch.delenv("PATH", raising=False)
+        else:
+            monkeypatch.setenv("PATH", original_path)
+
+    assert result.returncode == 127
+    assert (
+        "Erro: runtime 'fake-runtime' indisponível e sqlite3 (binário:" in result.stderr
+    )
 
 
 def test_falls_back_to_binary_when_container_unavailable(
