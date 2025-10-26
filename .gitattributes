@@ -1,1 +1,8 @@
+# Normalize text files according to repository conventions
+* text=auto
+*.sh text eol=lf
+*.yml text eol=lf
+*.md text
+
+# Preserve local documentation overrides during merges
 docs/local/** merge=ours
