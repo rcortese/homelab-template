@@ -55,7 +55,7 @@ for file in \
   "docs/STRUCTURE.md" \
   "scripts/check_structure.sh" \
   "scripts/validate_compose.sh" \
-  ".github/workflows/validate-compose.yml"; do
+  ".github/workflows/template-quality-checks.yml"; do
   require_path "$file"
 done
 

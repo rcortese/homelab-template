@@ -5,9 +5,9 @@ versões, concentre as personalizações de CI nos arquivos indicados abaixo.
 
 ## Fluxo recomendado
 
-1. **Não modifique** `.github/workflows/validate-compose.yml` nos projetos
-   derivados. Esse workflow cobre as verificações básicas fornecidas pelo
-   template (lint de shell, validação do Docker Compose e suíte de testes
+1. **Não modifique** `.github/workflows/template-quality-checks.yml` nos
+   projetos derivados. Esse workflow cobre as verificações básicas fornecidas
+   pelo template (lint de shell, validação do Docker Compose e suíte de testes
    principal).
 2. Crie ou atualize `.github/workflows/project-tests.yml` no projeto derivado
    para adicionar jobs específicos (por exemplo, lint de código da aplicação,
