@@ -1,0 +1,65 @@
+from __future__ import annotations
+
+from pathlib import Path
+from typing import TYPE_CHECKING
+
+from .utils import run_compose, run_compose_in_repo
+
+if TYPE_CHECKING:
+    from ..conftest import DockerStub
+
+
+def test_instance_uses_expected_env_and_compose_files(
+    repo_copy: Path, docker_stub: DockerStub
+) -> None:
+    result = run_compose_in_repo(repo_copy, args=["core"])
+
+    assert result.returncode == 0
+
+    calls = docker_stub.read_calls()
+    assert len(calls) == 1
+    command = calls[0]
+
+    assert "--env-file" in command
+    env_arg_index = command.index("--env-file")
+    assert command[env_arg_index + 1].endswith("env/local/core.env")
+
+    compose_files = [
+        command[index + 1]
+        for index, arg in enumerate(command)
+        if arg == "-f"
+    ]
+    assert compose_files == [
+        "compose/base.yml",
+        "compose/apps/app/base.yml",
+        "compose/apps/app/core.yml",
+    ]
+
+
+def test_instance_resolves_manifests_when_invoked_from_scripts_dir(
+    repo_copy: Path, docker_stub: DockerStub
+) -> None:
+    scripts_dir = repo_copy / "scripts"
+
+    result = run_compose(
+        args=["core"],
+        cwd=scripts_dir,
+        script_path=scripts_dir / "compose.sh",
+    )
+
+    assert result.returncode == 0
+
+    calls = docker_stub.read_calls()
+    assert len(calls) == 1
+    command = calls[0]
+
+    compose_files = [
+        command[index + 1]
+        for index, arg in enumerate(command)
+        if arg == "-f"
+    ]
+    assert compose_files == [
+        "compose/base.yml",
+        "compose/apps/app/base.yml",
+        "compose/apps/app/core.yml",
+    ]
