@@ -89,3 +89,32 @@ def test_fallback_to_docker_compose(docker_stub: DockerStub) -> None:
 
     assert result.returncode == 0
     assert docker_stub.read_calls() == [["compose", "ps"]]
+
+
+def test_invokes_compose_with_instance_metadata(
+    repo_copy: Path, docker_stub: DockerStub
+) -> None:
+    result = subprocess.run(
+        [str(repo_copy / "scripts" / "compose.sh"), "core", "--", "ps"],
+        capture_output=True,
+        text=True,
+        check=False,
+        cwd=repo_copy,
+        env=os.environ.copy(),
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert docker_stub.read_calls() == [
+        [
+            "compose",
+            "--env-file",
+            str(repo_copy / "env" / "local" / "core.env"),
+            "-f",
+            "compose/base.yml",
+            "-f",
+            "compose/apps/app/base.yml",
+            "-f",
+            "compose/apps/app/core.yml",
+            "ps",
+        ]
+    ]
