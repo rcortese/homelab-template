@@ -110,16 +110,16 @@ build_deploy_context() {
   declare -a env_files_rel=()
   env_file_chain__resolve_explicit "$env_files_blob" "" env_files_rel
 
-  if (( ${#env_files_rel[@]} == 0 )); then
+  if ((${#env_files_rel[@]} == 0)); then
     env_file_chain__defaults "$repo_root" "$instance" env_files_rel
   fi
 
-  if (( ${#env_files_rel[@]} == 0 )); then
+  if ((${#env_files_rel[@]} == 0)); then
     env_files_rel=("$local_env_file")
   fi
 
   local primary_env_file=""
-  if (( ${#env_files_rel[@]} > 0 )); then
+  if ((${#env_files_rel[@]} > 0)); then
     primary_env_file="${env_files_rel[-1]}"
   fi
 

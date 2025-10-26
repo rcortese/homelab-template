@@ -68,12 +68,12 @@ validate_executor_prepare_plan() {
   local -a env_files_rel=()
   env_file_chain__resolve_explicit "$env_files_blob" "" env_files_rel
 
-  if (( ${#env_files_rel[@]} == 0 )); then
+  if ((${#env_files_rel[@]} == 0)); then
     env_file_chain__defaults "$repo_root" "$instance" env_files_rel
   fi
 
   local -a env_files_abs=()
-  if (( ${#env_files_rel[@]} > 0 )); then
+  if ((${#env_files_rel[@]} > 0)); then
     env_file_chain__to_absolute "$repo_root" env_files_rel env_files_abs
   fi
 
