@@ -1,22 +1,8 @@
 #!/usr/bin/env bash
 
-compose_discovery__resolve_repo_root() {
-  local repo_root_input="${1:-}"
-  local script_dir
-
-  script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-
-  if [[ -n "$repo_root_input" ]]; then
-    if ! (cd "$repo_root_input" 2>/dev/null); then
-      echo "[!] Diretório do repositório inválido: $repo_root_input" >&2
-      return 1
-    fi
-    (cd "$repo_root_input" && pwd)
-    return 0
-  fi
-
-  (cd "$script_dir/../.." && pwd)
-}
+# shellcheck source=./compose_paths.sh
+# shellcheck disable=SC1091
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/compose_paths.sh"
 
 compose_discovery__append_instance_file() {
   local instance="$1"
@@ -40,7 +26,7 @@ compose_discovery__append_instance_file() {
 
 load_compose_discovery() {
   local repo_root
-  if ! repo_root="$(compose_discovery__resolve_repo_root "$1")"; then
+  if ! repo_root="$(compose_common__resolve_repo_root "$1")"; then
     return 1
   fi
 

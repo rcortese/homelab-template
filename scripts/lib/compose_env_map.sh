@@ -1,22 +1,8 @@
 #!/usr/bin/env bash
 
-compose_env_map__resolve_repo_root() {
-  local repo_root_input="${1:-}"
-  local script_dir
-
-  script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-
-  if [[ -n "$repo_root_input" ]]; then
-    if ! (cd "$repo_root_input" 2>/dev/null); then
-      echo "[!] Diretório do repositório inválido: $repo_root_input" >&2
-      return 1
-    fi
-    (cd "$repo_root_input" && pwd)
-    return 0
-  fi
-
-  (cd "$script_dir/../.." && pwd)
-}
+# shellcheck source=./compose_paths.sh
+# shellcheck disable=SC1091
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/compose_paths.sh"
 
 load_compose_env_map() {
   if ! declare -p COMPOSE_INSTANCE_NAMES >/dev/null 2>&1; then
@@ -30,7 +16,7 @@ load_compose_env_map() {
   fi
 
   local repo_root
-  if ! repo_root="$(compose_env_map__resolve_repo_root "$1")"; then
+  if ! repo_root="$(compose_common__resolve_repo_root "$1")"; then
     return 1
   fi
 
