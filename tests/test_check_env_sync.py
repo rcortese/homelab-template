@@ -47,3 +47,15 @@ def test_check_env_sync_detects_obsolete_variables(repo_copy: Path) -> None:
     assert result.returncode == 1
     assert "Variáveis obsoletas" in result.stdout
     assert "UNUSED_ONLY_FOR_TEST" in result.stdout
+
+
+def test_check_env_sync_detects_missing_template(repo_copy: Path) -> None:
+    env_file = repo_copy / "env" / "core.example.env"
+    env_file.unlink()
+
+    result = run_check(repo_copy)
+
+    assert result.returncode == 1
+    assert "Instância 'core' não possui arquivo env/<instancia>.example.env documentado." in result.stdout
+    assert "Divergências encontradas entre manifests Compose e arquivos .env exemplo." in result.stdout
+    assert "Todas as variáveis de ambiente estão sincronizadas." not in result.stdout
