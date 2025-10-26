@@ -62,6 +62,34 @@ def test_invokes_ps_and_logs_with_custom_files(docker_stub: DockerStub) -> None:
     ]
 
 
+def test_loads_compose_extra_files_from_env_file(
+    docker_stub: DockerStub, tmp_path: Path
+) -> None:
+    env_file = tmp_path / "custom.env"
+    env_file.write_text(
+        "COMPOSE_EXTRA_FILES=compose/overlays/extra.yml\n"
+        "SERVICE_NAME=app-extra\n",
+        encoding="utf-8",
+    )
+
+    env = {
+        "COMPOSE_FILES": "compose/base.yml",
+        "COMPOSE_ENV_FILE": str(env_file),
+    }
+
+    result = run_check_health(env=env)
+
+    assert result.returncode == 0, result.stderr
+
+    expected_files = ["compose/base.yml", "compose/overlays/extra.yml"]
+    calls = docker_stub.read_calls()
+    assert calls == [
+        _expected_compose_call(str(env_file), expected_files, "config", "--services"),
+        _expected_compose_call(str(env_file), expected_files, "ps"),
+        _expected_compose_call(str(env_file), expected_files, "logs", "--tail=50", "app-extra"),
+    ]
+
+
 def test_respects_docker_compose_bin_override(docker_stub: DockerStub) -> None:
     env = {"DOCKER_COMPOSE_BIN": "docker --context remote compose"}
 
