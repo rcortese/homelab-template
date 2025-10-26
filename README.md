@@ -30,16 +30,9 @@ Certifique-se de ter as ferramentas abaixo instaladas e atualizadas antes de tra
 
 ## Conteúdo obrigatório
 
-Os diretórios abaixo devem existir em qualquer repositório filho criado a partir deste template:
+Todo repositório derivado deve manter o conjunto mínimo de diretórios descrito no template. Para a relação completa — fonte única de verdade — consulte a [tabela de diretórios obrigatórios em `docs/STRUCTURE.md`](docs/STRUCTURE.md#diretórios-obrigatórios). Ela detalha finalidades, exemplos de conteúdo e serve como referência central para atualizações estruturais.
 
-| Caminho | Finalidade |
-| --- | --- |
-| `compose/` | Manifests Docker Compose base e sobreposições por ambiente/alvo.
-| `docs/` | Guias operacionais, runbooks e decisões arquiteturais alinhados à stack.
-| `env/` | Modelos de variáveis de ambiente e orientações para gerar arquivos locais.
-| `scripts/` | Automação de deploy, validação de manifests e tarefas recorrentes.
-
-Pipelines de CI/CD, testes e scripts adicionais podem ser adicionados, mas estes diretórios devem ser mantidos para preservar a compatibilidade com os utilitários do template.
+Pipelines de CI/CD, testes e scripts adicionais podem ser adicionados, mas os diretórios listados na tabela devem ser mantidos para preservar a compatibilidade com os utilitários do template.
 
 ## Como iniciar um projeto derivado
 
