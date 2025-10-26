@@ -57,6 +57,7 @@ Pipelines de CI/CD, testes e scripts adicionais podem ser adicionados, mas estes
 ## Documentação
 
 - [Índice completo](docs/README.md)
+- [Visão geral da stack](docs/OVERVIEW.md)
 - [Estrutura do template](docs/STRUCTURE.md)
 - [Operação e scripts](docs/OPERATIONS.md)
 - [Combinações de manifests Compose](docs/COMPOSE_GUIDE.md)
