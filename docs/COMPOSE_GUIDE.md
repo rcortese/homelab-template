@@ -31,6 +31,7 @@ Ao combinar diversas aplicações, carregue os manifests em blocos (`base.yml`, 
 
 ```bash
 docker compose \
+  --env-file env/local/common.env \
   --env-file env/local/core.env \
   -f compose/base.yml \
   -f compose/apps/app/base.yml \
@@ -46,6 +47,7 @@ Para subir apenas a aplicação principal, omita o par `monitoring` (ou outro di
 
 ```bash
 docker compose \
+  --env-file env/local/common.env \
   --env-file env/local/media.env \
   -f compose/base.yml \
   -f compose/apps/app/base.yml \
@@ -60,6 +62,7 @@ instância:
 
 ```bash
 docker compose \
+  --env-file env/local/common.env \
   --env-file env/local/<instância>.env \
   -f compose/base.yml \
   -f compose/apps/app/base.yml \
@@ -71,19 +74,26 @@ docker compose \
 > `COMPOSE_EXTRA_FLAGS` pode incluir `-f` adicionais (ex.: overlays) ou outras
 > opções globais necessárias para a instância.
 
+> **Importante:** ao executar o Compose manualmente, replique a mesma cadeia de
+> arquivos `.env` usada pelos scripts (`env/local/common.env` seguido de
+> `env/local/<instância>.env`). Consulte o passo a passo em
+> [`env/README.md#como-gerar-arquivos-locais`](../env/README.md#como-gerar-arquivos-locais)
+> para garantir que variáveis globais obrigatórias não sejam omitidas.
+
 As diferenças entre as instâncias principais ficam concentradas nos arquivos
 carregados e nas variáveis apontadas pelo comando acima:
 
-| Cenário | `--env-file` | Overrides obrigatórios (`-f`) | Overlays adicionais | Observações |
-| ------- | ------------- | ----------------------------- | ------------------- | ----------- |
-| **core** | `env/local/core.env` | `compose/apps/app/core.yml` | — | Sem overlays obrigatórios. Utilize apenas quando a stack demandar arquivos extras. |
-| **media** | `env/local/media.env` | `compose/apps/app/media.yml` | Opcional: `compose/overlays/<overlay>.yml` (ex.: armazenamento de mídia) | Adicione overlays específicos da instância ao definir `COMPOSE_EXTRA_FLAGS` ou `COMPOSE_EXTRA_FILES`. |
+| Cenário | `--env-file` (ordem) | Overrides obrigatórios (`-f`) | Overlays adicionais | Observações |
+| ------- | -------------------- | ----------------------------- | ------------------- | ----------- |
+| **core** | `env/local/common.env` → `env/local/core.env` | `compose/apps/app/core.yml` | — | Sem overlays obrigatórios. Utilize apenas quando a stack demandar arquivos extras. |
+| **media** | `env/local/common.env` → `env/local/media.env` | `compose/apps/app/media.yml` | Opcional: `compose/overlays/<overlay>.yml` (ex.: armazenamento de mídia) | Adicione overlays específicos da instância ao definir `COMPOSE_EXTRA_FLAGS` ou `COMPOSE_EXTRA_FILES`. |
 
 ### Combinação ad-hoc com `COMPOSE_FILES`
 
 ```bash
 export COMPOSE_FILES="compose/base.yml compose/apps/app/base.yml compose/apps/app/media.yml"
 docker compose \
+  --env-file env/local/common.env \
   --env-file env/local/media.env \
   $(for file in $COMPOSE_FILES; do printf ' -f %s' "$file"; done) \
   up -d
@@ -132,5 +142,5 @@ Serviços:
 - Sempre carregue `compose/base.yml` em primeiro lugar.
 - Inclua todos os arquivos `compose/apps/<app>/base.yml` antes dos overrides por instância.
 - Combine o override `compose/apps/<app>/<instância>.yml` correspondente logo após o `base.yml` da aplicação.
-- Sincronize a combinação de arquivos com as variáveis de ambiente (`env/local/<instância>.env`).
+- Sincronize a combinação de arquivos com a cadeia de variáveis de ambiente (`env/local/common.env` → `env/local/<instância>.env`).
 - Revalide as combinações com [`scripts/validate_compose.sh`](./OPERATIONS.md#scriptsvalidate_compose.sh) ao alterar qualquer arquivo em `compose/`.
