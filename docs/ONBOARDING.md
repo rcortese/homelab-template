@@ -1,6 +1,6 @@
 # Guia de onboarding do template
 
-Este roteiro resume o fluxo inicial recomendado para quem está derivando o template. Ele consolida os pré-requisitos, o bootstrap dos arquivos `.env` e as validações obrigatórias antes dos primeiros commits.
+Este roteiro resume o fluxo inicial recomendado para quem está derivando o template. Ele consolida os pré-requisitos, o bootstrap dos arquivos `.env` e as validações obrigatórias antes dos primeiros commits. Este documento é o checklist oficial das validações iniciais do template.
 
 ## 1. Instale as dependências base
 

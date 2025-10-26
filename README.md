@@ -14,13 +14,7 @@ sempre atualizada de ferramentas necessárias (incluindo versões mínimas e alt
 
 ### Checklist rápido
 
-1. Siga o [guia de onboarding](docs/ONBOARDING.md) para preparar pré-requisitos, `.env` e dependências Python.
-2. Execute os scripts de validação consolidados:
-
-   ```bash
-   pip install -r requirements-dev.txt
-   scripts/check_all.sh
-   ```
+Execute o passo a passo do [guia de onboarding](docs/ONBOARDING.md) para preparar ambiente e validações.
 
 > Quando criar um guia de onboarding específico da stack, replique esta sequência para manter as instruções alinhadas entre os documentos.
 
