@@ -18,11 +18,38 @@ class DockerStub:
     def set_exit_code(self, code: int) -> None:
         self._exit_code_file.write_text(str(code))
 
-    def read_calls(self) -> list[list[str]]:
+    def _read_raw_records(self) -> list[object]:
         if not self._log_path.exists():
             return []
         lines = [line.strip() for line in self._log_path.read_text().splitlines() if line.strip()]
         return [json.loads(line) for line in lines]
+
+    def read_calls(self) -> list[list[str]]:
+        records = self._read_raw_records()
+        result: list[list[str]] = []
+        for record in records:
+            if isinstance(record, dict) and "args" in record:
+                value = record.get("args")
+                if isinstance(value, list):
+                    result.append([str(item) for item in value])
+                    continue
+            if isinstance(record, list):
+                result.append([str(item) for item in record])
+            else:
+                result.append([])
+        return result
+
+    def read_call_env(self) -> list[dict[str, str]]:
+        records = self._read_raw_records()
+        environments: list[dict[str, str]] = []
+        for record in records:
+            if isinstance(record, dict):
+                env_data = record.get("env")
+                if isinstance(env_data, dict):
+                    environments.append({str(key): str(value) for key, value in env_data.items() if value is not None})
+                    continue
+            environments.append({})
+        return environments
 
     @property
     def fail_once_state(self) -> Path:
@@ -51,8 +78,12 @@ import pathlib
 import sys
 
 log_path = pathlib.Path(os.environ[\"DOCKER_STUB_LOG\"])
+record = {
+    \"args\": sys.argv[1:],
+    \"env\": {\"APP_DATA_DIR\": os.environ.get(\"APP_DATA_DIR\")},
+}
 with log_path.open(\"a\", encoding=\"utf-8\") as handle:
-    json.dump(sys.argv[1:], handle)
+    json.dump(record, handle)
     handle.write(\"\\n\")
 
 args = sys.argv[1:]

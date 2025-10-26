@@ -20,16 +20,13 @@ def test_instance_uses_expected_env_and_compose_files(
     assert len(calls) == 1
     command = calls[0]
 
-    env_args = [
-        command[index + 1]
-        for index, arg in enumerate(command)
-        if arg == "--env-file"
-    ]
-    expected_envs = {
-        str((repo_copy / "env" / "local" / "common.env").resolve()),
-        str((repo_copy / "env" / "local" / "core.env").resolve()),
-    }
-    assert set(env_args) == expected_envs
+    env_records = docker_stub.read_call_env()
+    assert len(env_records) == 1
+    assert env_records[0].get("APP_DATA_DIR") == "data/app-core"
+
+    assert "--env-file" in command
+    env_arg_index = command.index("--env-file")
+    assert command[env_arg_index + 1].endswith("env/local/core.env")
 
     compose_files = [
         command[index + 1]

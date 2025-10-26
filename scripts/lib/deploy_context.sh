@@ -6,27 +6,9 @@ _DEPLOY_CONTEXT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck disable=SC1091
 source "${_DEPLOY_CONTEXT_DIR}/env_helpers.sh"
 
-# shellcheck source=./env_file_chain.sh
+# shellcheck source=./compose_plan.sh
 # shellcheck disable=SC1091
-source "${_DEPLOY_CONTEXT_DIR}/env_file_chain.sh"
-
-append_unique_file() {
-  local -n __target_array="$1"
-  local __file="$2"
-  local existing
-
-  if [[ -z "$__file" ]]; then
-    return
-  fi
-
-  for existing in "${__target_array[@]}"; do
-    if [[ "$existing" == "$__file" ]]; then
-      return
-    fi
-  done
-
-  __target_array+=("$__file")
-}
+source "${_DEPLOY_CONTEXT_DIR}/compose_plan.sh"
 
 load_deploy_metadata() {
   local repo_root="$1"
@@ -231,48 +213,10 @@ build_deploy_context() {
     IFS=$' \t\n' read -r -a extra_compose_files <<<"${COMPOSE_EXTRA_FILES//,/ }"
   fi
 
-  local -a instance_compose_files=()
-  local instance_compose_blob="${COMPOSE_INSTANCE_FILES[$instance]}"
-  mapfile -t instance_compose_files < <(printf '%s\n' "$instance_compose_blob")
   local -a compose_files_list=()
-
-  append_unique_file compose_files_list "$BASE_COMPOSE_FILE"
-  declare -A overrides_by_app=()
-  local compose_file app_for_file
-  for compose_file in "${instance_compose_files[@]}"; do
-    [[ -z "$compose_file" ]] && continue
-    app_for_file="${compose_file#compose/apps/}"
-    app_for_file="${app_for_file%%/*}"
-    if [[ -z "$app_for_file" ]]; then
-      continue
-    fi
-    if [[ -n "${overrides_by_app[$app_for_file]:-}" ]]; then
-      overrides_by_app[$app_for_file]+=$'\n'"$compose_file"
-    else
-      overrides_by_app[$app_for_file]="$compose_file"
-    fi
-  done
-
-  local app_name
-  for app_name in "${instance_app_names[@]}"; do
-    append_unique_file compose_files_list "compose/apps/${app_name}/base.yml"
-    if [[ -n "${overrides_by_app[$app_name]:-}" ]]; then
-      mapfile -t instance_compose_files < <(printf '%s\n' "${overrides_by_app[$app_name]}")
-      local override_file
-      for override_file in "${instance_compose_files[@]}"; do
-        append_unique_file compose_files_list "$override_file"
-      done
-    fi
-  done
-
-  # Append overrides that were not matched to a known app, preserving discovery order.
-  mapfile -t instance_compose_files < <(printf '%s\n' "$instance_compose_blob")
-  for compose_file in "${instance_compose_files[@]}"; do
-    append_unique_file compose_files_list "$compose_file"
-  done
-
-  if [[ ${#extra_compose_files[@]} -gt 0 ]]; then
-    compose_files_list+=("${extra_compose_files[@]}")
+  if ! build_compose_file_plan "$instance" compose_files_list extra_compose_files; then
+    echo "[!] Falha ao montar lista de arquivos Compose para '$instance'." >&2
+    return 1
   fi
 
   local compose_files_string="${compose_files_list[*]}"

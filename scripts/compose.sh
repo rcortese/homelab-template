@@ -32,9 +32,8 @@ USAGE
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-# shellcheck source=./lib/env_file_chain.sh
-# shellcheck disable=SC1091
-source "$SCRIPT_DIR/lib/env_file_chain.sh"
+# shellcheck source=./lib/compose_plan.sh
+source "$SCRIPT_DIR/lib/compose_plan.sh"
 
 INSTANCE_NAME=""
 COMPOSE_ARGS=()
@@ -75,25 +74,7 @@ done
 
 COMPOSE_FILES_LIST=()
 metadata_loaded=0
-compose_metadata=""
-
-append_unique_file() {
-  local -n __target_array="$1"
-  local __file="$2"
-  local existing
-
-  if [[ -z "$__file" ]]; then
-    return
-  fi
-
-  for existing in "${__target_array[@]}"; do
-    if [[ "$existing" == "$__file" ]]; then
-      return
-    fi
-  done
-
-  __target_array+=("$__file")
-}
+declare -a resolved_instance_app_names=()
 
 split_env_entries() {
   local raw="${1:-}"
@@ -145,37 +126,8 @@ elif [[ -n "$INSTANCE_NAME" && $metadata_loaded -eq 1 ]]; then
   apps_raw="${COMPOSE_INSTANCE_APP_NAMES[$INSTANCE_NAME]:-}"
   if [[ -n "$apps_raw" ]]; then
     mapfile -t instance_app_names < <(printf '%s\n' "$apps_raw")
+    resolved_instance_app_names=("${instance_app_names[@]}")
   fi
-
-  declare -A instance_overrides_by_app=()
-  for compose_file in "${instance_compose_files[@]}"; do
-    [[ -z "$compose_file" ]] && continue
-    app_for_file="${compose_file#compose/apps/}"
-    app_for_file="${app_for_file%%/*}"
-    if [[ -z "$app_for_file" ]]; then
-      continue
-    fi
-    if [[ -n "${instance_overrides_by_app[$app_for_file]:-}" ]]; then
-      instance_overrides_by_app[$app_for_file]+=$'\n'"$compose_file"
-    else
-      instance_overrides_by_app[$app_for_file]="$compose_file"
-    fi
-  done
-
-  for app_name in "${instance_app_names[@]}"; do
-    append_unique_file COMPOSE_FILES_LIST "compose/apps/${app_name}/base.yml"
-    if [[ -n "${instance_overrides_by_app[$app_name]:-}" ]]; then
-      mapfile -t instance_compose_files < <(printf '%s\n' "${instance_overrides_by_app[$app_name]}")
-      for override_file in "${instance_compose_files[@]}"; do
-        append_unique_file COMPOSE_FILES_LIST "$override_file"
-      done
-    fi
-  done
-
-  mapfile -t instance_compose_files < <(printf '%s\n' "${COMPOSE_INSTANCE_FILES[$INSTANCE_NAME]}")
-  for compose_file in "${instance_compose_files[@]}"; do
-    append_unique_file COMPOSE_FILES_LIST "$compose_file"
-  done
 fi
 
 COMPOSE_ENV_FILES_LIST=()
@@ -208,6 +160,31 @@ if (( ${#COMPOSE_ENV_FILES_LIST[@]} > 0 )); then
   env_file_chain__to_absolute "$REPO_ROOT" COMPOSE_ENV_FILES_LIST COMPOSE_ENV_FILES_RESOLVED
 fi
 
+compose_env_file_abs=""
+if [[ -n "${COMPOSE_ENV_FILE:-}" ]]; then
+  compose_env_file_abs="$COMPOSE_ENV_FILE"
+  if [[ "$compose_env_file_abs" != /* ]]; then
+    compose_env_file_abs="$REPO_ROOT/$compose_env_file_abs"
+  fi
+fi
+
+app_data_dir_value="${APP_DATA_DIR:-}"
+
+if [[ -z "$app_data_dir_value" && -n "$compose_env_file_abs" && -f "$compose_env_file_abs" ]]; then
+  if app_data_dir_kv="$("$SCRIPT_DIR/lib/env_loader.sh" "$compose_env_file_abs" APP_DATA_DIR)"; then
+    if [[ -n "$app_data_dir_kv" ]]; then
+      app_data_dir_value="${app_data_dir_kv#APP_DATA_DIR=}"
+    fi
+  fi
+fi
+
+if [[ -z "$app_data_dir_value" && $metadata_loaded -eq 1 && -n "$INSTANCE_NAME" && ${#resolved_instance_app_names[@]} -gt 0 ]]; then
+  primary_app_name="${resolved_instance_app_names[0]}"
+  if [[ -n "$primary_app_name" ]]; then
+    app_data_dir_value="data/${primary_app_name}-${INSTANCE_NAME}"
+  fi
+fi
+
 if ! cd "$REPO_ROOT"; then
   echo "Error: não foi possível acessar o diretório do repositório: $REPO_ROOT" >&2
   exit 1
@@ -226,10 +203,8 @@ if ! command -v "${COMPOSE_CMD[0]}" >/dev/null 2>&1; then
   exit 127
 fi
 
-if (( ${#COMPOSE_ENV_FILES_RESOLVED[@]} > 0 )); then
-  for env_file in "${COMPOSE_ENV_FILES_RESOLVED[@]}"; do
-    COMPOSE_CMD+=(--env-file "$env_file")
-  done
+if [[ -n "$compose_env_file_abs" ]]; then
+  COMPOSE_CMD+=(--env-file "$compose_env_file_abs")
 fi
 
 if [[ ${#COMPOSE_FILES_LIST[@]} -gt 0 ]]; then
@@ -246,4 +221,8 @@ if [[ ${#COMPOSE_ARGS[@]} -gt 0 ]]; then
   COMPOSE_CMD+=("${COMPOSE_ARGS[@]}")
 fi
 
-exec "${COMPOSE_CMD[@]}"
+if [[ -n "$app_data_dir_value" ]]; then
+  APP_DATA_DIR="$app_data_dir_value" exec -- "${COMPOSE_CMD[@]}"
+else
+  exec "${COMPOSE_CMD[@]}"
+fi
