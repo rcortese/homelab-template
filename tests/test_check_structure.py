@@ -47,7 +47,7 @@ def test_missing_required_item_returns_error(tmp_path):
         "docs/STRUCTURE.md",
         "scripts/check_structure.sh",
         "scripts/validate_compose.sh",
-        ".github/workflows/validate-compose.yml",
+        ".github/workflows/template-quality.yml",
     ]
 
     for relative in required_paths:

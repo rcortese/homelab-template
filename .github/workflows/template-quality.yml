@@ -1,10 +1,11 @@
-name: Validate Docker Compose
+name: Template Quality Checks
 
 # -----------------------------------------------------------------------------
-# Este workflow concentra as validações compartilhadas pelo template. Para
-# adicionar verificações específicas em projetos derivados, utilize o workflow
-# reutilizável `project-tests.yml`. Evite modificar este arquivo no fork para
-# reduzir conflitos ao sincronizar com o template principal.
+# Este workflow concentra as validações compartilhadas pelo template, incluindo
+# lint de shell, validações de infraestrutura e suíte de testes. Para adicionar
+# verificações específicas em projetos derivados, utilize o workflow reutilizável
+# `project-tests.yml`. Evite modificar este arquivo no fork para reduzir
+# conflitos ao sincronizar com o template principal.
 # -----------------------------------------------------------------------------
 
 on:
