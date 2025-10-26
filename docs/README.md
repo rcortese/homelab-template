@@ -21,6 +21,10 @@ utilize [`docs/local/`](./local/README.md) e apenas referencie esses materiais q
 - [Combinações de manifests Compose](./COMPOSE_GUIDE.md) — Organize sobreposições e perfis para cenários distintos.
 - [Backup & restauração genéricos](./BACKUP_RESTORE.md) — Estratégias de export/import aplicáveis a qualquer stack.
 
+## Automação CI/CD
+
+- [Sobrescritas de workflows](./ci-overrides.md) — Centraliza as diretrizes para adaptar ou estender pipelines sem alterar o workflow base do template.
+
 ## Runbooks
 
 - [Modelo de runbook primário](./core.md) — Estruture o runbook do ambiente principal do seu serviço.
