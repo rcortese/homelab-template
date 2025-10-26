@@ -4,14 +4,16 @@ Este roteiro resume o fluxo inicial recomendado para quem está derivando o temp
 
 ## 1. Instale as dependências base
 
-Garanta que a máquina de desenvolvimento tenha as ferramentas abaixo instaladas (mesmo quando for utilizar ambientes remotos como codespaces ou VMs temporárias):
+Esta é a referência canônica de dependências exigidas pelo template. Garanta que a máquina de desenvolvimento tenha as
+ferramentas abaixo instaladas (mesmo quando for utilizar ambientes remotos como codespaces ou VMs temporárias):
 
-- Docker Engine
-- Docker Compose v2
-- Python 3.x
-- Ferramentas de lint/format para shell (`shellcheck`, `shfmt` ou equivalentes)
+- Docker Engine **>= 24.x** (ou versão estável equivalente que ofereça suporte ao Compose v2 integrado)
+- Docker Compose **v2.20+** (para compatibilidade com perfis e validações atuais)
+- Python **>= 3.11** (necessário para executar scripts de automação e suítes de testes)
+- Ferramentas de lint/format para shell: `shellcheck` **>= 0.9.0** e `shfmt` **>= 3.6.0** (ou alternativas compatíveis configuradas
+  nos pipelines locais)
 
-> Consulte a seção [Pré-requisitos](../README.md#pré-requisitos) para detalhes adicionais e alternativas compatíveis.
+> Sempre que o template exigir novas ferramentas ou versões mínimas, esta lista será atualizada primeiro.
 
 ## 2. Prepare os arquivos `.env`
 
