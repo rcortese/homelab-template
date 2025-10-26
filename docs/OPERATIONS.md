@@ -88,7 +88,10 @@ Este documento apresenta um ponto de partida para descrever processos operaciona
 - **Parâmetros úteis:**
   - `--data-dir` — diretório raiz onde os arquivos `.db` serão buscados.
   - `--no-resume` — evita retomar automaticamente os serviços ao final da verificação (útil em investigações manuais).
-  - `SQLITE3_BIN` — variável de ambiente para apontar um binário alternativo do `sqlite3`.
+  - `SQLITE3_MODE` — define o backend (`container`, `binary` ou `auto`; padrão `container`).
+  - `SQLITE3_CONTAINER_RUNTIME` — runtime utilizado para executar o contêiner (padrão `docker`).
+  - `SQLITE3_CONTAINER_IMAGE` — imagem utilizada para o comando `sqlite3` (padrão `keinos/sqlite3:latest`).
+  - `SQLITE3_BIN` — caminho para um binário local usado em modo `binary` ou como fallback.
 - **Fluxo padrão:**
   ```bash
   scripts/check_db_integrity.sh core
