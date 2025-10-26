@@ -24,6 +24,10 @@ INSTANCE="$1"
 # shellcheck disable=SC1091
 source "$SCRIPT_DIR/lib/deploy_context.sh"
 
+# shellcheck source=./lib/app_detection.sh
+# shellcheck disable=SC1091
+source "$SCRIPT_DIR/lib/app_detection.sh"
+
 deploy_context_eval=""
 if ! deploy_context_eval="$(build_deploy_context "$REPO_ROOT" "$INSTANCE")"; then
   exit 1
@@ -38,55 +42,43 @@ compose_cmd=("$REPO_ROOT/scripts/compose.sh" "$INSTANCE")
 stack_was_stopped=0
 declare -a ACTIVE_APP_SERVICES=()
 declare -a KNOWN_APP_NAMES=()
-declare -A KNOWN_APP_SET=()
-declare -A ACTIVE_APP_SEEN=()
 
-register_detected_app() {
-  local candidate="$1"
+if [[ -n "${DEPLOY_CONTEXT[APP_NAMES]:-}" ]]; then
+  mapfile -t KNOWN_APP_NAMES < <(printf '%s\n' "${DEPLOY_CONTEXT[APP_NAMES]}")
+fi
 
-  if [[ -z "$candidate" ]]; then
-    return
-  fi
+if ! app_detection__list_active_services ACTIVE_APP_SERVICES "${compose_cmd[@]}"; then
+  echo "[!] Não foi possível listar serviços ativos antes do backup." >&2
+  ACTIVE_APP_SERVICES=()
+fi
 
-  if ((${#KNOWN_APP_SET[@]} > 0)) && [[ -z "${KNOWN_APP_SET[$candidate]:-}" ]]; then
-    return
-  fi
+if ((${#KNOWN_APP_NAMES[@]} > 0)) && ((${#ACTIVE_APP_SERVICES[@]} > 0)); then
+  declare -a ORDERED_ACTIVE_APPS=()
+  declare -A ORDERED_ACTIVE_SEEN=()
 
-  if [[ -n "${ACTIVE_APP_SEEN[$candidate]:-}" ]]; then
-    return
-  fi
+  for known_app in "${KNOWN_APP_NAMES[@]}"; do
+    for detected_app in "${ACTIVE_APP_SERVICES[@]}"; do
+      if [[ "$detected_app" == "$known_app" && -z "${ORDERED_ACTIVE_SEEN[$detected_app]:-}" ]]; then
+        ORDERED_ACTIVE_APPS+=("$detected_app")
+        ORDERED_ACTIVE_SEEN["$detected_app"]=1
+        break
+      fi
+    done
+  done
 
-  ACTIVE_APP_SEEN[$candidate]=1
-  ACTIVE_APP_SERVICES+=("$candidate")
-}
-
-collect_apps_from_dir() {
-  local parent_dir="$1"
-  local instance_suffix=""
-
-  if [[ -n "$INSTANCE" ]]; then
-    instance_suffix="-${INSTANCE}"
-  fi
-
-  if [[ ! -d "$parent_dir" ]]; then
-    return
-  fi
-
-  while IFS= read -r -d '' entry; do
-    local name="${entry##*/}"
-    local normalized="$name"
-
-    if [[ -z "$normalized" ]]; then
-      continue
+  for detected_app in "${ACTIVE_APP_SERVICES[@]}"; do
+    if [[ -z "${ORDERED_ACTIVE_SEEN[$detected_app]:-}" ]]; then
+      ORDERED_ACTIVE_APPS+=("$detected_app")
+      ORDERED_ACTIVE_SEEN["$detected_app"]=1
     fi
+  done
 
-    if [[ -n "$instance_suffix" && "$normalized" == *"$instance_suffix" ]]; then
-      normalized="${normalized%"$instance_suffix"}"
-    fi
+  ACTIVE_APP_SERVICES=("${ORDERED_ACTIVE_APPS[@]}")
+fi
 
-    register_detected_app "$normalized"
-  done < <(find "$parent_dir" -mindepth 1 -maxdepth 1 -type d -print0)
-}
+if ((${#ACTIVE_APP_SERVICES[@]} == 0)) && ((${#KNOWN_APP_NAMES[@]} > 0)); then
+  ACTIVE_APP_SERVICES=("${KNOWN_APP_NAMES[@]}")
+fi
 
 restart_stack() {
   if [[ $stack_was_stopped -eq 1 ]]; then
@@ -129,42 +121,6 @@ fi
 if [[ ! -d "$data_src" ]]; then
   echo "[!] Diretório de dados '$data_src' inexistente." >&2
   exit 1
-fi
-
-if [[ -n "${DEPLOY_CONTEXT[APP_NAMES]:-}" ]]; then
-  mapfile -t KNOWN_APP_NAMES < <(printf '%s\n' "${DEPLOY_CONTEXT[APP_NAMES]}")
-  for known_app in "${KNOWN_APP_NAMES[@]}"; do
-    [[ -z "$known_app" ]] && continue
-    KNOWN_APP_SET["$known_app"]=1
-  done
-fi
-
-collect_apps_from_dir "$data_src/apps"
-collect_apps_from_dir "$data_src/data"
-
-if ((${#KNOWN_APP_NAMES[@]} > 0)) && ((${#ACTIVE_APP_SERVICES[@]} > 0)); then
-  declare -a ORDERED_ACTIVE_APPS=()
-  declare -A ORDERED_ACTIVE_SEEN=()
-
-  for known_app in "${KNOWN_APP_NAMES[@]}"; do
-    if [[ -n "${ACTIVE_APP_SEEN[$known_app]:-}" ]]; then
-      ORDERED_ACTIVE_APPS+=("$known_app")
-      ORDERED_ACTIVE_SEEN["$known_app"]=1
-    fi
-  done
-
-  for detected_app in "${ACTIVE_APP_SERVICES[@]}"; do
-    if [[ -z "${ORDERED_ACTIVE_SEEN[$detected_app]:-}" ]]; then
-      ORDERED_ACTIVE_APPS+=("$detected_app")
-      ORDERED_ACTIVE_SEEN["$detected_app"]=1
-    fi
-  done
-
-  ACTIVE_APP_SERVICES=("${ORDERED_ACTIVE_APPS[@]}")
-fi
-
-if ((${#ACTIVE_APP_SERVICES[@]} == 0)) && ((${#KNOWN_APP_NAMES[@]} > 0)); then
-  ACTIVE_APP_SERVICES=("${KNOWN_APP_NAMES[@]}")
 fi
 
 if ((${#ACTIVE_APP_SERVICES[@]} > 0)); then

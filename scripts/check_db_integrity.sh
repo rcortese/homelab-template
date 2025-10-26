@@ -7,6 +7,10 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 ORIGINAL_PWD="${PWD:-}"
 CHANGED_TO_REPO_ROOT=false
 
+# shellcheck source=./lib/app_detection.sh
+# shellcheck disable=SC1091
+source "$SCRIPT_DIR/lib/app_detection.sh"
+
 if [[ "$ORIGINAL_PWD" != "$REPO_ROOT" ]]; then
   cd "$REPO_ROOT"
   CHANGED_TO_REPO_ROOT=true
@@ -205,7 +209,10 @@ if ! command -v "${COMPOSE_CMD[0]}" >/dev/null 2>&1; then
   exit 127
 fi
 
-mapfile -t PAUSED_SERVICES < <("${COMPOSE_CMD[@]}" ps --status running --services 2>/dev/null || true)
+if ! app_detection__list_active_services PAUSED_SERVICES "${COMPOSE_CMD[@]}"; then
+  echo "[!] Não foi possível listar serviços ativos da instância '$INSTANCE_NAME'." >&2
+  PAUSED_SERVICES=()
+fi
 
 if ((${#PAUSED_SERVICES[@]} > 0)); then
   echo "[*] Pausando serviços ativos: ${PAUSED_SERVICES[*]}"
