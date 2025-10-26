@@ -156,12 +156,16 @@ for instance in "${instances_to_validate[@]}"; do
   mapfile -t instance_file_list < <(printf '%s\n' "$instance_files_raw")
   env_file_rel="${COMPOSE_INSTANCE_ENV_FILES[$instance]:-}"
   env_file=""
+  instance_app_name="${COMPOSE_INSTANCE_APP_NAMES[$instance]:-}"
 
   if [[ -n "$env_file_rel" ]]; then
     env_file="$REPO_ROOT/$env_file_rel"
   fi
 
   files=("$base_file")
+  if [[ -n "$instance_app_name" ]]; then
+    files+=("$(resolve_compose_file "compose/apps/${instance_app_name}/base.yml")")
+  fi
   args=()
   missing=0
 
