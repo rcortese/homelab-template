@@ -183,29 +183,63 @@ setup_compose_defaults() {
 
   split_compose_entries "${COMPOSE_FILES:-}" compose_files_entries
 
+  if [[ ${#compose_files_entries[@]} -gt 0 ]]; then
+    declare -A __base_seen=()
+    local -a __deduped_base_entries=()
+    local __file
+    for __file in "${compose_files_entries[@]}"; do
+      if [[ -n "${__base_seen[$__file]:-}" ]]; then
+        continue
+      fi
+      __base_seen["$__file"]=1
+      __deduped_base_entries+=("$__file")
+    done
+
+    compose_files_entries=("${__deduped_base_entries[@]}")
+    unset __deduped_base_entries
+    unset __base_seen
+  fi
+
   if [[ -n "$resolved_extra_files" ]]; then
     split_compose_entries "$resolved_extra_files" extra_files_entries
   fi
 
-  if [[ ${#extra_files_entries[@]} -gt 0 && ${#compose_files_entries[@]} -gt 0 ]]; then
-    declare -A __extra_counts=()
-    local __file
-    for __file in "${extra_files_entries[@]}"; do
-      __extra_counts["$__file"]=$((${__extra_counts["$__file"]:-0} + 1))
-    done
-
-    local -a __base_entries=()
-    for __file in "${compose_files_entries[@]}"; do
-      if [[ -n "${__extra_counts[$__file]:-}" && ${__extra_counts[$__file]} -gt 0 ]]; then
-        __extra_counts[$__file]=$((__extra_counts[$__file] - 1))
+  if [[ ${#extra_files_entries[@]} -gt 0 ]]; then
+    declare -A __extra_seen=()
+    local -a __unique_extra_entries=()
+    local __extra_file
+    for __extra_file in "${extra_files_entries[@]}"; do
+      if [[ -n "${__extra_seen[$__extra_file]:-}" ]]; then
         continue
       fi
-      __base_entries+=("$__file")
+      __extra_seen["$__extra_file"]=1
+      __unique_extra_entries+=("$__extra_file")
     done
 
-    compose_files_entries=("${__base_entries[@]}")
-    unset __base_entries
-    unset __extra_counts
+    extra_files_entries=("${__unique_extra_entries[@]}")
+    unset __unique_extra_entries
+    unset __extra_seen
+  fi
+
+  if [[ ${#extra_files_entries[@]} -gt 0 && ${#compose_files_entries[@]} -gt 0 ]]; then
+    declare -A __base_seen_with_extras=()
+    local __base_file
+    for __base_file in "${compose_files_entries[@]}"; do
+      __base_seen_with_extras["$__base_file"]=1
+    done
+
+    local -a __filtered_extra_entries=()
+    local __extra_entry
+    for __extra_entry in "${extra_files_entries[@]}"; do
+      if [[ -n "${__base_seen_with_extras[$__extra_entry]:-}" ]]; then
+        continue
+      fi
+      __filtered_extra_entries+=("$__extra_entry")
+    done
+
+    extra_files_entries=("${__filtered_extra_entries[@]}")
+    unset __filtered_extra_entries
+    unset __base_seen_with_extras
   fi
 
   if [[ ${#extra_files_entries[@]} -gt 0 ]]; then
