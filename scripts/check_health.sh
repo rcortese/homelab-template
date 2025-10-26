@@ -68,7 +68,14 @@ if [[ -z "${HEALTH_SERVICES:-}" && -n "${COMPOSE_ENV_FILE:-}" ]]; then
     env_file="$REPO_ROOT/$env_file"
   fi
   if [[ -f "$env_file" ]]; then
-    load_env_pairs "$env_file" HEALTH_SERVICES SERVICE_NAME
+    load_env_pairs "$env_file" COMPOSE_EXTRA_FILES HEALTH_SERVICES SERVICE_NAME
+
+    if ! compose_defaults_dump="$("$SCRIPT_DIR/lib/compose_defaults.sh" "$INSTANCE_NAME" "$REPO_ROOT")"; then
+      echo "[!] Não foi possível preparar variáveis padrão do docker compose." >&2
+      exit 1
+    fi
+
+    eval "$compose_defaults_dump"
   fi
 fi
 
