@@ -8,6 +8,7 @@ Este documento apresenta um ponto de partida para descrever processos operaciona
 
 - Garanta que os arquivos `.env` locais foram gerados a partir dos modelos descritos em [`env/README.md`](../env/README.md).
 - Revise as combinações de manifests (`compose/base.yml` + overrides) que serão utilizadas pelos scripts.
+- Execute `scripts/check_env_sync.py` sempre que editar manifests ou templates `.env` para garantir que as variáveis continuam sincronizadas.
 - Documente dependências extras (CLI, credenciais, acesso a registries) em seções adicionais.
 
 ## scripts/check_structure.sh
@@ -18,6 +19,18 @@ Este documento apresenta um ponto de partida para descrever processos operaciona
   scripts/check_structure.sh
   ```
 - **Quando executar:** antes de abrir PRs que reorganizam arquivos ou em pipelines de CI.
+- **Checklist sugerido:** inclua `scripts/check_env_sync.py` entre as validações locais/CI para confirmar que as variáveis documentadas batem com os manifests Compose.
+
+## scripts/check_env_sync.py
+
+- **Objetivo:** comparar os manifests (`compose/base.yml` + overrides detectados) com os arquivos `env/*.example.env` correspondentes e sinalizar divergências.
+- **Uso típico:**
+  ```bash
+  scripts/check_env_sync.py
+  scripts/check_env_sync.py --repo-root /caminho/alternativo
+  ```
+- **Saída:** lista variáveis ausentes, obsoletas ou instâncias sem template, retornando código de saída diferente de zero quando encontrar problemas — ideal para CI.
+- **Boas práticas:** execute o script após mudanças em Compose ou nos arquivos `.env` de exemplo e inclua-o no pipeline de validação local antes de abrir PRs.
 
 <a id="scriptsvalidate_compose.sh"></a>
 ## scripts/validate_compose.sh
