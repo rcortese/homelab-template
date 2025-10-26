@@ -213,13 +213,9 @@ if ! command -v "${COMPOSE_CMD[0]}" >/dev/null 2>&1; then
 fi
 
 if (( ${#COMPOSE_ENV_FILES_RESOLVED[@]} > 0 )); then
-  COMPOSE_CMD+=(--env-file "${COMPOSE_ENV_FILES_RESOLVED[-1]}")
-
-  if (( ${#COMPOSE_ENV_FILES_RESOLVED[@]} > 1 )); then
-    for ((idx = 0; idx < ${#COMPOSE_ENV_FILES_RESOLVED[@]} - 1; idx++)); do
-      COMPOSE_CMD+=(--env-file "${COMPOSE_ENV_FILES_RESOLVED[idx]}")
-    done
-  fi
+  for env_file in "${COMPOSE_ENV_FILES_RESOLVED[@]}"; do
+    COMPOSE_CMD+=(--env-file "$env_file")
+  done
 fi
 
 if [[ ${#COMPOSE_FILES_LIST[@]} -gt 0 ]]; then
