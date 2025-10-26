@@ -76,9 +76,19 @@ setup_compose_defaults() {
 
         append_unique_file files_list "$BASE_COMPOSE_FILE"
 
-        local instance_app_name="${COMPOSE_INSTANCE_APP_NAMES[$instance]:-}"
-        if [[ -n "$instance_app_name" ]]; then
-          append_unique_file files_list "compose/apps/${instance_app_name}/base.yml"
+        local instance_apps_blob="${COMPOSE_INSTANCE_APPS[$instance]:-}"
+        if [[ -z "$instance_apps_blob" && -n "${COMPOSE_INSTANCE_APP_NAMES[$instance]:-}" ]]; then
+          instance_apps_blob="${COMPOSE_INSTANCE_APP_NAMES[$instance]}"
+        fi
+
+        if [[ -n "$instance_apps_blob" ]]; then
+          local -a instance_app_names=()
+          mapfile -t instance_app_names < <(printf '%s\n' "$instance_apps_blob")
+          local instance_app_name
+          for instance_app_name in "${instance_app_names[@]}"; do
+            [[ -z "$instance_app_name" ]] && continue
+            append_unique_file files_list "compose/apps/${instance_app_name}/base.yml"
+          done
         fi
 
         local item

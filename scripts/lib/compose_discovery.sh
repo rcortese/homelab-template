@@ -38,6 +38,30 @@ compose_discovery__append_instance_file() {
   COMPOSE_INSTANCE_FILES[$instance]+=$'\n'"$file"
 }
 
+compose_discovery__append_instance_app() {
+  local instance="$1"
+  local app_name="$2"
+  local existing="${COMPOSE_INSTANCE_APPS[$instance]-}"
+  local entry
+
+  if [[ -z "$app_name" ]]; then
+    return
+  fi
+
+  if [[ -z "$existing" ]]; then
+    COMPOSE_INSTANCE_APPS[$instance]="$app_name"
+    return
+  fi
+
+  while IFS=$'\n' read -r entry; do
+    if [[ "$entry" == "$app_name" ]]; then
+      return
+    fi
+  done <<<"$existing"
+
+  COMPOSE_INSTANCE_APPS[$instance]+=$'\n'"$app_name"
+}
+
 load_compose_discovery() {
   local repo_root
   if ! repo_root="$(compose_discovery__resolve_repo_root "$1")"; then
@@ -62,6 +86,7 @@ load_compose_discovery() {
 
   declare -gA COMPOSE_INSTANCE_FILES=()
   declare -gA COMPOSE_INSTANCE_APP_NAMES=()
+  declare -gA COMPOSE_INSTANCE_APPS=()
   declare -ga COMPOSE_INSTANCE_NAMES=()
 
   shopt -s nullglob
@@ -116,12 +141,10 @@ load_compose_discovery() {
         return 1
       fi
 
-      if [[ -n "${COMPOSE_INSTANCE_APP_NAMES[$instance]:-}" && "${COMPOSE_INSTANCE_APP_NAMES[$instance]}" != "$app_name" ]]; then
-        echo "[!] Instância '$instance' encontrada em múltiplas aplicações ('$app_name' e '${COMPOSE_INSTANCE_APP_NAMES[$instance]}')." >&2
-        return 1
+      if [[ -z "${COMPOSE_INSTANCE_APP_NAMES[$instance]:-}" ]]; then
+        COMPOSE_INSTANCE_APP_NAMES[$instance]="$app_name"
       fi
-
-      COMPOSE_INSTANCE_APP_NAMES[$instance]="$app_name"
+      compose_discovery__append_instance_app "$instance" "$app_name"
       seen_instances[$instance]=1
       compose_discovery__append_instance_file "$instance" "$instance_rel"
     done
