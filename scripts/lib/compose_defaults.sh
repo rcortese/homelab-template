@@ -14,28 +14,6 @@ source "$SCRIPT_DIR/lib/compose_plan.sh"
 # shellcheck source=./lib/env_file_chain.sh
 source "$SCRIPT_DIR/lib/env_file_chain.sh"
 
-split_compose_entries() {
-  local raw="${1:-}"
-  local -n __out="$2"
-
-  __out=()
-
-  if [[ -z "$raw" ]]; then
-    return
-  fi
-
-  local sanitized="${raw//$'\n'/ }"
-  sanitized="${sanitized//,/ }"
-
-  local token
-  for token in $sanitized; do
-    if [[ -z "$token" ]]; then
-      continue
-    fi
-    __out+=("$token")
-  done
-}
-
 setup_compose_defaults() {
   local instance="${1:-}"
   local base_dir="${2:-.}"
@@ -139,7 +117,7 @@ setup_compose_defaults() {
   local -a extra_files_entries=()
   local resolved_extra_files="${COMPOSE_EXTRA_FILES:-}"
 
-  split_compose_entries "${COMPOSE_FILES:-}" compose_files_entries
+  env_file_chain__parse_list "${COMPOSE_FILES:-}" compose_files_entries
 
   if [[ ${#compose_files_entries[@]} -gt 0 ]]; then
     declare -A __base_seen=()
@@ -159,7 +137,7 @@ setup_compose_defaults() {
   fi
 
   if [[ -n "$resolved_extra_files" ]]; then
-    split_compose_entries "$resolved_extra_files" extra_files_entries
+    env_file_chain__parse_list "$resolved_extra_files" extra_files_entries
   fi
 
   if [[ ${#extra_files_entries[@]} -gt 0 ]]; then
@@ -208,7 +186,7 @@ setup_compose_defaults() {
   fi
 
   local -a final_compose_entries=()
-  split_compose_entries "${COMPOSE_FILES:-}" final_compose_entries
+  env_file_chain__parse_list "${COMPOSE_FILES:-}" final_compose_entries
 
   for file in "${final_compose_entries[@]}"; do
     local resolved="$file"
