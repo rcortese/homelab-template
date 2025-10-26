@@ -158,16 +158,22 @@ def load_env_variables(path: Path) -> EnvTemplateData:
         stripped = line.strip()
         if not stripped:
             continue
-        if stripped.startswith("export "):
-            stripped = stripped[len("export ") :]
+
         is_comment = stripped.startswith("#")
         candidate = stripped[1:] if is_comment else stripped
+        candidate = candidate.strip()
+
+        if candidate.startswith("export "):
+            candidate = candidate[len("export ") :].lstrip()
+
         if "=" not in candidate:
             continue
+
         name, _ = candidate.split("=", 1)
         name = name.strip()
         if not re.match(r"^[A-Za-z_][A-Za-z0-9_]*$", name):
             continue
+
         if is_comment:
             documented.add(name)
         else:
