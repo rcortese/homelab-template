@@ -114,6 +114,14 @@ def test_unknown_instance_returns_error(docker_stub: DockerStub) -> None:
     assert docker_stub.read_calls() == []
 
 
+def test_only_separators_in_compose_instances_returns_error(docker_stub: DockerStub) -> None:
+    result = run_validate_compose({"COMPOSE_INSTANCES": " , ,  "})
+
+    assert result.returncode == 1
+    assert "Error: nenhuma instância informada para validação." in result.stderr
+    assert docker_stub.read_calls() == []
+
+
 def test_reports_failure_when_compose_command_fails_with_docker_stub(
     docker_stub: DockerStub,
 ) -> None:
