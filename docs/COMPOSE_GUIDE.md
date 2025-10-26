@@ -87,6 +87,44 @@ docker compose \
   up -d
 ```
 
+### Gerando um resumo da instância
+
+Use `scripts/describe_instance.sh` para inspecionar rapidamente os manifests aplicados,
+serviços resultantes, portas publicadas e volumes montados. O script reutiliza o mesmo
+planejamento de `-f` dos fluxos de deploy e validação e marca overlays adicionais carregados
+via `COMPOSE_EXTRA_FILES`.
+
+```bash
+scripts/describe_instance.sh core
+
+scripts/describe_instance.sh media --format json
+```
+
+O formato `table` (padrão) facilita revisões manuais, enquanto `--format json` é ideal
+para gerar documentação automatizada ou alimentar dashboards.
+
+Exemplo (formato `table`):
+
+```
+Instância: core
+
+Arquivos Compose (-f):
+  • compose/base.yml
+  • compose/apps/app/base.yml
+  • compose/apps/app/core.yml
+  • compose/overlays/metrics.yml (overlay extra)
+
+Overlays extras aplicados:
+  • compose/overlays/metrics.yml
+
+Serviços:
+  - app
+      Portas publicadas:
+        • 8080 -> 80/tcp
+      Volumes montados:
+        • /srv/app/data -> /data/app (type=bind)
+```
+
 ## Boas práticas
 
 - Sempre carregue `compose/base.yml` em primeiro lugar.

@@ -56,11 +56,10 @@ setup_compose_defaults() {
 
   local metadata_loaded=0
   local compose_metadata=""
-  if [[ -n "$instance" ]]; then
+  if [[ -z "${COMPOSE_FILES:-}" && -n "$instance" ]]; then
     if compose_metadata="$("$SCRIPT_DIR/lib/compose_instances.sh" "$base_fs")"; then
       eval "$compose_metadata"
       metadata_loaded=1
-    fi
 
     if [[ -z "${COMPOSE_FILES:-}" ]] && ((metadata_loaded == 1)) && [[ -n "${COMPOSE_INSTANCE_FILES[$instance]:-}" ]]; then
       local -a files_list=()
