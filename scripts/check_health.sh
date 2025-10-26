@@ -158,7 +158,7 @@ normalize_compose_context() {
     local sanitized="${COMPOSE_FILES//$'\n'/ }"
     local -a files_list=()
     if [[ -n "$sanitized" ]]; then
-      files_list=($sanitized)
+      read -r -a files_list <<<"$sanitized"
     fi
 
     if [[ ${#files_list[@]} -gt 0 ]]; then
@@ -290,23 +290,7 @@ if [[ -z "${HEALTH_SERVICES:-}" ]]; then
   fi
 fi
 
-parse_services() {
-  local raw="$1"
-  local tokens=()
-  local item
-  if [[ -z "$raw" ]]; then
-    return
-  fi
-  raw="${raw//,/ }"
-  for item in $raw; do
-    if [[ -n "$item" ]]; then
-      tokens+=("$item")
-    fi
-  done
-  printf '%s\n' "${tokens[@]}"
-}
-
-mapfile -t LOG_TARGETS < <(parse_services "${HEALTH_SERVICES:-${SERVICE_NAME:-}}") || true
+mapfile -t LOG_TARGETS < <(env_file_chain__parse_list "${HEALTH_SERVICES:-${SERVICE_NAME:-}}") || true
 primary_targets=("${LOG_TARGETS[@]}")
 
 append_real_service_targets() {
