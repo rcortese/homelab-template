@@ -31,6 +31,9 @@ Opções adicionais:
   --dry-run   Exibe os comandos que seriam executados sem aplicar alterações.
   -h, --help  Mostra esta ajuda e encerra a execução.
 
+Pré-condições:
+  • O diretório de trabalho deve estar limpo (sem alterações locais pendentes de commit).
+
 Exemplos:
   TEMPLATE_REMOTE=upstream ORIGINAL_COMMIT_ID=abc1234 FIRST_COMMIT_ID=def5678 TARGET_BRANCH=main \\
     scripts/update_from_template.sh
@@ -196,6 +199,10 @@ fi
 
 current_branch="$(git rev-parse --abbrev-ref HEAD)"
 remote_ref="$template_remote/$target_branch"
+
+if [[ -n "$(git status --porcelain)" ]]; then
+  error "existem alterações locais não commitadas. finalize ou descarte-as antes de continuar."
+fi
 
 if [[ "$dry_run" == true ]]; then
   echo "Modo dry-run habilitado. Nenhum comando será executado."
