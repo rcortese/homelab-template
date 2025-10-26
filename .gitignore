@@ -1,18 +1,36 @@
-# n8n
-**/n8n_data/
-**/backups/
+# Environment configuration (keep secrets out of Git)
 **/.env
 **/.env.*
 *.local
 env/local/
 
-# editor/OS
-.DS_Store
-Thumbs.db
-
-# logs
+# Persistent runtime artifacts
+data/
+backups/
 logs/
 *.log
 
-# node/npm (se usar algo adicional no futuro)
+# Python build/test artifacts
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# Virtual environments
+.venv/
+.envrc
+
+# IDE and editor settings
+.vscode/
+.idea/
+*.code-workspace
+
+# OS filesystem noise
+.DS_Store
+Thumbs.db
+
+# Node.js dependencies
 node_modules/

@@ -8,6 +8,8 @@ Este documento apresenta um ponto de partida para descrever processos operaciona
 
 - Garanta que os arquivos `.env` locais foram gerados a partir dos modelos descritos em [`env/README.md`](../env/README.md).
 - Revise as combinações de manifests (`compose/base.yml` + overrides) que serão utilizadas pelos scripts.
+- Execute `scripts/check_all.sh` para validar estrutura, sincronização de variáveis e manifests Compose antes de abrir PRs ou publicar mudanças locais.
+- Execute `scripts/check_env_sync.py` isoladamente sempre que editar manifests ou templates `.env` para garantir que as variáveis continuam sincronizadas.
 - Documente dependências extras (CLI, credenciais, acesso a registries) em seções adicionais.
 
 ## scripts/check_structure.sh
@@ -18,6 +20,35 @@ Este documento apresenta um ponto de partida para descrever processos operaciona
   scripts/check_structure.sh
   ```
 - **Quando executar:** antes de abrir PRs que reorganizam arquivos ou em pipelines de CI.
+- **Checklist sugerido:** inclua `scripts/check_env_sync.py` entre as validações locais/CI para confirmar que as variáveis documentadas batem com os manifests Compose.
+
+## scripts/check_env_sync.py
+
+- **Objetivo:** comparar os manifests (`compose/base.yml` + overrides detectados) com os arquivos `env/*.example.env` correspondentes e sinalizar divergências.
+- **Uso típico:**
+  ```bash
+  scripts/check_env_sync.py
+  scripts/check_env_sync.py --repo-root /caminho/alternativo
+  ```
+- **Saída:** lista variáveis ausentes, obsoletas ou instâncias sem template, retornando código de saída diferente de zero quando encontrar problemas — ideal para CI.
+- **Boas práticas:** execute o script após mudanças em Compose ou nos arquivos `.env` de exemplo e inclua-o no pipeline de validação local antes de abrir PRs.
+
+## scripts/bootstrap_instance.sh
+
+- **Objetivo:** gerar a estrutura inicial de uma nova aplicação/instância (manifests, `.env` e documentação opcional).
+- **Uso típico:**
+  ```bash
+  scripts/bootstrap_instance.sh <aplicacao> <instancia>
+  scripts/bootstrap_instance.sh <aplicacao> <instancia> --with-docs
+  ```
+- **Parâmetros relevantes:**
+  - `--base-dir` — permite executar o script fora da raiz do repositório (use `--base-dir .` quando estiver dentro de `scripts/`).
+  - `--with-docs` — gera `docs/apps/<aplicacao>.md` e adiciona o link correspondente em `docs/README.md`.
+- **Fluxo recomendado:**
+  1. Execute o bootstrap e confirme que os arquivos foram criados sem conflitos.
+  2. Ajuste as portas, volumes e variáveis específicas no override da instância (`compose/apps/<aplicacao>/<instancia>.yml`).
+  3. Preencha `env/<instancia>.example.env` com orientações reais antes de disponibilizar o modelo.
+  4. Complete o esqueleto gerado em `docs/apps/<aplicacao>.md` com responsabilidades e integrações da aplicação.
 
 <a id="scriptsvalidate_compose.sh"></a>
 ## scripts/validate_compose.sh
@@ -169,6 +200,7 @@ Este documento apresenta um ponto de partida para descrever processos operaciona
 
 ## Personalizações sugeridas
 
+- **Novo serviço:** utilize `scripts/bootstrap_instance.sh <app> <instância>` como ponto de partida; em seguida personalize compose, `.env` e documentação antes de prosseguir com validações.
 - **Diretórios persistentes:** o caminho `data/<app>-<instância>` é calculado automaticamente; ajuste `APP_DATA_UID` e `APP_DATA_GID` no `.env` correspondente para alinhar permissões ao seu ambiente.
 - **Serviços monitorados:** defina `HEALTH_SERVICES` ou `SERVICE_NAME` nos arquivos `.env` para que `scripts/check_health.sh` use os alvos corretos de log.
 - **Volumes extras:** utilize overrides específicos (`compose/apps/<app>/<instância>.yml`) para montar diretórios adicionais ou expor portas distintas por ambiente.

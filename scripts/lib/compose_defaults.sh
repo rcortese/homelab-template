@@ -12,7 +12,6 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 source "$SCRIPT_DIR/lib/compose_plan.sh"
 
 # shellcheck source=./lib/env_file_chain.sh
-# shellcheck disable=SC1091
 source "$SCRIPT_DIR/lib/env_file_chain.sh"
 
 split_compose_entries() {
@@ -62,11 +61,10 @@ setup_compose_defaults() {
       eval "$compose_metadata"
       metadata_loaded=1
 
-      if [[ -n "${COMPOSE_INSTANCE_FILES[$instance]:-}" ]]; then
-        local -a files_list=()
-        if build_compose_file_plan "$instance" files_list; then
-          COMPOSE_FILES="${files_list[*]}"
-        fi
+    if [[ -z "${COMPOSE_FILES:-}" ]] && ((metadata_loaded == 1)) && [[ -n "${COMPOSE_INSTANCE_FILES[$instance]:-}" ]]; then
+      local -a files_list=()
+      if build_compose_file_plan "$instance" files_list; then
+        COMPOSE_FILES="${files_list[*]}"
       fi
     fi
   fi
@@ -88,14 +86,14 @@ setup_compose_defaults() {
   declare -a env_files_rel=()
   env_file_chain__resolve_explicit "$explicit_env_input" "$metadata_env_input" env_files_rel
 
-  if (( ${#env_files_rel[@]} == 0 )) && [[ -n "$instance" ]]; then
+  if ((${#env_files_rel[@]} == 0)) && [[ -n "$instance" ]]; then
     env_file_chain__defaults "$base_fs" "$instance" env_files_rel
   fi
 
   declare -a env_files_abs=()
   env_file_chain__to_absolute "$base_fs" env_files_rel env_files_abs
 
-  if (( ${#env_files_abs[@]} > 0 )); then
+  if ((${#env_files_abs[@]} > 0)); then
     COMPOSE_ENV_FILE="${env_files_abs[-1]}"
     COMPOSE_ENV_FILES="$(printf '%s\n' "${env_files_abs[@]}")"
     COMPOSE_ENV_FILES="${COMPOSE_ENV_FILES%$'\n'}"
@@ -111,7 +109,7 @@ setup_compose_defaults() {
     COMPOSE_CMD=(${DOCKER_COMPOSE_BIN})
   fi
 
-  if (( ${#env_files_abs[@]} > 0 )); then
+  if ((${#env_files_abs[@]} > 0)); then
     local env_file_path
     for env_file_path in "${env_files_abs[@]}"; do
       COMPOSE_CMD+=(--env-file "$env_file_path")

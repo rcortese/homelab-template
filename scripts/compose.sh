@@ -36,7 +36,6 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 source "$SCRIPT_DIR/lib/compose_plan.sh"
 
 # shellcheck source=./lib/env_file_chain.sh
-# shellcheck disable=SC1091
 source "$SCRIPT_DIR/lib/env_file_chain.sh"
 
 INSTANCE_NAME=""
@@ -153,11 +152,11 @@ fi
 
 env_file_chain__resolve_explicit "$explicit_env_input" "$metadata_env_input" COMPOSE_ENV_FILES_LIST
 
-if (( ${#COMPOSE_ENV_FILES_LIST[@]} == 0 )) && [[ -n "$INSTANCE_NAME" ]]; then
+if ((${#COMPOSE_ENV_FILES_LIST[@]} == 0)) && [[ -n "$INSTANCE_NAME" ]]; then
   env_file_chain__defaults "$REPO_ROOT" "$INSTANCE_NAME" COMPOSE_ENV_FILES_LIST
 fi
 
-if (( ${#COMPOSE_ENV_FILES_LIST[@]} > 0 )); then
+if ((${#COMPOSE_ENV_FILES_LIST[@]} > 0)); then
   COMPOSE_ENV_FILE="${COMPOSE_ENV_FILES_LIST[-1]}"
   COMPOSE_ENV_FILES="$(printf '%s\n' "${COMPOSE_ENV_FILES_LIST[@]}")"
   COMPOSE_ENV_FILES="${COMPOSE_ENV_FILES%$'\n'}"
@@ -166,7 +165,7 @@ else
 fi
 
 declare -a COMPOSE_ENV_FILES_RESOLVED=()
-if (( ${#COMPOSE_ENV_FILES_LIST[@]} > 0 )); then
+if ((${#COMPOSE_ENV_FILES_LIST[@]} > 0)); then
   env_file_chain__to_absolute "$REPO_ROOT" COMPOSE_ENV_FILES_LIST COMPOSE_ENV_FILES_RESOLVED
 fi
 
