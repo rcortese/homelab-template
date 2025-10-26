@@ -21,13 +21,16 @@ Certifique-se de ter as ferramentas abaixo instaladas e atualizadas antes de tra
 Os scripts abaixo pressupõem que os arquivos `.env` locais já estejam configurados.
 
 1. Copie os modelos de `env/*.example.env` para `env/local/` seguindo o passo a passo em [`env/README.md`](env/README.md).
-2. Em seguida, execute:
+2. Valide a sincronização das variáveis com os manifests executando `scripts/check_env_sync.py`.
+3. Em seguida, execute:
 
    ```bash
    pip install -r requirements-dev.txt
    scripts/check_structure.sh
    scripts/validate_compose.sh
    ```
+
+> Quando criar um guia de onboarding específico da stack, replique esta sequência para manter as instruções alinhadas entre os documentos.
 
 ## Conteúdo obrigatório
 
