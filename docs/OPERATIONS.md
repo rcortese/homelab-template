@@ -57,6 +57,25 @@ Este documento apresenta um ponto de partida para descrever processos operaciona
 - **Objetivo:** consultar status de serviços após deploys, restores ou troubleshooting.
 - **Adaptação necessária:** documente quais endpoints, comandos ou logs devem ser verificados para cada ambiente.
 
+## scripts/update_from_template.sh
+
+- **Objetivo:** re-aplicar personalizações locais sobre a versão mais recente do template oficial usando `git rebase --onto`.
+- **Parâmetros principais:**
+  - `--remote` — nome do remote que aponta para o repositório original do template.
+  - `--original-commit` — hash do commit do template usado quando o fork foi criado.
+  - `--first-local-commit` — hash do primeiro commit exclusivo do repositório derivado.
+  - `--dry-run` — executa apenas a simulação do rebase sem alterar a branch atual.
+- **Referência adicional:** consulte a seção ["Atualizando a partir do template original"](../README.md#atualizando-a-partir-do-template-original) do `README.md` para o passo a passo completo.
+- **Exemplo:**
+  ```bash
+  scripts/update_from_template.sh \
+    --remote template \
+    --original-commit <hash-do-template-inicial> \
+    --first-local-commit <hash-do-primeiro-commit-local> \
+    --target-branch main \
+    --dry-run
+  ```
+
 ## Personalizações sugeridas
 
 - **Diretórios persistentes:** o caminho `data/<app>-<instância>` é calculado automaticamente; ajuste `APP_DATA_UID` e `APP_DATA_GID` no `.env` correspondente para alinhar permissões ao seu ambiente.
