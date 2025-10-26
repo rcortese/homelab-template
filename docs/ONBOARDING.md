@@ -46,17 +46,7 @@ Com os `.env` locais criados e as dependências instaladas, execute:
 scripts/check_all.sh
 ```
 
-O agregador `scripts/check_all.sh` encadeia exatamente a sequência de validações abaixo, que você também pode executar manualmente como detalhamento ou alternativa:
-
-```bash
-scripts/check_structure.sh
-scripts/check_env_sync.py
-scripts/validate_compose.sh
-```
-
-- [`scripts/check_structure.sh`](./OPERATIONS.md#scriptscheck_structuresh)
-- [`scripts/check_env_sync.py`](./OPERATIONS.md#scriptscheck_env_syncpy)
-- [`scripts/validate_compose.sh`](./OPERATIONS.md#scriptsvalidate_composesh)
+O agregador `scripts/check_all.sh` encadeia as validações padrão do template. Consulte a tabela em [`docs/OPERATIONS.md`](./OPERATIONS.md#opera%C3%A7%C3%B5es-padr%C3%A3o-do-template) para conferir o objetivo e os comandos individuais de cada script, caso queira executá-los manualmente.
 
 ## 5. Próximos passos
 
