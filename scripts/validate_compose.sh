@@ -31,7 +31,7 @@ fi
 eval "$compose_metadata"
 
 base_file="$REPO_ROOT/$BASE_COMPOSE_FILE"
- # referenced indirectly via nameref in validate_cli_parse_instances
+# referenced indirectly via nameref in validate_cli_parse_instances
 declare -a instances_to_validate=()
 if validate_cli_parse_instances instances_to_validate "$@"; then
   :

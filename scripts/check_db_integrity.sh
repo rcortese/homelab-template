@@ -16,7 +16,7 @@ if [[ "$ORIGINAL_PWD" != "$REPO_ROOT" ]]; then
 fi
 
 INSTANCE_NAME=""
-REQUESTED_DATA_DIR=""  # Utilizado pela rotina registrada em trap.
+REQUESTED_DATA_DIR="" # Utilizado pela rotina registrada em trap.
 RESUME_ON_EXIT=1
 SQLITE3_BIN="${SQLITE3_BIN:-sqlite3}"
 SQLITE3_MODE="${SQLITE3_MODE:-container}"
@@ -27,7 +27,7 @@ SQLITE3_BACKEND=""
 SQLITE3_BIN_PATH=""
 
 declare -ag COMPOSE_CMD=()
-declare -ag PAUSED_SERVICES=()  # Modificado quando serviços são pausados e lido no trap EXIT.
+declare -ag PAUSED_SERVICES=() # Modificado quando serviços são pausados e lido no trap EXIT.
 PAUSED_STACK=0
 
 ALERTS=()
