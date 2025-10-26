@@ -25,7 +25,7 @@ def create_consumer_repo(tmp_path):
     run(["git", "config", "user.name", "CI"], cwd=consumer)
 
     (consumer / "base.txt").write_text("template base\n", encoding="utf-8")
-    run(["git", "add", "base.txt"], cwd=consumer)
+    run(["git", "add", "base.txt", "scripts/update_from_template.sh"], cwd=consumer)
     run(["git", "commit", "-m", "Template base"], cwd=consumer)
 
     return consumer
@@ -114,3 +114,63 @@ def test_dry_run_outputs_expected_commands(tmp_path):
     assert "Modo dry-run habilitado" in result.stdout
     assert "git fetch template main" in result.stdout
     assert "git rebase --onto template/main" in result.stdout
+
+
+def test_script_fails_with_pending_changes(tmp_path):
+    template_remote = tmp_path / "template.git"
+    run(["git", "init", "--bare", str(template_remote)], cwd=tmp_path)
+    subprocess.run(
+        ["git", "--git-dir", str(template_remote), "symbolic-ref", "HEAD", "refs/heads/main"],
+        check=True,
+    )
+
+    consumer = create_consumer_repo(tmp_path)
+    script = consumer / "scripts" / "update_from_template.sh"
+    os.chmod(script, 0o755)
+
+    original_commit = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        cwd=consumer,
+        text=True,
+        capture_output=True,
+        check=True,
+    ).stdout.strip()
+
+    run(["git", "remote", "add", "template", str(template_remote)], cwd=consumer)
+    run(["git", "branch", "-M", "main"], cwd=consumer)
+    run(["git", "push", "template", "main"], cwd=consumer)
+
+    (consumer / "local.txt").write_text("local change\n", encoding="utf-8")
+    run(["git", "add", "local.txt"], cwd=consumer)
+    run(["git", "commit", "-m", "Local customization"], cwd=consumer)
+
+    first_commit = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        cwd=consumer,
+        text=True,
+        capture_output=True,
+        check=True,
+    ).stdout.strip()
+
+    # Introduz uma alteração não commitada
+    (consumer / "local.txt").write_text("local change\nmodificação pendente\n", encoding="utf-8")
+
+    env = {
+        **os.environ,
+        "TEMPLATE_REMOTE": "template",
+        "ORIGINAL_COMMIT_ID": original_commit,
+        "FIRST_COMMIT_ID": first_commit,
+        "TARGET_BRANCH": "main",
+    }
+
+    result = subprocess.run(
+        [str(script)],
+        cwd=consumer,
+        capture_output=True,
+        text=True,
+        env=env,
+        check=False,
+    )
+
+    assert result.returncode != 0
+    assert "alterações locais não commitadas" in result.stderr
