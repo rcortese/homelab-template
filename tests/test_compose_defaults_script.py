@@ -92,6 +92,38 @@ def test_defaults_for_core_instance(repo_copy: Path) -> None:
     assert _extract_file_args(compose_cmd) == expected_files
 
 
+def test_fallbacks_when_instance_missing(repo_copy: Path) -> None:
+    script_path = repo_copy / SCRIPT_RELATIVE
+    env = os.environ.copy()
+    env.pop("COMPOSE_FILES", None)
+    env.pop("COMPOSE_ENV_FILE", None)
+    env.pop("COMPOSE_ENV_FILES", None)
+    env.pop("COMPOSE_EXTRA_FILES", None)
+
+    stdout = _run_script(script_path, "missing", str(repo_copy), env=env)
+
+    compose_files = _extract_value(r'COMPOSE_FILES="([^"]+)"', stdout)
+    assert compose_files == "compose/base.yml"
+
+    compose_cmd = _extract_compose_cmd(stdout)
+    compose_file_args = _extract_file_args(compose_cmd)
+    assert compose_file_args == [str((repo_copy / "compose" / "base.yml").resolve())]
+
+    env_files = _extract_env_files(stdout)
+    expected_env_file = str((repo_copy / "env" / "local" / "common.env").resolve())
+    assert env_files == [expected_env_file]
+
+    env_args = [
+        compose_cmd[index + 1]
+        for index, token in enumerate(compose_cmd)
+        if token == "--env-file"
+    ]
+    assert env_args == [expected_env_file]
+
+    env_file = _extract_value(r'COMPOSE_ENV_FILE="([^"]*)"', stdout)
+    assert env_file == expected_env_file
+
+
 def test_preserves_existing_environment(repo_copy: Path) -> None:
     script_path = repo_copy / SCRIPT_RELATIVE
     custom_env_file = repo_copy / "env" / "local" / "custom.env"
