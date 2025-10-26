@@ -2,7 +2,7 @@
 
 Este repositório serve como **template reutilizável** para stacks autocontidas. Ele reúne infraestrutura como código, scripts de operação e documentação sob uma mesma convenção para facilitar forks ou projetos derivados.
 
-Para uma visão completa da documentação utilize o [índice em `docs/README.md`](docs/README.md).
+Se você acabou de derivar o template, comece pelo [guia de onboarding](docs/ONBOARDING.md) para seguir o fluxo inicial recomendado. Para uma visão completa da documentação utilize o [índice em `docs/README.md`](docs/README.md).
 
 Mantemos este arquivo genérico para facilitar a sincronização com novas versões do template. Informações específicas da sua
 stack devem ser descritas nos apontamentos locais indicados em [Customização local](#customização-local).
@@ -18,16 +18,12 @@ Certifique-se de ter as ferramentas abaixo instaladas e atualizadas antes de tra
 
 ### Checklist rápido
 
-Os scripts abaixo pressupõem que os arquivos `.env` locais já estejam configurados.
-
-1. Copie os modelos de `env/*.example.env` para `env/local/` seguindo o passo a passo em [`env/README.md`](env/README.md).
-2. Valide a sincronização das variáveis com os manifests executando `scripts/check_env_sync.py`.
-3. Em seguida, execute:
+1. Siga o [guia de onboarding](docs/ONBOARDING.md) para preparar pré-requisitos, `.env` e dependências Python.
+2. Execute os scripts de validação consolidados:
 
    ```bash
    pip install -r requirements-dev.txt
-   scripts/check_structure.sh
-   scripts/validate_compose.sh
+   scripts/check_all.sh
    ```
 
 > Quando criar um guia de onboarding específico da stack, replique esta sequência para manter as instruções alinhadas entre os documentos.
@@ -52,7 +48,7 @@ Pipelines de CI/CD, testes e scripts adicionais podem ser adicionados, mas estes
 3. Revise os arquivos de `compose/` e `env/` para alinhar serviços, portas e variáveis às suas necessidades.
 4. Ajuste a documentação em `docs/` seguindo as orientações de personalização descritas neste template (com foco em
    [`docs/local/`](docs/local/README.md) para registrar detalhes específicos da sua stack).
-5. Execute os scripts de validação (`scripts/check_structure.sh`, `scripts/validate_compose.sh`) antes do primeiro commit.
+5. Execute o fluxo de validação (`scripts/check_all.sh`) antes do primeiro commit.
 
 ## Fluxo sugerido para novos repositórios
 

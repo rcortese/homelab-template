@@ -8,7 +8,8 @@ Este documento apresenta um ponto de partida para descrever processos operaciona
 
 - Garanta que os arquivos `.env` locais foram gerados a partir dos modelos descritos em [`env/README.md`](../env/README.md).
 - Revise as combinações de manifests (`compose/base.yml` + overrides) que serão utilizadas pelos scripts.
-- Execute `scripts/check_env_sync.py` após preparar os `.env` e antes das demais validações (`scripts/check_structure.sh`, `scripts/validate_compose.sh`) ou sempre que editar manifests/templates para garantir que as variáveis continuam sincronizadas.
+- Execute `scripts/check_all.sh` para validar estrutura, sincronização de variáveis e manifests Compose antes de abrir PRs ou publicar mudanças locais.
+- Execute `scripts/check_env_sync.py` isoladamente sempre que editar manifests ou templates `.env` para garantir que as variáveis continuam sincronizadas.
 - Documente dependências extras (CLI, credenciais, acesso a registries) em seções adicionais.
 
 ## scripts/check_structure.sh
