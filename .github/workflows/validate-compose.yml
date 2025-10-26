@@ -1,5 +1,12 @@
 name: Validate Docker Compose
 
+# -----------------------------------------------------------------------------
+# Este workflow concentra as validações compartilhadas pelo template. Para
+# adicionar verificações específicas em projetos derivados, utilize o workflow
+# reutilizável `project-tests.yml`. Evite modificar este arquivo no fork para
+# reduzir conflitos ao sincronizar com o template principal.
+# -----------------------------------------------------------------------------
+
 on:
   push:
     branches: [ main ]
@@ -86,3 +93,10 @@ jobs:
 
       - name: Run test suite
         run: python -m pytest
+
+  project-tests:
+    name: Project specific tests
+    needs: tests
+    if: always()
+    uses: ./.github/workflows/project-tests.yml
+    secrets: inherit

@@ -1,0 +1,28 @@
+name: Project specific tests
+
+# -----------------------------------------------------------------------------
+# Workflow reutilizável que deve ser sobrescrito nos projetos derivados para
+# incluir verificações adicionais (pytest, lint, etc). O template fornece apenas
+# um "stub" que informa a ausência de testes específicos para evitar falhas de CI
+# e minimizar conflitos durante atualizações.
+# -----------------------------------------------------------------------------
+
+on:
+  workflow_call:
+    inputs:
+      python-version:
+        description: Versão do Python a ser utilizada pelos testes do projeto.
+        required: false
+        default: '3.x'
+        type: string
+
+jobs:
+  placeholder:
+    name: Placeholder for downstream overrides
+    runs-on: ubuntu-latest
+    steps:
+      - name: Aviso sobre testes específicos do projeto
+        run: |
+          echo "Nenhum teste específico do projeto foi definido neste fork."
+          echo "Sobrescreva .github/workflows/project-tests.yml no projeto derivado"
+          echo "para adicionar jobs personalizados."
