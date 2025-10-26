@@ -8,6 +8,24 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
+append_unique_file() {
+  local -n __target_array="$1"
+  local __file="$2"
+  local existing
+
+  if [[ -z "$__file" ]]; then
+    return
+  fi
+
+  for existing in "${__target_array[@]}"; do
+    if [[ "$existing" == "$__file" ]]; then
+      return
+    fi
+  done
+
+  __target_array+=("$__file")
+}
+
 setup_compose_defaults() {
   local instance="${1:-}"
   local base_dir="${2:-.}"
@@ -31,14 +49,21 @@ setup_compose_defaults() {
       eval "$compose_metadata"
 
       if [[ -n "${COMPOSE_INSTANCE_FILES[$instance]:-}" ]]; then
-        mapfile -t __instance_compose_files < <(printf '%s
-' "${COMPOSE_INSTANCE_FILES[$instance]}")
-        local files_list=("$BASE_COMPOSE_FILE")
+        mapfile -t __instance_compose_files < <(printf '%s\n' "${COMPOSE_INSTANCE_FILES[$instance]}")
+        local -a files_list=()
+
+        append_unique_file files_list "$BASE_COMPOSE_FILE"
+
+        local instance_app_name="${COMPOSE_INSTANCE_APP_NAMES[$instance]:-}"
+        if [[ -n "$instance_app_name" ]]; then
+          append_unique_file files_list "compose/apps/${instance_app_name}/base.yml"
+        fi
+
         local item
         for item in "${__instance_compose_files[@]}"; do
-          [[ -z "$item" ]] && continue
-          files_list+=("$item")
+          append_unique_file files_list "$item"
         done
+
         COMPOSE_FILES="${files_list[*]}"
       fi
     fi

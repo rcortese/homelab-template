@@ -3,8 +3,8 @@
 # Global variables exported by load_compose_instances / print_compose_instances:
 #   BASE_COMPOSE_FILE          Relative path to the base compose file (e.g., compose/base.yml)
 #   COMPOSE_INSTANCE_NAMES     Array with the list of detected instance names
-#   COMPOSE_INSTANCE_FILES     Associative array mapping instance -> newline separated list of compose files
-#                               (excluding the base file) that must be combined for the instance
+#   COMPOSE_INSTANCE_FILES     Associative array mapping instance -> newline separated list of compose overlays
+#                               específicos da instância (exclui o arquivo base global e o base da aplicação)
 #   COMPOSE_INSTANCE_ENV_LOCAL Associative array mapping instance -> relative env/local file (empty if absent)
 #   COMPOSE_INSTANCE_ENV_TEMPLATES Associative array mapping instance -> relative env template file (empty if absent)
 #   COMPOSE_INSTANCE_ENV_FILES Associative array mapping instance -> resolved env file (prefers env/local)
@@ -127,7 +127,6 @@ load_compose_instances() {
 
       COMPOSE_INSTANCE_APP_NAMES[$instance]="$app_name"
       seen_instances[$instance]=1
-      append_instance_file "$instance" "$app_base_rel"
       append_instance_file "$instance" "$instance_rel"
     done
 
