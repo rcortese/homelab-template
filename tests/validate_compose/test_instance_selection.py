@@ -5,17 +5,9 @@ from typing import TYPE_CHECKING
 import pytest
 
 from .utils import (
-    APP_BASE_COMPOSE,
-    BASE_COMPOSE,
-    CORE_COMPOSE,
-    CORE_ENV,
-    CORE_ENV_LOCAL,
-    MEDIA_COMPOSE,
-    MEDIA_ENV,
-    MEDIA_ENV_LOCAL,
-    MONITORING_BASE_COMPOSE,
-    MONITORING_CORE_COMPOSE,
     expected_compose_call,
+    get_instance_metadata_map,
+    load_instance_metadata,
     run_validate_compose,
 )
 
@@ -23,37 +15,56 @@ if TYPE_CHECKING:
     from ..conftest import DockerStub
 
 
-@pytest.mark.parametrize("instances", [" core , , media  ,  core "])
+def _parse_instances(value: str) -> list[str]:
+    tokens: list[str] = []
+    for chunk in value.split(","):
+        chunk = chunk.strip()
+        if not chunk:
+            continue
+        for token in chunk.split():
+            token = token.strip()
+            if token:
+                tokens.append(token)
+    return tokens
+
+
 def test_accepts_mixed_separators_and_invokes_compose_for_each_instance(
-    instances: str, docker_stub: DockerStub
+    docker_stub: DockerStub,
 ) -> None:
     docker_stub.set_exit_code(0)
+
+    metadata_sequence = list(load_instance_metadata())
+    assert metadata_sequence, "Expected at least one compose instance for validation tests"
+
+    names = [metadata.name for metadata in metadata_sequence]
+    if len(names) >= 2:
+        instances = f" {names[0]} , , {names[1]}  ,  {names[0]} "
+    else:
+        instances = f" {names[0]} , , {names[0]}  ,  {names[0]} "
 
     result = run_validate_compose({"COMPOSE_INSTANCES": instances})
 
     assert result.returncode == 0, result.stderr
     calls = docker_stub.read_calls()
-    assert len(calls) == 2
+    parsed_instances = _parse_instances(instances)
 
-    core_call, media_call = calls
-    expected_core_env = CORE_ENV_LOCAL if CORE_ENV_LOCAL.exists() else CORE_ENV
-    expected_media_env = MEDIA_ENV_LOCAL if MEDIA_ENV_LOCAL.exists() else MEDIA_ENV
-    assert core_call == expected_compose_call(
-        expected_core_env,
-        [
-            BASE_COMPOSE,
-            APP_BASE_COMPOSE,
-            CORE_COMPOSE,
-            MONITORING_BASE_COMPOSE,
-            MONITORING_CORE_COMPOSE,
-        ],
-        "config",
-    )
-    assert media_call == expected_compose_call(
-        expected_media_env,
-        [BASE_COMPOSE, APP_BASE_COMPOSE, MEDIA_COMPOSE],
-        "config",
-    )
+    seen: set[str] = set()
+    unique_instances: list[str] = []
+    for name in parsed_instances:
+        if name not in seen:
+            seen.add(name)
+            unique_instances.append(name)
+
+    assert len(calls) == len(unique_instances)
+
+    metadata_map = get_instance_metadata_map()
+
+    for call, instance_name in zip(calls, unique_instances):
+        assert instance_name in metadata_map, f"Unknown instance '{instance_name}' in test setup"
+        metadata = metadata_map[instance_name]
+        expected_env = metadata.resolved_env_file()
+        expected_files = metadata.compose_files()
+        assert call == expected_compose_call(expected_env, expected_files, "config")
 
 
 def test_unknown_instance_returns_error(docker_stub: DockerStub) -> None:
@@ -80,12 +91,19 @@ def test_reports_failure_when_compose_command_fails_with_docker_stub(
 ) -> None:
     docker_stub.set_exit_code(1)
 
-    result = run_validate_compose({"COMPOSE_INSTANCES": "core"})
+    metadata_sequence = list(load_instance_metadata())
+    assert metadata_sequence, "Expected at least one compose instance for validation tests"
+    target_instance = metadata_sequence[0].name
+
+    result = run_validate_compose({"COMPOSE_INSTANCES": target_instance})
 
     assert result.returncode != 0
-    assert "✖ instância=\"core\"" in result.stderr
-    assert str(BASE_COMPOSE) in result.stderr
-    assert str(CORE_COMPOSE) in result.stderr
+    assert f"✖ instância=\"{target_instance}\"" in result.stderr
+
+    metadata_map = get_instance_metadata_map()
+    files = metadata_map[target_instance].compose_files()
+    for file in files:
+        assert str(file) in result.stderr
 
     calls = docker_stub.read_calls()
     assert len(calls) == 1
