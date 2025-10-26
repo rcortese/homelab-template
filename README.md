@@ -67,23 +67,20 @@ Repositórios derivados podem reaplicar suas customizações sobre a versão mai
 1. Configure o remote que aponta para o template, por exemplo `git remote add template git@github.com:org/template.git`.
 2. Identifique o commit do template usado como base inicial (`ORIGINAL_COMMIT_ID`) e o primeiro commit local exclusivo
    (`FIRST_COMMIT_ID`).
-3. Exporte as variáveis que serão utilizadas pelo script (também é possível passar via flags):
+3. Execute uma simulação informando os parâmetros via flags:
 
    ```bash
-   export TEMPLATE_REMOTE=template
-   export ORIGINAL_COMMIT_ID=<hash-do-template-inicial>
-   export FIRST_COMMIT_ID=<hash-do-primeiro-commit-local>
-   export TARGET_BRANCH=main
+   scripts/update_from_template.sh \
+     --remote template \
+     --original-commit <hash-do-template-inicial> \
+     --first-local-commit <hash-do-primeiro-commit-local> \
+     --target-branch main \
+     --dry-run
    ```
 
-4. Execute uma simulação para confirmar os parâmetros:
-
-   ```bash
-   scripts/update_from_template.sh --dry-run
-   ```
-
-5. Remova `--dry-run` para aplicar o rebase e resolva possíveis conflitos antes de abrir um PR.
-6. Finalize rodando os testes da stack (`python -m pytest`, `scripts/check_structure.sh`, etc.).
+4. Remova `--dry-run` para aplicar o rebase e resolva possíveis conflitos antes de abrir um PR.
+5. Finalize rodando os testes da stack (por exemplo, `python -m pytest` e `scripts/check_structure.sh`; adapte conforme
+   descrito em [`docs/OPERATIONS.md`](docs/OPERATIONS.md)).
 
 O script exibe mensagens claras sobre os comandos executados (`git fetch` seguido de `git rebase --onto`) e falha cedo caso
 os commits informados não pertençam à branch atual.
