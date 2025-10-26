@@ -49,17 +49,9 @@ Pipelines de CI/CD, testes e scripts adicionais podem ser adicionados, mas os di
 
 ## Documentação
 
-- [Índice completo](docs/README.md)
-- [Visão geral da stack](docs/OVERVIEW.md)
-- [Estrutura do template](docs/STRUCTURE.md)
-- [Operação e scripts](docs/OPERATIONS.md)
-- [Combinações de manifests Compose](docs/COMPOSE_GUIDE.md)
-- [Guia de variáveis de ambiente](env/README.md)
-- [Integração de rede](docs/NETWORKING_INTEGRATION.md)
-- [Backup & Restauração genéricos](docs/BACKUP_RESTORE.md)
-- [Registro de decisões arquiteturais](docs/ADR/)
-- [Boas práticas para herdeiros do template](docs/TEMPLATE_BEST_PRACTICES.md)
-- [Apontamentos locais da stack](docs/local/README.md)
+Comece pelo [índice em `docs/README.md`](docs/README.md) para entender o panorama geral e escolher o próximo passo. Em seguida, personalize os runbooks específicos da sua stack em [`docs/local/`](docs/local/README.md) mantendo o restante como referência de template.
+
+O índice principal está dividido por etapas do ciclo de vida da stack: primeiro orienta o onboarding e a modelagem inicial, depois organiza referências de infraestrutura, automação e operações, e por fim aponta os materiais para customizações locais. Dessa forma você encontra rapidamente o tipo de conteúdo desejado sem precisar percorrer cada arquivo individualmente.
 
 ## Customização local
 
