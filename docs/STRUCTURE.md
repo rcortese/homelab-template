@@ -15,6 +15,9 @@ Este guia descreve a estrutura mínima esperada para qualquer repositório que h
 | `env/` | Modelos de variáveis, arquivos de exemplo e orientações de preenchimento. | `*.example.env`, `README.md`, `local/` ignorado no Git. Expanda com variáveis necessárias para todas as aplicações ativadas. |
 | `scripts/` | Automação reutilizável (deploy, validação, backups, health-check). | Scripts shell (ou equivalentes) referenciados pela documentação. |
 | `tests/` | Verificações automatizadas do template que devem ser preservadas nos forks. | Testes base do template; cenários específicos podem viver em diretórios próprios fora de `tests/`, conforme indicado em [`tests/README.md`](../tests/README.md). |
+| `.github/workflows/` | Pipelines de CI que garantem a qualidade mínima do template. | `template-quality.yml` (mantido conforme o template) e workflows adicionais necessários para a stack derivada. |
+
+> Os utilitários `scripts/check_structure.sh` e a suíte `tests/test_check_structure.py` verificam explicitamente a presença desse diretório e do arquivo `template-quality.yml`. Se qualquer item faltar, o fluxo automático falha.
 
 ## Arquivos de referência
 
@@ -24,7 +27,6 @@ Este guia descreve a estrutura mínima esperada para qualquer repositório que h
 | `docs/STRUCTURE.md` | Mantém esta descrição atualizada conforme novos componentes são adicionados.
 | `docs/OPERATIONS.md` | Documenta como executar scripts e fluxos operacionais do projeto.
 | `docs/ADR/` | Reúne decisões arquiteturais. Cada arquivo deve seguir a convenção `AAAA-sequência-titulo.md`.
-| `.github/workflows/` | Pipelines de validação opcionais. Ajuste para refletir verificações e linters do projeto.
 
 ## Componentes por aplicação
 
