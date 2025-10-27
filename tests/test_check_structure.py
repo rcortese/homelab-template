@@ -81,14 +81,6 @@ def test_missing_required_item_returns_error(tmp_path, missing_relative):
     script_dir = tmp_path / "scripts"
     shutil.copytree(SCRIPT_PATH.parent, script_dir)
     runner_script = script_dir / "check_structure.sh"
-    runner_content = runner_script.read_text()
-    runner_script.write_text(
-        runner_content.replace(
-            'ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"',
-            'ROOT_DIR="${ROOT_DIR_OVERRIDE:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"',
-        )
-    )
-    runner_script.chmod(runner_script.stat().st_mode | 0o111)
 
     missing_path = repo_copy / missing_relative
     if missing_path.is_dir():
