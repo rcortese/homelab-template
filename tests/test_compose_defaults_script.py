@@ -5,6 +5,8 @@ import re
 import subprocess
 from pathlib import Path
 
+from tests.helpers.compose_instances import ComposeInstancesData
+
 SCRIPT_RELATIVE = Path("scripts") / "lib" / "compose_defaults.sh"
 
 
@@ -64,38 +66,54 @@ def _extract_file_args(compose_cmd: list[str]) -> list[str]:
     ]
 
 
-def test_defaults_for_core_instance(repo_copy: Path) -> None:
+def test_defaults_for_core_instance(
+    repo_copy: Path, compose_instances_data: ComposeInstancesData
+) -> None:
     script_path = repo_copy / SCRIPT_RELATIVE
     stdout = _run_script(script_path, "core", str(repo_copy), env=os.environ.copy())
 
     compose_files = _extract_value(r'COMPOSE_FILES="([^"]+)"', stdout)
-    expected_relative = [
-        "compose/base.yml",
-        "compose/apps/app/base.yml",
-        "compose/apps/app/core.yml",
-        "compose/apps/monitoring/base.yml",
-        "compose/apps/monitoring/core.yml",
-        "compose/apps/overrideonly/core.yml",
-        "compose/apps/worker/base.yml",
-        "compose/apps/worker/core.yml",
-        "compose/apps/baseonly/base.yml",
-    ]
+    compose_entries = compose_files.split()
+    expected_relative = compose_instances_data.compose_plan("core")
+    assert compose_entries == expected_relative
+
+    assert compose_instances_data.base_file in compose_entries
+
+    core_apps = compose_instances_data.instance_app_names.get("core", [])
+    core_overrides = compose_instances_data.instance_files.get("core", [])
+    for app in core_apps:
+        base_file = compose_instances_data.app_base_files.get(app, "")
+        overrides = [
+            entry
+            for entry in core_overrides
+            if entry.startswith(f"compose/apps/{app}/")
+        ]
+        if base_file:
+            assert base_file in compose_entries
+        if overrides:
+            for override in overrides:
+                assert override in compose_entries
+        else:
+            assert base_file, f"Aplicação '{app}' deveria possuir base quando não há overrides"
+        if app not in compose_instances_data.app_base_files:
+            base_candidate = f"compose/apps/{app}/base.yml"
+            assert base_candidate not in compose_entries
+
     expected_files = [
-        str((repo_copy / path).resolve())
+        str((repo_copy / path).resolve(strict=False))
         for path in expected_relative
     ]
-    assert compose_files == " ".join(expected_relative)
-    assert "compose/apps/overrideonly/base.yml" not in compose_files.split()
 
     env_files = _extract_env_files(stdout)
     expected_env_files = [
-        str((repo_copy / "env" / "local" / "common.env").resolve()),
-        str((repo_copy / "env" / "local" / "core.env").resolve()),
+        str((repo_copy / path).resolve(strict=False))
+        for path in compose_instances_data.env_files_map.get("core", [])
+        if path
     ]
     assert env_files == expected_env_files
 
     env_file = _extract_value(r'COMPOSE_ENV_FILE="([^"]*)"', stdout)
-    assert env_file == expected_env_files[-1]
+    assert env_file == (expected_env_files[-1] if expected_env_files else "")
 
     compose_cmd = _extract_compose_cmd(stdout)
     assert compose_cmd[:2] == ["docker", "compose"]

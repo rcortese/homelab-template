@@ -5,6 +5,8 @@ import os
 import subprocess
 from pathlib import Path
 
+from tests.helpers.compose_instances import ComposeInstancesData
+
 SCRIPT_RELATIVE = Path("scripts") / "describe_instance.sh"
 
 
@@ -89,7 +91,11 @@ def _extract_flag_arguments(args: list[str], flag: str) -> list[str]:
     return values
 
 
-def test_table_summary_highlights_overlays(repo_copy: Path, tmp_path: Path) -> None:
+def test_table_summary_highlights_overlays(
+    repo_copy: Path,
+    tmp_path: Path,
+    compose_instances_data: ComposeInstancesData,
+) -> None:
     compose_payload = {
         "services": {
             "app": {
@@ -154,12 +160,9 @@ def test_table_summary_highlights_overlays(repo_copy: Path, tmp_path: Path) -> N
 
     stdout = result.stdout
     assert "Instância: core" in stdout
-    assert "compose/base.yml" in stdout
-    assert "compose/apps/app/base.yml" in stdout
-    assert "compose/apps/monitoring/base.yml" in stdout
-    assert "compose/apps/overrideonly/core.yml" in stdout
-    assert "compose/apps/baseonly/base.yml" in stdout
-    assert "compose/apps/worker/base.yml" in stdout
+    expected_plan = compose_instances_data.compose_plan("core")
+    for relative_path in expected_plan:
+        assert relative_path in stdout
     assert "compose/overlays/metrics.yml (overlay extra)" in stdout
     assert "Overlays extras aplicados:" in stdout
     assert "compose/overlays/logging.yml" in stdout
@@ -176,27 +179,27 @@ def test_table_summary_highlights_overlays(repo_copy: Path, tmp_path: Path) -> N
     config_call = _find_config_json_call(parsed)
 
     compose_args = _extract_flag_arguments(config_call, "-f")
+    expected_with_overlays = compose_instances_data.compose_plan(
+        "core",
+        ["compose/overlays/metrics.yml", "compose/overlays/logging.yml"],
+    )
     expected_compose_files = [
-        repo_copy / "compose/base.yml",
-        repo_copy / "compose/apps/app/base.yml",
-        repo_copy / "compose/apps/app/core.yml",
-        repo_copy / "compose/apps/monitoring/base.yml",
-        repo_copy / "compose/apps/monitoring/core.yml",
-        repo_copy / "compose/apps/overrideonly/core.yml",
-        repo_copy / "compose/apps/worker/base.yml",
-        repo_copy / "compose/apps/worker/core.yml",
-        repo_copy / "compose/apps/baseonly/base.yml",
-        repo_copy / "compose/overlays/metrics.yml",
-        repo_copy / "compose/overlays/logging.yml",
+        repo_copy / relative_path
+        for relative_path in expected_with_overlays
     ]
-    assert compose_args == [str(path.resolve(strict=False)) for path in expected_compose_files]
+    assert compose_args == [
+        str(path.resolve(strict=False)) for path in expected_compose_files
+    ]
 
     env_files = _extract_flag_arguments(config_call, "--env-file")
     expected_env_files = [
-        repo_copy / "env/local/common.env",
-        repo_copy / "env/local/core.env",
+        repo_copy / relative_path
+        for relative_path in compose_instances_data.env_files_map.get("core", [])
+        if relative_path
     ]
-    assert env_files == [str(path.resolve(strict=False)) for path in expected_env_files]
+    assert env_files == [
+        str(path.resolve(strict=False)) for path in expected_env_files
+    ]
 
 
 def test_json_summary_structure(repo_copy: Path, tmp_path: Path) -> None:

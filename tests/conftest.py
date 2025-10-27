@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 import json
 import os
 import shutil
@@ -7,6 +6,11 @@ from collections.abc import Iterable
 from pathlib import Path
 
 import pytest
+
+from tests.helpers.compose_instances import (
+    ComposeInstancesData,
+    load_compose_instances_data,
+)
 
 
 class DockerStub:
@@ -238,3 +242,8 @@ def repo_copy(
     )
 
     return copy_root
+
+
+@pytest.fixture
+def compose_instances_data(repo_copy: Path) -> ComposeInstancesData:
+    return load_compose_instances_data(repo_copy)
