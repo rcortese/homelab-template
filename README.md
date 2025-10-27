@@ -65,7 +65,8 @@ Repositórios derivados podem reaplicar suas customizações sobre a versão mai
 
 1. Configure o remote que aponta para o template, por exemplo `git remote add template git@github.com:org/template.git`.
 2. Identifique o commit do template usado como base inicial (`ORIGINAL_COMMIT_ID`) e o primeiro commit local exclusivo
-   (`FIRST_COMMIT_ID`).
+   (`FIRST_COMMIT_ID`). Utilize `scripts/detect_template_commits.sh` para calcular automaticamente esses valores e
+   persistir o resultado em `env/local/template_commits.env` (o script cria o diretório caso não exista).
 3. Execute uma simulação informando os parâmetros via flags:
 
    ```bash
