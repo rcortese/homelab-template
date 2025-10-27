@@ -39,6 +39,21 @@ def test_check_env_sync_detects_missing_variables(repo_copy: Path) -> None:
     assert "CORE_MISSING_VAR" in result.stdout
 
 
+def test_check_env_sync_detects_plain_and_nested_variables(repo_copy: Path) -> None:
+    compose_file = repo_copy / "compose" / "apps" / "app" / "core.yml"
+    content = compose_file.read_text(encoding="utf-8")
+    content += "\n      PLAIN_REFERENCE: $PLAIN_MISSING_VAR"
+    content += "\n      COMPLEX_PATH: ${OUTER_VAR:-./${INNER_VAR:-fallback}}"
+    compose_file.write_text(content, encoding="utf-8")
+
+    result = run_check(repo_copy)
+
+    assert result.returncode == 1
+    assert "PLAIN_MISSING_VAR" in result.stdout
+    assert "OUTER_VAR" in result.stdout
+    assert "INNER_VAR" in result.stdout
+
+
 def test_check_env_sync_accepts_local_common_variables(repo_copy: Path) -> None:
     common_example_path = repo_copy / "env" / "common.example.env"
     content = common_example_path.read_text(encoding="utf-8")
