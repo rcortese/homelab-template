@@ -62,42 +62,10 @@ Ao combinar diversas aplicações, carregue os manifests em blocos (`base.yml`, 
 > apenas o override (`compose/apps/<app>/<instância>.yml`). Os scripts do
 > template fazem esse ajuste automaticamente ao gerar o plano.
 
-### Exemplo: stack completa na instância core
+### Snippet base para combinar manifests
 
-```bash
-docker compose \
-  --env-file env/local/common.env \
-  --env-file env/local/core.env \
-  -f compose/base.yml \
-  -f compose/core.yml \
-  -f compose/apps/app/base.yml \
-  -f compose/apps/app/core.yml \
-  -f compose/apps/monitoring/base.yml \
-  -f compose/apps/monitoring/core.yml \
-  -f compose/apps/worker/base.yml \
-  -f compose/apps/worker/core.yml \
-  up -d
-```
-
-### Exemplo: desativando uma aplicação auxiliar
-
-Para subir apenas a aplicação principal, omita os pares `monitoring` e `worker` (ou outro diretório em `compose/apps/`).
-
-```bash
-docker compose \
-  --env-file env/local/common.env \
-  --env-file env/local/media.env \
-  -f compose/base.yml \
-  -f compose/media.yml \
-  -f compose/apps/app/base.yml \
-  -f compose/apps/app/media.yml \
-  up -d
-```
-
-## Exemplos de comando
-
-Use um único esqueleto de comando e ajuste os parâmetros marcados para cada
-instância:
+Use o esqueleto abaixo em qualquer instância, preenchendo o placeholder
+`<instância>` e adicionando apenas as aplicações desejadas.
 
 ```bash
 docker compose \
@@ -107,16 +75,26 @@ docker compose \
   -f compose/<instância>.yml \
   -f compose/apps/app/base.yml \
   -f compose/apps/app/<instância>.yml \
-  -f compose/apps/monitoring/base.yml \
-  -f compose/apps/monitoring/<instância>.yml \
-  -f compose/apps/worker/base.yml \
-  -f compose/apps/worker/<instância>.yml \
+  # Opcional: adicione pares base/instância para cada aplicação auxiliar habilitada
+  -f compose/apps/<aplicação-opcional>/base.yml \
+  -f compose/apps/<aplicação-opcional>/<instância>.yml \
   ${COMPOSE_EXTRA_FLAGS:-} \
   up -d
 ```
 
 > `COMPOSE_EXTRA_FLAGS` pode incluir `-f` adicionais (ex.: overlays) ou outras
 > opções globais necessárias para a instância.
+
+#### Como habilitar ou desativar aplicações auxiliares
+
+- **Manter ativa**: preserve o par `base.yml`/`<instância>.yml` correspondente no
+  snippet (ex.: `monitoring` → `-f compose/apps/monitoring/base.yml` +
+  `-f compose/apps/monitoring/<instância>.yml`).
+- **Desativar**: remova ambos os arquivos da aplicação desejada. Caso ela não
+  possua `base.yml`, mantenha apenas o override específico da instância conforme
+  anotado no próprio snippet.
+- **Adicionar outra aplicação**: replique as duas linhas substituindo
+  `<aplicação-opcional>` pelo diretório em `compose/apps/<app>/`.
 
 > **Importante:** ao executar o Compose manualmente, replique a mesma cadeia de
 > arquivos `.env` usada pelos scripts (`env/local/common.env` seguido de
