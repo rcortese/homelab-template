@@ -7,7 +7,7 @@ services:
       APP_SECRET: ${APP_SECRET}
       APP_RETENTION_HOURS: ${APP_RETENTION_HOURS:-168}
     volumes:
-      - ${APP_DATA_DIR}/${SERVICE_NAME:-app-core}:/var/lib/app
+      - ${APP_DATA_DIR:-data/app-core}:/var/lib/app
       - ../backups:/var/backups
     networks:
       homelab_internal:
