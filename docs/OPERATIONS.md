@@ -9,7 +9,7 @@ Este documento apresenta um ponto de partida para descrever processos operaciona
 | [`scripts/check_all.sh`](#scriptscheck_allsh) | Agregar validações de estrutura, `.env` e Compose em um único comando. | `scripts/check_all.sh` | Antes de abrir PRs ou rodar pipelines locais completos. |
 | [`scripts/check_structure.sh`](#scriptscheck_structuresh) | Confirmar diretórios/arquivos obrigatórios. | `scripts/check_structure.sh` | Antes de PRs ou pipelines que reorganizam arquivos. |
 | [`scripts/check_env_sync.py`](#scriptscheck_env_syncpy) | Verificar sincronização entre Compose e `env/*.example.env`. | `scripts/check_env_sync.py` | Após editar Compose ou templates `.env`; em validações locais/CI. |
-| [`scripts/run_quality_checks.sh`](#scriptsrun_quality_checkssh) | Executar `pytest` e `shellcheck` em uma única chamada. | `scripts/run_quality_checks.sh` | Após alterações em código Python ou shell. |
+| [`scripts/run_quality_checks.sh`](#scriptsrun_quality_checkssh) | Executar `pytest`, `shfmt`, `shellcheck` e `checkbashisms` em uma única chamada. | `scripts/run_quality_checks.sh` | Após alterações em código Python ou shell. |
 | [`scripts/bootstrap_instance.sh`](#scriptsbootstrap_instancesh) | Criar estrutura inicial de aplicação/instância. | `scripts/bootstrap_instance.sh <app> <instancia>` | Ao iniciar novos serviços ou ambientes. |
 | [`scripts/validate_compose.sh`](#scriptsvalidate_composesh) | Validar combinações padrão de Docker Compose. | `scripts/validate_compose.sh` | Após ajustes em manifests; etapas de CI. |
 | [`scripts/deploy_instance.sh`](#scriptsdeploy_instancesh) | Orquestrar deploy guiado de instâncias. | `scripts/deploy_instance.sh <alvo>` | Deploys manuais ou automatizados. |
@@ -89,13 +89,13 @@ Consulte o resumo na tabela acima. Inclua `scripts/check_env_sync.py` nas execu�
 
 ## scripts/run_quality_checks.sh
 
-- **Objetivo:** concentrar a suíte base de qualidade (`python -m pytest` e `shellcheck` nos scripts do repositório) em um único comando.
+- **Objetivo:** concentrar a suíte base de qualidade (`python -m pytest`, `shfmt`, `shellcheck` e `checkbashisms` nos scripts do repositório) em um único comando.
 - **Uso típico:**
   ```bash
   scripts/run_quality_checks.sh
   scripts/run_quality_checks.sh --no-lint
   ```
-- **Personalização:** defina `PYTHON_BIN` ou `SHELLCHECK_BIN` para apontar binários alternativos quando necessário (por exemplo, em ambientes virtuais ou wrappers locais) ou passe `--no-lint` quando quiser apenas rodar a suíte de testes Python.
+- **Personalização:** defina `PYTHON_BIN`, `SHFMT_BIN`, `SHELLCHECK_BIN` ou `CHECKBASHISMS_BIN` para apontar binários alternativos quando necessário (por exemplo, em ambientes virtuais ou wrappers locais) ou passe `--no-lint` quando quiser apenas rodar a suíte de testes Python.
 - **Boas práticas:** execute o helper durante ciclos iterativos em código Python ou shell para detectar regressões rapidamente e replique a chamada em pipelines locais antes de rodar `scripts/check_all.sh`.
 
 ## scripts/bootstrap_instance.sh

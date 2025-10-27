@@ -10,8 +10,8 @@ ferramentas abaixo instaladas (mesmo quando for utilizar ambientes remotos como 
 - Docker Engine **>= 24.x** (ou versão estável equivalente que ofereça suporte ao Compose v2 integrado)
 - Docker Compose **v2.20+** (para compatibilidade com perfis e validações atuais)
 - Python **>= 3.11** (necessário para executar scripts de automação e suítes de testes)
-- Ferramentas de lint/format para shell: `shellcheck` **>= 0.9.0** e `shfmt` **>= 3.6.0** (ou alternativas compatíveis configuradas
-  nos pipelines locais)
+- Ferramentas de lint/format para shell: `shellcheck` **>= 0.9.0**, `shfmt` **>= 3.6.0** e `checkbashisms` (ou alternativas compatíveis
+  configuradas nos pipelines locais)
 
 > Sempre que o template exigir novas ferramentas ou versões mínimas, esta lista será atualizada primeiro.
 
@@ -52,7 +52,7 @@ O agregador `scripts/check_all.sh` executa, na ordem abaixo, as validações est
 - `scripts/check_env_sync.py` – verifica se manifests Compose e arquivos `env/*.example.env` permanecem sincronizados.
 - `scripts/validate_compose.sh` – valida as combinações padrão de manifests para os perfis ativos.
 
-Utilize `scripts/run_quality_checks.sh` quando quiser rodar rapidamente a bateria base de qualidade sem percorrer todas as validações — acrescente `--no-lint` caso deseje apenas executar `pytest`.
+Utilize `scripts/run_quality_checks.sh` quando quiser rodar rapidamente a bateria base de qualidade sem percorrer todas as validações — o helper encadeia `pytest`, `shfmt`, `shellcheck` e `checkbashisms`. Acrescente `--no-lint` caso deseje apenas executar `pytest`.
 
 ## 5. Próximos passos
 
