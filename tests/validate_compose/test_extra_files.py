@@ -11,6 +11,20 @@ if TYPE_CHECKING:
     from ..conftest import DockerStub
 
 
+def _base_core_files(repo_copy: Path) -> list[Path]:
+    return [
+        repo_copy / "compose" / "base.yml",
+        repo_copy / "compose" / "apps" / "app" / "base.yml",
+        repo_copy / "compose" / "apps" / "app" / "core.yml",
+        repo_copy / "compose" / "apps" / "monitoring" / "base.yml",
+        repo_copy / "compose" / "apps" / "monitoring" / "core.yml",
+        repo_copy / "compose" / "apps" / "overrideonly" / "core.yml",
+        repo_copy / "compose" / "apps" / "worker" / "base.yml",
+        repo_copy / "compose" / "apps" / "worker" / "core.yml",
+        repo_copy / "compose" / "apps" / "baseonly" / "base.yml",
+    ]
+
+
 def test_prefers_local_env_when_available(repo_copy: Path, docker_stub: DockerStub) -> None:
     docker_stub.set_exit_code(0)
 
@@ -32,17 +46,7 @@ def test_prefers_local_env_when_available(repo_copy: Path, docker_stub: DockerSt
             repo_copy / "env" / "local" / "common.env",
             repo_copy / "env" / "local" / "core.env",
         ],
-        [
-            repo_copy / "compose" / "base.yml",
-            repo_copy / "compose" / "apps" / "app" / "base.yml",
-            repo_copy / "compose" / "apps" / "app" / "core.yml",
-            repo_copy / "compose" / "apps" / "monitoring" / "base.yml",
-            repo_copy / "compose" / "apps" / "monitoring" / "core.yml",
-            repo_copy / "compose" / "apps" / "overrideonly" / "core.yml",
-            repo_copy / "compose" / "apps" / "worker" / "base.yml",
-            repo_copy / "compose" / "apps" / "worker" / "core.yml",
-            repo_copy / "compose" / "apps" / "baseonly" / "base.yml",
-        ],
+        _base_core_files(repo_copy),
         "config",
     )
 
@@ -84,16 +88,8 @@ def test_includes_extra_files_from_env_file(repo_copy: Path, docker_stub: Docker
             repo_copy / "env" / "local" / "common.env",
             repo_copy / "env" / "local" / "core.env",
         ],
-        [
-            repo_copy / "compose" / "base.yml",
-            repo_copy / "compose" / "apps" / "app" / "base.yml",
-            repo_copy / "compose" / "apps" / "app" / "core.yml",
-            repo_copy / "compose" / "apps" / "monitoring" / "base.yml",
-            repo_copy / "compose" / "apps" / "monitoring" / "core.yml",
-            repo_copy / "compose" / "apps" / "overrideonly" / "core.yml",
-            repo_copy / "compose" / "apps" / "worker" / "base.yml",
-            repo_copy / "compose" / "apps" / "worker" / "core.yml",
-            repo_copy / "compose" / "apps" / "baseonly" / "base.yml",
+        _base_core_files(repo_copy)
+        + [
             repo_copy / "compose" / "overlays" / "metrics.yml",
             repo_copy / "compose" / "overlays" / "logging.yml",
         ],
@@ -144,16 +140,8 @@ def test_env_override_for_extra_files(repo_copy: Path, docker_stub: DockerStub) 
             repo_copy / "env" / "local" / "common.env",
             repo_copy / "env" / "local" / "core.env",
         ],
-        [
-            repo_copy / "compose" / "base.yml",
-            repo_copy / "compose" / "apps" / "app" / "base.yml",
-            repo_copy / "compose" / "apps" / "app" / "core.yml",
-            repo_copy / "compose" / "apps" / "monitoring" / "base.yml",
-            repo_copy / "compose" / "apps" / "monitoring" / "core.yml",
-            repo_copy / "compose" / "apps" / "overrideonly" / "core.yml",
-            repo_copy / "compose" / "apps" / "worker" / "base.yml",
-            repo_copy / "compose" / "apps" / "worker" / "core.yml",
-            repo_copy / "compose" / "apps" / "baseonly" / "base.yml",
+        _base_core_files(repo_copy)
+        + [
             repo_copy / "compose" / "overlays" / "custom.yml",
         ],
         "config",
