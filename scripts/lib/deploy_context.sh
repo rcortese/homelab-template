@@ -330,5 +330,12 @@ build_deploy_context() {
   printf '  [DATA_GID]=%q\n' "$data_gid"
   printf '  [APP_DATA_UID_GID]=%q\n' "$app_data_uid_gid"
   printf '  [APP_NAMES]=%q\n' "$app_names_string"
+  printf '  [PRIMARY_APP]=%q\n' "$primary_app"
   printf ')\n'
+  printf 'export APP_INSTANCE=%q\n' "$instance"
+  if [[ -n "$primary_app" ]]; then
+    printf 'export APP_PRIMARY_APP=%q\n' "$primary_app"
+  else
+    printf 'unset APP_PRIMARY_APP\n'
+  fi
 }

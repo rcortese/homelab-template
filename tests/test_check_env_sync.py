@@ -3,7 +3,12 @@ from __future__ import annotations
 import subprocess
 from pathlib import Path
 
-from scripts.check_env_sync import decode_bash_string, parse_declare_array, parse_declare_mapping
+from scripts.check_env_sync import (
+    RUNTIME_PROVIDED_VARIABLES,
+    decode_bash_string,
+    parse_declare_array,
+    parse_declare_mapping,
+)
 from tests.helpers.compose_instances import ComposeInstancesData
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -209,3 +214,7 @@ def test_parse_declare_mapping_with_multiple_entries_and_escapes() -> None:
     assert result["foo"] == "line\nA"
     assert result["bar"] == "line\nB"
     assert result["baz"] == "tab\tvalue"
+
+
+def test_runtime_provided_variables_include_instance_metadata() -> None:
+    assert {"APP_INSTANCE", "APP_PRIMARY_APP"} <= RUNTIME_PROVIDED_VARIABLES

@@ -308,6 +308,12 @@ if [[ ${#COMPOSE_ARGS[@]} -gt 0 ]]; then
 fi
 
 declare -a env_prefix=()
+if [[ -n "$INSTANCE_NAME" ]]; then
+  env_prefix+=("APP_INSTANCE=$INSTANCE_NAME")
+fi
+if [[ -n "$primary_app_name" ]]; then
+  env_prefix+=("APP_PRIMARY_APP=$primary_app_name")
+fi
 if [[ -n "$derived_app_data_dir" ]]; then
   env_prefix+=("APP_DATA_DIR=$derived_app_data_dir")
 fi

@@ -31,6 +31,7 @@ Este diretório armazena modelos (`*.example.env`) e instruções para gerar arq
 | `APP_RETENTION_HOURS` | Opcional | Controla a retenção de registros/processos. | `compose/apps/app/base.yml` e runbooks. |
 | `APP_DATA_DIR`/`APP_DATA_DIR_MOUNT` | Opcional | Define o diretório persistente relativo (`data/<app>-<instância>`) ou um caminho absoluto alternativo — nunca use ambos ao mesmo tempo. | `scripts/deploy_instance.sh`, `scripts/compose.sh`, `scripts/backup.sh`, `scripts/fix_permission_issues.sh`. |
 | `APP_DATA_UID`/`APP_DATA_GID` | Opcional | Ajusta o proprietário padrão dos volumes persistentes. | `scripts/deploy_instance.sh`, `scripts/backup.sh`, `scripts/fix_permission_issues.sh`. |
+| `APP_INSTANCE`/`APP_PRIMARY_APP` | Automático | Identificadores derivados pelos helpers. Alimentam a convenção `data/<app>-<instância>` e tornam o slug da aplicação disponível para scripts e manifests. | `scripts/lib/deploy_context.sh`, `scripts/compose.sh`, `compose/apps/app/base.yml`. |
 | `APP_SHARED_DATA_VOLUME_NAME` | Opcional | Personaliza o volume persistente compartilhado entre aplicações. | `compose/base.yml`. |
 
 Monte uma tabela semelhante à abaixo para cada arquivo `env/<alvo>.example.env`:
@@ -42,7 +43,7 @@ Monte uma tabela semelhante à abaixo para cada arquivo `env/<alvo>.example.env`
 
 > Substitua a tabela pelos campos reais da sua stack. Utilize a coluna **Referência** para apontar onde a variável é consumida (manifests, scripts, infraestrutura externa, etc.).
 
-> **Nota:** o diretório persistente principal segue a convenção `data/<app>-<instância>`, considerando a aplicação principal (primeira da lista em `COMPOSE_INSTANCE_APP_NAMES`). Deixe `APP_DATA_DIR` e `APP_DATA_DIR_MOUNT` em branco para usar automaticamente esse fallback relativo. Informe **apenas um** deles quando precisar personalizar o caminho (relativo ou absoluto, respectivamente); os scripts retornam erro se ambos estiverem definidos ao mesmo tempo. Ajuste `APP_DATA_UID` e `APP_DATA_GID` para alinhar permissões.
+> **Nota:** o diretório persistente principal segue a convenção `data/<app>-<instância>`, considerando a aplicação principal (primeira da lista em `COMPOSE_INSTANCE_APP_NAMES`). Os helpers exportam `APP_PRIMARY_APP` e `APP_INSTANCE` automaticamente para compor esse slug. Deixe `APP_DATA_DIR` e `APP_DATA_DIR_MOUNT` em branco para usar automaticamente esse fallback relativo. Informe **apenas um** deles quando precisar personalizar o caminho (relativo ou absoluto, respectivamente); os scripts retornam erro se ambos estiverem definidos ao mesmo tempo. Ajuste `APP_DATA_UID` e `APP_DATA_GID` para alinhar permissões.
 
 ## Boas práticas
 

@@ -119,6 +119,12 @@ docker compose \
 > inline (`COMPOSE_EXTRA_FILES="compose/overlays/metrics.yml" docker compose ...`)
 > para anexar os manifests extras à pilha.
 
+Os wrappers `scripts/compose.sh` e `scripts/deploy_instance.sh` exportam `APP_INSTANCE`
+e `APP_PRIMARY_APP` automaticamente a partir dos metadados da instância. Esses
+identificadores alimentam o fallback `data/<app>-<instância>` utilizado pelos
+manifests (como `compose/apps/app/base.yml`) e evitam que execuções manuais
+reutilizem diretórios persistentes de outras instâncias.
+
 #### Como habilitar ou desativar aplicações auxiliares
 
 - **Manter ativa**: preserve o par `base.yml`/`<instância>.yml` correspondente no

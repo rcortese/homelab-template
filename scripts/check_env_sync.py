@@ -12,7 +12,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, Iterable, List, Mapping, Sequence, Set
 
-RUNTIME_PROVIDED_VARIABLES: Set[str] = {"PWD"}
+RUNTIME_PROVIDED_VARIABLES: Set[str] = {"PWD", "APP_INSTANCE", "APP_PRIMARY_APP"}
+IMPLICIT_ENV_VARS: Set[str] = set()
 
 PAIR_PATTERN = re.compile(
     r"\[([^\]]+)\]="
