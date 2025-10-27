@@ -8,7 +8,7 @@ Este documento apresenta um ponto de partida para descrever processos operaciona
 | --- | --- | --- | --- |
 | [`scripts/check_structure.sh`](#scriptscheck_structuresh) | Confirmar diretórios/arquivos obrigatórios. | `scripts/check_structure.sh` | Antes de PRs ou pipelines que reorganizam arquivos. |
 | [`scripts/check_env_sync.py`](#scriptscheck_env_syncpy) | Verificar sincronização entre Compose e `env/*.example.env`. | `scripts/check_env_sync.py` | Após editar Compose ou templates `.env`; em validações locais/CI. |
-| [`scripts/run_quality_checks.sh`](#scriptsrun_quality_checkssh) | Executar `pytest` e `shellcheck` em uma única chamada. | `scripts/run_quality_checks.sh` | Após alterações em código Python ou shell; antes de abrir PRs. |
+| [`scripts/run_quality_checks.sh`](#scriptsrun_quality_checkssh) | Executar `pytest` e `shellcheck` em uma única chamada. | `scripts/run_quality_checks.sh` | Após alterações em código Python ou shell. |
 | [`scripts/bootstrap_instance.sh`](#scriptsbootstrap_instancesh) | Criar estrutura inicial de aplicação/instância. | `scripts/bootstrap_instance.sh <app> <instancia>` | Ao iniciar novos serviços ou ambientes. |
 | [`scripts/validate_compose.sh`](#scriptsvalidate_composesh) | Validar combinações padrão de Docker Compose. | `scripts/validate_compose.sh` | Após ajustes em manifests; etapas de CI. |
 | [`scripts/deploy_instance.sh`](#scriptsdeploy_instancesh) | Orquestrar deploy guiado de instâncias. | `scripts/deploy_instance.sh <alvo>` | Deploys manuais ou automatizados. |
