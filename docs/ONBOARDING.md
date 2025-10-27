@@ -46,7 +46,13 @@ Com os `.env` locais criados e as dependências instaladas, execute:
 scripts/check_all.sh
 ```
 
-O agregador `scripts/check_all.sh` encadeia as validações padrão do template. Consulte a tabela em [`docs/OPERATIONS.md`](./OPERATIONS.md#opera%C3%A7%C3%B5es-padr%C3%A3o-do-template) para conferir o objetivo e os comandos individuais de cada script, caso queira executá-los manualmente.
+O agregador `scripts/check_all.sh` executa, na ordem abaixo, as validações estruturais essenciais do template e encerra imediatamente quando alguma delas falha:
+
+- `scripts/check_structure.sh` – confirma se diretórios e arquivos obrigatórios continuam presentes.
+- `scripts/check_env_sync.py` – verifica se manifests Compose e arquivos `env/*.example.env` permanecem sincronizados.
+- `scripts/validate_compose.sh` – valida as combinações padrão de manifests para os perfis ativos.
+
+Utilize `scripts/run_quality_checks.sh` quando quiser rodar rapidamente a bateria base de qualidade sem percorrer todas as validações.
 
 ## 5. Próximos passos
 
