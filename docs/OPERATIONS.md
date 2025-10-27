@@ -115,10 +115,34 @@ O script depende de `scripts/lib/deploy_context.sh` para calcular `APP_DATA_DIR`
 
 ## scripts/compose.sh
 
-- **Formato básico:** `scripts/compose.sh <instancia> <subcomando> [argumentos...]`. A instância define quais manifests (`compose/base.yml`, overlays de app e overrides da instância) e cadeias de `.env` serão carregados antes de encaminhar o subcomando ao `docker compose`.
-- **Sem instância:** utilize `--` para separar os argumentos quando quiser apenas reutilizar o wrapper sem carregar metadados (ex.: `scripts/compose.sh -- config`).
-- **Variáveis úteis:** `DOCKER_COMPOSE_BIN` sobrescreve o binário invocado; `COMPOSE_FILES` e `COMPOSE_ENV_FILE` (ou `COMPOSE_ENV_FILES`) forçam combinações personalizadas sem depender dos manifests/`.env` padrão; `APP_DATA_DIR` (relativo) e `APP_DATA_DIR_MOUNT` (absoluto) são opcionais e devem ser usados de forma exclusiva — deixe ambos vazios para adotar o fallback `data/<app>-<instância>` calculado automaticamente.
-- **Ajuda integrada:** `scripts/compose.sh --help` descreve todas as opções suportadas e exemplos adicionais (`scripts/compose.sh core up -d`, `scripts/compose.sh media logs app`, `scripts/compose.sh core -- down app`).
+O wrapper concentra toda a montagem do plano de execução do Docker Compose e evita que instâncias diferentes divirjam na ordem dos manifests ou na cadeia de variáveis de ambiente.
+
+### Fluxo padrão
+
+- **Formato básico:** `scripts/compose.sh <instancia> <subcomando> [argumentos...]`. A instância determina automaticamente a sequência de arquivos `-f` e os `--env-file` carregados antes de encaminhar o subcomando ao `docker compose`.
+- **Cadeia de `.env`:** o script carrega primeiro `env/local/common.env` e, em seguida, `env/local/<instância>.env`, replicando o fluxo descrito em [`env/README.md`](../env/README.md). Defina `COMPOSE_ENV_FILE` (único arquivo) ou `COMPOSE_ENV_FILES` (lista separada por espaços) quando precisar sobrescrever a cadeia padrão.
+- **Ordem dos manifests:** `compose/base.yml` → `compose/<instância>.yml` → `compose/apps/<app>/base.yml` (quando existir) → `compose/apps/<app>/<instância>.yml`. Aplicações que possuem apenas overrides ficam sem o `base.yml` e não quebram o plano — a descoberta ignora automaticamente arquivos ausentes. Overlays adicionais definidos em `COMPOSE_EXTRA_FILES` são anexados ao final, respeitando a ordem fornecida.
+- **Persistência de dados:** `APP_DATA_DIR` (relativo) e `APP_DATA_DIR_MOUNT` (absoluto) continuam mutuamente exclusivos. Mantenha ambos vazios para utilizar o fallback `data/<app>-<instância>` calculado pelo helper `scripts/lib/deploy_context.sh`.
+
+### Exemplos práticos
+
+```bash
+# Sobe a stack padrão da instância core
+scripts/compose.sh core up -d
+
+# Exibe logs focados no serviço app na instância media
+scripts/compose.sh media logs app
+
+# Reaproveita o wrapper sem carregar metadados de instância
+scripts/compose.sh -- config
+```
+
+### Personalizações avançadas
+
+- `DOCKER_COMPOSE_BIN` sobrescreve o binário invocado (útil em ambientes com wrappers ou versões alternativas do Compose).
+- `COMPOSE_FILES` aceita uma lista completa de manifests (separados por espaços) quando for necessário montar um plano ad-hoc. Quando fornecido, o script ignora a detecção automática e replica a lista ao chamar `docker compose`.
+- Combine `COMPOSE_EXTRA_FILES` com `COMPOSE_INSTANCES` ao chamar [`scripts/validate_compose.sh`](#scriptsvalidate_composesh) ou `scripts/deploy_instance.sh` para validar overlays temporários antes de incorporá-los definitivamente.
+- `scripts/compose.sh --help` traz todas as flags suportadas, exemplos adicionais e notas sobre o comportamento de descoberta de arquivos.
 
 ## scripts/describe_instance.sh
 
