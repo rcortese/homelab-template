@@ -6,6 +6,7 @@ Este documento apresenta um ponto de partida para descrever processos operaciona
 
 | Script | Objetivo | Comando básico | Gatilhos recomendados |
 | --- | --- | --- | --- |
+| [`scripts/check_all.sh`](#scriptscheck_allsh) | Agregar validações de estrutura, `.env` e Compose em um único comando. | `scripts/check_all.sh` | Antes de abrir PRs ou rodar pipelines locais completos. |
 | [`scripts/check_structure.sh`](#scriptscheck_structuresh) | Confirmar diretórios/arquivos obrigatórios. | `scripts/check_structure.sh` | Antes de PRs ou pipelines que reorganizam arquivos. |
 | [`scripts/check_env_sync.py`](#scriptscheck_env_syncpy) | Verificar sincronização entre Compose e `env/*.example.env`. | `scripts/check_env_sync.py` | Após editar Compose ou templates `.env`; em validações locais/CI. |
 | [`scripts/run_quality_checks.sh`](#scriptsrun_quality_checkssh) | Executar `pytest` e `shellcheck` em uma única chamada. | `scripts/run_quality_checks.sh` | Após alterações em código Python ou shell. |
@@ -34,6 +35,16 @@ Este documento apresenta um ponto de partida para descrever processos operaciona
 - Cada instância deve reservar endereços IPv4 exclusivos para os serviços. Os modelos `env/core.example.env` e `env/media.example.env` ilustram como separar os IPs do serviço `app` (`APP_NETWORK_IPV4`), do serviço `monitoring` (`MONITORING_NETWORK_IPV4`) e do serviço `worker` (`WORKER_NETWORK_IPV4`).
 - Ao criar novas instâncias ou serviços adicionais, replique o padrão: declare variáveis `*_NETWORK_IPV4` específicas no template `.env` correspondente e conecte o serviço à rede `homelab_internal` (ou ao nome definido em `APP_NETWORK_NAME`) dentro do manifest Compose.
 - Depois de ajustar os IPs, execute `scripts/validate_compose.sh` ou `docker compose config -q` para validar se não há sobreposições ou lacunas na configuração.
+
+## scripts/check_all.sh
+
+- **Ordem das verificações:**
+  1. `scripts/check_structure.sh` — garante que diretórios e arquivos obrigatórios estão presentes.
+  2. `scripts/check_env_sync.py` — valida a sincronização entre os manifests Compose e os arquivos `env/*.example.env`.
+  3. `scripts/validate_compose.sh` — confirma se as combinações de Compose permanecem válidas para os perfis suportados.
+- **Comportamento em caso de falha:** o script é executado com `set -euo pipefail` e encerra imediatamente na primeira verificação que retornar código diferente de zero, propagando a mensagem do helper que falhou.
+- **Variáveis e flags relevantes:** não possui parâmetros próprios; respeita as variáveis aceitas pelos scripts internos (`COMPOSE_INSTANCES`, `COMPOSE_EXTRA_FILES`, `DOCKER_COMPOSE_BIN`, entre outras). Exporte-as antes da chamada quando precisar personalizar o encadeamento.
+- **Orientações de uso:** priorize `scripts/check_all.sh` em ciclos de validação completos antes de abrir PRs, sincronizar forks ou iniciar pipelines manuais. Utilize os scripts individuais apenas durante ajustes focados (por exemplo, rodar `scripts/check_env_sync.py` após editar um `.env`). Reproduza a chamada em pipelines de CI que representem o fluxo local de validações, mantendo paridade entre ambientes.
 
 ## scripts/check_structure.sh
 
