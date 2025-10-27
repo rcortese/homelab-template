@@ -85,19 +85,3 @@ Repositórios derivados podem reaplicar suas customizações sobre a versão mai
 O script exibe mensagens claras sobre os comandos executados (`git fetch` seguido de `git rebase --onto`) e falha cedo caso
 os commits informados não pertençam à branch atual.
 
-## Testes automatizados
-
-Para executar a suíte de testes localmente:
-
-```bash
-pip install -r requirements-dev.txt
-python -m pytest
-```
-
-Os scripts shell, inclusive os que residem em subdiretórios como `scripts/lib/`, também podem (e devem) ser verificados com [ShellCheck](https://www.shellcheck.net/):
-
-```bash
-shellcheck scripts/*.sh scripts/lib/*.sh
-```
-
-Adapte as ferramentas de lint e os testes para refletir a stack de cada projeto derivado.

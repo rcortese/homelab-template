@@ -8,6 +8,7 @@ Este documento apresenta um ponto de partida para descrever processos operaciona
 | --- | --- | --- | --- |
 | [`scripts/check_structure.sh`](#scriptscheck_structuresh) | Confirmar diretórios/arquivos obrigatórios. | `scripts/check_structure.sh` | Antes de PRs ou pipelines que reorganizam arquivos. |
 | [`scripts/check_env_sync.py`](#scriptscheck_env_syncpy) | Verificar sincronização entre Compose e `env/*.example.env`. | `scripts/check_env_sync.py` | Após editar Compose ou templates `.env`; em validações locais/CI. |
+| [`scripts/run_quality_checks.sh`](#scriptsrun_quality_checkssh) | Executar `pytest` e `shellcheck` em uma única chamada. | `scripts/run_quality_checks.sh` | Após alterações em código Python ou shell; antes de abrir PRs. |
 | [`scripts/bootstrap_instance.sh`](#scriptsbootstrap_instancesh) | Criar estrutura inicial de aplicação/instância. | `scripts/bootstrap_instance.sh <app> <instancia>` | Ao iniciar novos serviços ou ambientes. |
 | [`scripts/validate_compose.sh`](#scriptsvalidate_composesh) | Validar combinações padrão de Docker Compose. | `scripts/validate_compose.sh` | Após ajustes em manifests; etapas de CI. |
 | [`scripts/deploy_instance.sh`](#scriptsdeploy_instancesh) | Orquestrar deploy guiado de instâncias. | `scripts/deploy_instance.sh <alvo>` | Deploys manuais ou automatizados. |
@@ -49,6 +50,16 @@ Consulte o resumo na tabela acima. Inclua `scripts/check_env_sync.py` nas execu�
 - **Saída:** lista variáveis ausentes, obsoletas ou instâncias sem template, retornando código de saída diferente de zero quando encontrar problemas — ideal para CI.
 - **Boas práticas:** execute o script após mudanças em Compose ou nos arquivos `.env` de exemplo e inclua-o no pipeline de validação local antes de abrir PRs.
   > **Alerta:** rodar a verificação antes de abrir PRs evita que variáveis órfãs avancem para revisão.
+
+## scripts/run_quality_checks.sh
+
+- **Objetivo:** concentrar a suíte base de qualidade (`python -m pytest` e `shellcheck` nos scripts do repositório) em um único comando.
+- **Uso típico:**
+  ```bash
+  scripts/run_quality_checks.sh
+  ```
+- **Personalização:** defina `PYTHON_BIN` ou `SHELLCHECK_BIN` para apontar binários alternativos quando necessário (por exemplo, em ambientes virtuais ou wrappers locais).
+- **Boas práticas:** execute o helper durante ciclos iterativos em código Python ou shell para detectar regressões rapidamente e replique a chamada em pipelines locais antes de rodar `scripts/check_all.sh`.
 
 ## scripts/bootstrap_instance.sh
 
