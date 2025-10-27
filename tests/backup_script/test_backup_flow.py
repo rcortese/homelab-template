@@ -50,16 +50,9 @@ def test_successful_backup_creates_snapshot_and_restarts_stack(
         encoding="utf-8",
     )
 
-    data_root = repo_copy / "data" / "core-root"
-    apps_dir = data_root / "apps"
-    apps_dir.mkdir(parents=True)
-    (apps_dir / "app-core").mkdir()
-    (apps_dir / "monitoring").mkdir()
-    (apps_dir / "worker").mkdir()
-
-    data_dir = data_root / "data" / "app-core"
-    data_dir.mkdir(parents=True)
-    (data_dir / "db.sqlite").write_text("payload", encoding="utf-8")
+    data_mount = repo_copy / "data" / "core-root" / "app-core"
+    data_mount.mkdir(parents=True)
+    (data_mount / "db.sqlite").write_text("payload", encoding="utf-8")
 
     result = run_backup(repo_copy, "core")
 
@@ -69,7 +62,7 @@ def test_successful_backup_creates_snapshot_and_restarts_stack(
 
     backup_dir = repo_copy / "backups" / "core-20240101-030405"
     assert backup_dir.is_dir()
-    restored_file = backup_dir / "data" / "app-core" / "db.sqlite"
+    restored_file = backup_dir / "db.sqlite"
     assert restored_file.read_text(encoding="utf-8") == "payload"
 
     calls = compose_log.read_text(encoding="utf-8").splitlines()
@@ -104,16 +97,9 @@ def test_copy_failure_still_attempts_restart(repo_copy: Path, monkeypatch) -> No
         encoding="utf-8",
     )
 
-    data_root = repo_copy / "data" / "core-root"
-    apps_dir = data_root / "apps"
-    apps_dir.mkdir(parents=True)
-    (apps_dir / "app-core").mkdir()
-    (apps_dir / "monitoring-core").mkdir()
-    (apps_dir / "worker-core").mkdir()
-
-    data_dir = data_root / "data" / "app-core"
-    data_dir.mkdir(parents=True)
-    (data_dir / "db.sqlite").write_text("payload", encoding="utf-8")
+    data_mount = repo_copy / "data" / "core-root" / "app-core"
+    data_mount.mkdir(parents=True)
+    (data_mount / "db.sqlite").write_text("payload", encoding="utf-8")
 
     result = run_backup(repo_copy, "core")
 
@@ -132,7 +118,7 @@ def test_copy_failure_still_attempts_restart(repo_copy: Path, monkeypatch) -> No
     ]
     assert cp_log.read_text(encoding="utf-8").splitlines() == [
         "-a",
-        f"{repo_copy}/data/core-root/.",
+        f"{repo_copy}/data/core-root/app-core/.",
         f"{repo_copy}/backups/core-20240101-030405/",
     ]
 
@@ -160,16 +146,8 @@ def test_detected_apps_ignore_unknown_entries(repo_copy: Path, monkeypatch) -> N
         encoding="utf-8",
     )
 
-    data_root = repo_copy / "data" / "core-root"
-    apps_dir = data_root / "apps"
-    apps_dir.mkdir(parents=True)
-    (apps_dir / "app-core").mkdir()
-    (apps_dir / "monitoring-core").mkdir()
-    (apps_dir / "legacy-service").mkdir()
-
-    data_dir = data_root / "data"
-    data_dir.mkdir()
-    (data_dir / "orphan").mkdir()
+    data_mount = repo_copy / "data" / "core-root" / "app-core"
+    data_mount.mkdir(parents=True)
 
     result = run_backup(repo_copy, "core")
 
@@ -201,8 +179,8 @@ def test_fallback_to_known_apps_when_no_active_dirs(repo_copy: Path, monkeypatch
         encoding="utf-8",
     )
 
-    data_root = repo_copy / "data" / "core-root"
-    data_root.mkdir(parents=True)
+    data_mount = repo_copy / "data" / "core-root" / "app-core"
+    data_mount.mkdir(parents=True)
 
     result = run_backup(repo_copy, "core")
 
