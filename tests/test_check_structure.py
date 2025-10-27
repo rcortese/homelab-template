@@ -15,6 +15,7 @@ REQUIRED_PATHS = [
     "env",
     "scripts",
     "docs",
+    "tests",
     ".github/workflows",
     "README.md",
     "docs/STRUCTURE.md",
