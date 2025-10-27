@@ -4,13 +4,13 @@
 
 VALIDATE_EXECUTOR_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# shellcheck source=./scripts/lib/env_file_chain.sh
+# shellcheck source=scripts/lib/env_file_chain.sh
 source "$VALIDATE_EXECUTOR_DIR/env_file_chain.sh"
 
-# shellcheck source=./scripts/lib/env_helpers.sh
+# shellcheck source=scripts/lib/env_helpers.sh
 source "$VALIDATE_EXECUTOR_DIR/env_helpers.sh"
 
-# shellcheck source=./scripts/lib/compose_plan.sh
+# shellcheck source=scripts/lib/compose_plan.sh
 source "$VALIDATE_EXECUTOR_DIR/compose_plan.sh"
 
 validate_executor_prepare_plan() {
@@ -232,6 +232,7 @@ validate_executor_prepare_plan() {
 
   # Touch nameref arrays so shellcheck recognizes they are consumed by callers.
   : "${env_args_ref[@]}"
+  : "${derived_env_ref[@]}"
 
   return 0
 }

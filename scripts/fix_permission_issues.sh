@@ -20,10 +20,10 @@ USAGE
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-# shellcheck source=./lib/deploy_context.sh
+# shellcheck source=scripts/lib/deploy_context.sh
 source "$SCRIPT_DIR/lib/deploy_context.sh"
 
-# shellcheck source=./lib/step_runner.sh
+# shellcheck source=scripts/lib/step_runner.sh
 source "$SCRIPT_DIR/lib/step_runner.sh"
 
 INSTANCE=""

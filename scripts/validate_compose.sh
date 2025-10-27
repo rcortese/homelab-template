@@ -16,14 +16,14 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 ENV_LOADER="$SCRIPT_DIR/lib/env_loader.sh"
 
-# shellcheck source=lib/compose_command.sh
+# shellcheck source=scripts/lib/compose_command.sh
 source "$SCRIPT_DIR/lib/compose_command.sh"
 
-# shellcheck source=lib/compose_file_utils.sh
+# shellcheck source=scripts/lib/compose_file_utils.sh
 source "$SCRIPT_DIR/lib/compose_file_utils.sh"
-# shellcheck source=lib/validate_cli.sh
+# shellcheck source=scripts/lib/validate_cli.sh
 source "$SCRIPT_DIR/lib/validate_cli.sh"
-# shellcheck source=lib/validate_executor.sh
+# shellcheck source=scripts/lib/validate_executor.sh
 source "$SCRIPT_DIR/lib/validate_executor.sh"
 
 if ! compose_metadata="$("$SCRIPT_DIR/lib/compose_instances.sh" "$REPO_ROOT")"; then
@@ -53,6 +53,9 @@ else
   status=$?
   exit $status
 fi
+
+# Touch the array to satisfy static analysis before passing via nameref.
+: "${instances_to_validate[@]}"
 
 validate_executor_run_instances "$REPO_ROOT" "$base_file" "$ENV_LOADER" instances_to_validate "${compose_cmd[@]}"
 executor_status=$?
