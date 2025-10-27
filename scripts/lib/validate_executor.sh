@@ -41,32 +41,6 @@ validate_executor_prepare_plan() {
     return 2
   fi
 
-  local instance_files_raw="${COMPOSE_INSTANCE_FILES[$instance]}"
-
-  mapfile -t instance_file_list < <(printf '%s\n' "$instance_files_raw")
-
-  local -a instance_app_names=()
-  local instance_apps_raw="${COMPOSE_INSTANCE_APP_NAMES[$instance]:-}"
-  if [[ -n "$instance_apps_raw" ]]; then
-    mapfile -t instance_app_names < <(printf '%s\n' "$instance_apps_raw")
-  fi
-
-  declare -A instance_overrides_by_app=()
-  local instance_entry app_for_entry
-  for instance_entry in "${instance_file_list[@]}"; do
-    [[ -z "$instance_entry" ]] && continue
-    app_for_entry="${instance_entry#compose/apps/}"
-    app_for_entry="${app_for_entry%%/*}"
-    if [[ -z "$app_for_entry" ]]; then
-      continue
-    fi
-    if [[ -n "${instance_overrides_by_app[$app_for_entry]:-}" ]]; then
-      instance_overrides_by_app[$app_for_entry]+=$'\n'"$instance_entry"
-    else
-      instance_overrides_by_app[$app_for_entry]="$instance_entry"
-    fi
-  done
-
   local env_files_blob="${COMPOSE_INSTANCE_ENV_FILES[$instance]:-}"
   local -a env_files_rel=()
   if [[ -n "$env_files_blob" ]]; then
@@ -87,21 +61,6 @@ validate_executor_prepare_plan() {
       env_file_chain__to_absolute "$repo_root" "${env_files_rel[@]}"
     )
   fi
-
-  files_ref=("$base_file")
-
-  local app_name
-  for app_name in "${instance_app_names[@]}"; do
-    files_ref+=("$(resolve_compose_file "compose/apps/${app_name}/base.yml")")
-    if [[ -n "${instance_overrides_by_app[$app_name]:-}" ]]; then
-      local -a app_override_entries=()
-      mapfile -t app_override_entries < <(printf '%s\n' "${instance_overrides_by_app[$app_name]}")
-      local override_entry
-      for override_entry in "${app_override_entries[@]}"; do
-        files_ref+=("$(resolve_compose_file "$override_entry")")
-      done
-    fi
-  done
 
   local -a extra_files=()
   local extra_files_source=""
@@ -126,26 +85,32 @@ validate_executor_prepare_plan() {
     done < <(parse_compose_file_list "$extra_files_source")
   fi
 
-  local rel resolved_rel entry
-  for rel in "${instance_file_list[@]}"; do
-    [[ -z "$rel" ]] && continue
-    resolved_rel="$(resolve_compose_file "$rel")"
-    local already_in_list=0
-    for entry in "${files_ref[@]}"; do
-      if [[ "$entry" == "$resolved_rel" ]]; then
-        already_in_list=1
-        break
-      fi
-    done
-    if ((already_in_list == 0)); then
-      files_ref+=("$resolved_rel")
+  local -a compose_plan_rel=()
+  if ! build_compose_file_plan "$instance" compose_plan_rel extra_files; then
+    echo "✖ instância=\"$instance\" (falha ao gerar plano de arquivos)" >&2
+    return 1
+  fi
+
+  files_ref=()
+  local plan_entry resolved_entry
+  for plan_entry in "${compose_plan_rel[@]}"; do
+    [[ -z "$plan_entry" ]] && continue
+    if [[ "$plan_entry" == /* ]]; then
+      resolved_entry="$plan_entry"
+    else
+      resolved_entry="$repo_root/${plan_entry#./}"
     fi
+    files_ref+=("$resolved_entry")
   done
 
-  if [[ ${#extra_files[@]} -gt 0 ]]; then
-    for rel in "${extra_files[@]}"; do
-      files_ref+=("$(resolve_compose_file "$rel")")
-    done
+  if [[ -n "$base_file" ]]; then
+    local base_expected="$base_file"
+    if [[ "$base_expected" != /* ]]; then
+      base_expected="$repo_root/${base_expected#./}"
+    fi
+    if [[ ${#files_ref[@]} -eq 0 || "${files_ref[0]}" != "$base_expected" ]]; then
+      files_ref=("$base_expected" "${files_ref[@]}")
+    fi
   fi
 
   compose_args_ref=()
