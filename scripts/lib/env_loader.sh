@@ -28,7 +28,41 @@ import re
 import sys
 from pathlib import Path
 
-COMMENT_PATTERN = re.compile(r"(?<!\\)\s+#")
+def find_comment_index(value: str) -> int | None:
+    """Locate the start of an inline comment, if any.
+
+    A comment begins at an unescaped ``#`` character that is either the first
+    character in the value or is immediately preceded by whitespace. Escaped
+    hash characters (``\#``) should be preserved as literals.
+    """
+
+    for index, char in enumerate(value):
+        if char != "#":
+            continue
+
+        if index == 0:
+            # Leading '#'-only values are handled separately in normalize().
+            continue
+
+        if index > 0 and not value[index - 1].isspace():
+            # Require whitespace before inline comments to avoid stripping
+            # legitimate values like "foo#bar".
+            continue
+
+        # Count the number of consecutive backslashes directly before the '#'
+        # character. An odd number means the hash is escaped and should remain
+        # part of the value.
+        backslashes = 0
+        lookbehind = index - 1
+        while lookbehind >= 0 and value[lookbehind] == "\\":
+            backslashes += 1
+            lookbehind -= 1
+        if backslashes % 2 == 1:
+            continue
+
+        return index
+
+    return None
 
 
 def normalize(value: str) -> str:
@@ -43,11 +77,12 @@ def normalize(value: str) -> str:
     if was_quoted:
         value = value[1:-1]
     if value and not was_quoted:
-        match = COMMENT_PATTERN.search(value)
-        if match:
-            value = value[: match.start()].rstrip()
-        elif value.startswith('#') and (len(value) == 1 or value[1].isspace()):
+        if value.startswith('#') and (len(value) == 1 or value[1].isspace()):
             return ""
+
+        comment_index = find_comment_index(value)
+        if comment_index is not None:
+            value = value[:comment_index].rstrip()
     return value.replace("\\#", "#")
 
 def parse_file(path: Path) -> dict[str, str]:
