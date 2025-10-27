@@ -4,9 +4,43 @@ import subprocess
 from pathlib import Path
 
 from scripts.check_env_sync import decode_bash_string, parse_declare_array, parse_declare_mapping
+from tests.helpers.compose_instances import ComposeInstancesData
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SCRIPT_PATH = REPO_ROOT / "scripts" / "check_env_sync.py"
+
+
+def _select_instance(compose_instances_data: ComposeInstancesData) -> str:
+    if "core" in compose_instances_data.instance_names:
+        return "core"
+    return compose_instances_data.instance_names[0]
+
+
+def _resolve_compose_manifest(
+    repo_root: Path, compose_instances_data: ComposeInstancesData, instance_name: str
+) -> Path:
+    for relative in compose_instances_data.instance_files.get(instance_name, []):
+        candidate = repo_root / relative
+        if candidate.is_file():
+            return candidate
+
+    compose_apps = repo_root / "compose" / "apps"
+    for candidate in sorted(compose_apps.glob(f"*/{instance_name}.yml")):
+        if candidate.is_file():
+            return candidate
+
+    raise AssertionError(
+        f"Não foi possível localizar um manifest Compose para a instância {instance_name!r}."
+    )
+
+
+def _resolve_env_template(
+    repo_root: Path, compose_instances_data: ComposeInstancesData, instance_name: str
+) -> Path:
+    template_relative = compose_instances_data.env_template_map.get(instance_name)
+    if template_relative:
+        return repo_root / template_relative
+    return repo_root / "env" / f"{instance_name}.example.env"
 
 
 def run_check(repo_root: Path) -> subprocess.CompletedProcess[str]:
@@ -26,8 +60,11 @@ def test_check_env_sync_succeeds_when_everything_matches(repo_copy: Path) -> Non
     assert "Todas as variáveis de ambiente estão sincronizadas." in result.stdout
 
 
-def test_check_env_sync_detects_missing_variables(repo_copy: Path) -> None:
-    compose_file = repo_copy / "compose" / "apps" / "app" / "core.yml"
+def test_check_env_sync_detects_missing_variables(
+    repo_copy: Path, compose_instances_data: ComposeInstancesData
+) -> None:
+    instance_name = _select_instance(compose_instances_data)
+    compose_file = _resolve_compose_manifest(repo_copy, compose_instances_data, instance_name)
     content = compose_file.read_text(encoding="utf-8")
     content += "\n      CORE_MISSING_VAR: ${CORE_MISSING_VAR}"
     compose_file.write_text(content, encoding="utf-8")
@@ -35,12 +72,15 @@ def test_check_env_sync_detects_missing_variables(repo_copy: Path) -> None:
     result = run_check(repo_copy)
 
     assert result.returncode == 1
-    assert "Instância 'core'" in result.stdout
+    assert f"Instância '{instance_name}'" in result.stdout
     assert "CORE_MISSING_VAR" in result.stdout
 
 
-def test_check_env_sync_detects_plain_and_nested_variables(repo_copy: Path) -> None:
-    compose_file = repo_copy / "compose" / "apps" / "app" / "core.yml"
+def test_check_env_sync_detects_plain_and_nested_variables(
+    repo_copy: Path, compose_instances_data: ComposeInstancesData
+) -> None:
+    instance_name = _select_instance(compose_instances_data)
+    compose_file = _resolve_compose_manifest(repo_copy, compose_instances_data, instance_name)
     content = compose_file.read_text(encoding="utf-8")
     content += "\n      PLAIN_REFERENCE: $PLAIN_MISSING_VAR"
     content += "\n      COMPLEX_PATH: ${OUTER_VAR:-./${INNER_VAR:-fallback}}"
@@ -70,8 +110,12 @@ def test_check_env_sync_accepts_local_common_variables(repo_copy: Path) -> None:
     assert "APP_SECRET" not in result.stdout
 
 
-def test_check_env_sync_detects_obsolete_variables(repo_copy: Path) -> None:
-    env_file = repo_copy / "env" / "core.example.env"
+def test_check_env_sync_detects_obsolete_variables(
+    repo_copy: Path, compose_instances_data: ComposeInstancesData
+) -> None:
+    env_file = _resolve_env_template(
+        repo_copy, compose_instances_data, _select_instance(compose_instances_data)
+    )
     with env_file.open("a", encoding="utf-8") as handle:
         handle.write("UNUSED_ONLY_FOR_TEST=1\n")
 
@@ -82,14 +126,20 @@ def test_check_env_sync_detects_obsolete_variables(repo_copy: Path) -> None:
     assert "UNUSED_ONLY_FOR_TEST" in result.stdout
 
 
-def test_check_env_sync_detects_missing_template(repo_copy: Path) -> None:
-    env_file = repo_copy / "env" / "core.example.env"
+def test_check_env_sync_detects_missing_template(
+    repo_copy: Path, compose_instances_data: ComposeInstancesData
+) -> None:
+    instance_name = _select_instance(compose_instances_data)
+    env_file = _resolve_env_template(repo_copy, compose_instances_data, instance_name)
     env_file.unlink()
 
     result = run_check(repo_copy)
 
     assert result.returncode == 1
-    assert "Instância 'core' não possui arquivo env/<instancia>.example.env documentado." in result.stdout
+    assert (
+        f"Instância '{instance_name}' não possui arquivo env/<instancia>.example.env documentado."
+        in result.stdout
+    )
     assert "Divergências encontradas entre manifests Compose e arquivos .env exemplo." in result.stdout
     assert "Todas as variáveis de ambiente estão sincronizadas." not in result.stdout
 

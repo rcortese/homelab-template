@@ -6,7 +6,33 @@ import subprocess
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from tests.helpers.compose_instances import load_compose_instances_data
+
 from .utils import REPO_ROOT
+
+
+def _select_manifest(repo_copy: Path) -> Path:
+    instances = load_compose_instances_data(repo_copy)
+    if not instances.instance_names:
+        raise AssertionError("Nenhuma instância Compose encontrada para o teste.")
+
+    apps_without_overrides = sorted(instances.apps_without_overrides())
+    if apps_without_overrides:
+        app_name = apps_without_overrides[0]
+        base_path = instances.app_base_files.get(app_name)
+        if base_path:
+            candidate = repo_copy / Path(base_path)
+            if candidate.is_file():
+                return candidate
+
+    instance = "core" if "core" in instances.instance_names else instances.instance_names[0]
+    for relative in instances.compose_plan(instance):
+        relative_path = Path(relative)
+        candidate = repo_copy / relative_path
+        if relative_path.parts[:2] == ("compose", "apps") and candidate.is_file():
+            return candidate
+
+    raise AssertionError("Nenhum manifest de aplicativo encontrado para a instância selecionada.")
 
 if TYPE_CHECKING:
     from ..conftest import DockerStub
@@ -20,7 +46,7 @@ def test_missing_compose_file_in_temporary_copy(
     shutil.copytree(REPO_ROOT / "scripts", repo_copy / "scripts")
     shutil.copytree(REPO_ROOT / "env", repo_copy / "env")
 
-    missing_file = repo_copy / "compose" / "apps" / "baseonly" / "base.yml"
+    missing_file = _select_manifest(repo_copy)
     missing_file.unlink()
 
     result = subprocess.run(
@@ -33,6 +59,6 @@ def test_missing_compose_file_in_temporary_copy(
     )
 
     assert result.returncode == 1
-    assert "baseonly" in result.stderr
+    assert f"Aplicação '{missing_file.parent.name}'" in result.stderr
     assert "arquivo ausente" in result.stderr
     assert docker_stub.read_calls() == []

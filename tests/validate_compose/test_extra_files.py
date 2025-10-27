@@ -5,28 +5,42 @@ import subprocess
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from tests.helpers.compose_instances import ComposeInstancesData
+
 from .utils import expected_compose_call
 
 if TYPE_CHECKING:
     from ..conftest import DockerStub
 
 
-def _base_core_files(repo_copy: Path) -> list[Path]:
-    return [
-        repo_copy / "compose" / "base.yml",
-        repo_copy / "compose" / "apps" / "app" / "base.yml",
-        repo_copy / "compose" / "apps" / "app" / "core.yml",
-        repo_copy / "compose" / "apps" / "monitoring" / "base.yml",
-        repo_copy / "compose" / "apps" / "monitoring" / "core.yml",
-        repo_copy / "compose" / "apps" / "overrideonly" / "core.yml",
-        repo_copy / "compose" / "apps" / "worker" / "base.yml",
-        repo_copy / "compose" / "apps" / "worker" / "core.yml",
-        repo_copy / "compose" / "apps" / "baseonly" / "base.yml",
-    ]
+def _select_instance(compose_instances_data: ComposeInstancesData) -> str:
+    if "core" in compose_instances_data.instance_names:
+        return "core"
+    return compose_instances_data.instance_names[0]
 
 
-def test_prefers_local_env_when_available(repo_copy: Path, docker_stub: DockerStub) -> None:
+def _compose_plan_paths(
+    repo_copy: Path, compose_instances_data: ComposeInstancesData, instance: str
+) -> list[Path]:
+    return [repo_copy / Path(entry) for entry in compose_instances_data.compose_plan(instance)]
+
+
+def _env_chain_paths(
+    repo_copy: Path, compose_instances_data: ComposeInstancesData, instance: str
+) -> list[Path]:
+    return [repo_copy / Path(entry) for entry in compose_instances_data.env_files_map.get(instance, [])]
+
+
+def test_prefers_local_env_when_available(
+    repo_copy: Path,
+    docker_stub: DockerStub,
+    compose_instances_data: ComposeInstancesData,
+) -> None:
     docker_stub.set_exit_code(0)
+
+    instance = _select_instance(compose_instances_data)
+    env_chain = _env_chain_paths(repo_copy, compose_instances_data, instance)
+    base_files = _compose_plan_paths(repo_copy, compose_instances_data, instance)
 
     result = subprocess.run(
         [str(repo_copy / "scripts" / "validate_compose.sh")],
@@ -34,7 +48,7 @@ def test_prefers_local_env_when_available(repo_copy: Path, docker_stub: DockerSt
         text=True,
         check=False,
         cwd=repo_copy,
-        env={**os.environ, "COMPOSE_INSTANCES": "core"},
+        env={**os.environ, "COMPOSE_INSTANCES": instance},
     )
 
     assert result.returncode == 0, result.stderr
@@ -42,16 +56,17 @@ def test_prefers_local_env_when_available(repo_copy: Path, docker_stub: DockerSt
     assert len(calls) == 1
     (call,) = calls
     assert call == expected_compose_call(
-        [
-            repo_copy / "env" / "local" / "common.env",
-            repo_copy / "env" / "local" / "core.env",
-        ],
-        _base_core_files(repo_copy),
+        env_chain,
+        base_files,
         "config",
     )
 
 
-def test_includes_extra_files_from_env_file(repo_copy: Path, docker_stub: DockerStub) -> None:
+def test_includes_extra_files_from_env_file(
+    repo_copy: Path,
+    docker_stub: DockerStub,
+    compose_instances_data: ComposeInstancesData,
+) -> None:
     docker_stub.set_exit_code(0)
 
     overlay_dir = repo_copy / "compose" / "overlays"
@@ -70,13 +85,17 @@ def test_includes_extra_files_from_env_file(repo_copy: Path, docker_stub: Docker
         encoding="utf-8",
     )
 
+    instance = _select_instance(compose_instances_data)
+    env_chain = _env_chain_paths(repo_copy, compose_instances_data, instance)
+    base_files = _compose_plan_paths(repo_copy, compose_instances_data, instance)
+
     result = subprocess.run(
         [str(repo_copy / "scripts" / "validate_compose.sh")],
         capture_output=True,
         text=True,
         check=False,
         cwd=repo_copy,
-        env={**os.environ, "COMPOSE_INSTANCES": "core"},
+        env={**os.environ, "COMPOSE_INSTANCES": instance},
     )
 
     assert result.returncode == 0, result.stderr
@@ -84,11 +103,8 @@ def test_includes_extra_files_from_env_file(repo_copy: Path, docker_stub: Docker
     assert len(calls) == 1
     (call,) = calls
     assert call == expected_compose_call(
-        [
-            repo_copy / "env" / "local" / "common.env",
-            repo_copy / "env" / "local" / "core.env",
-        ],
-        _base_core_files(repo_copy)
+        env_chain,
+        base_files
         + [
             repo_copy / "compose" / "overlays" / "metrics.yml",
             repo_copy / "compose" / "overlays" / "logging.yml",
@@ -97,7 +113,11 @@ def test_includes_extra_files_from_env_file(repo_copy: Path, docker_stub: Docker
     )
 
 
-def test_env_override_for_extra_files(repo_copy: Path, docker_stub: DockerStub) -> None:
+def test_env_override_for_extra_files(
+    repo_copy: Path,
+    docker_stub: DockerStub,
+    compose_instances_data: ComposeInstancesData,
+) -> None:
     docker_stub.set_exit_code(0)
 
     overlay_dir = repo_copy / "compose" / "overlays"
@@ -118,6 +138,10 @@ def test_env_override_for_extra_files(repo_copy: Path, docker_stub: DockerStub) 
         encoding="utf-8",
     )
 
+    instance = _select_instance(compose_instances_data)
+    env_chain = _env_chain_paths(repo_copy, compose_instances_data, instance)
+    base_files = _compose_plan_paths(repo_copy, compose_instances_data, instance)
+
     result = subprocess.run(
         [str(repo_copy / "scripts" / "validate_compose.sh")],
         capture_output=True,
@@ -126,7 +150,7 @@ def test_env_override_for_extra_files(repo_copy: Path, docker_stub: DockerStub) 
         cwd=repo_copy,
         env={
             **os.environ,
-            "COMPOSE_INSTANCES": "core",
+            "COMPOSE_INSTANCES": instance,
             "COMPOSE_EXTRA_FILES": "compose/overlays/custom.yml",
         },
     )
@@ -136,11 +160,8 @@ def test_env_override_for_extra_files(repo_copy: Path, docker_stub: DockerStub) 
     assert len(calls) == 1
     (call,) = calls
     assert call == expected_compose_call(
-        [
-            repo_copy / "env" / "local" / "common.env",
-            repo_copy / "env" / "local" / "core.env",
-        ],
-        _base_core_files(repo_copy)
+        env_chain,
+        base_files
         + [
             repo_copy / "compose" / "overlays" / "custom.yml",
         ],
