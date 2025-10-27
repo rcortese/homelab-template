@@ -128,7 +128,7 @@ load_compose_discovery() {
       if [[ -f "$app_base_abs" ]]; then
         apps_without_overrides+=("$app_name")
       else
-        echo "[!] Aplicação '$app_name' não possui base.yml nem overrides." >&2
+        echo "[!] Aplicação '$app_name' não possui base.yml nem overrides (arquivo ausente)." >&2
         return 1
       fi
     fi
