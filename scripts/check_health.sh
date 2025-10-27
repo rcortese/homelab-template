@@ -369,9 +369,13 @@ LOG_TARGETS=("${primary_targets[@]}")
 if [[ ${#LOG_TARGETS[@]} -eq 0 ]]; then
   if [[ ${#auto_targets[@]} -gt 0 ]]; then
     LOG_TARGETS=("${auto_targets[@]}")
+    primary_targets=("${LOG_TARGETS[@]}")
+    ALL_LOG_TARGETS=("${LOG_TARGETS[@]}")
     auto_targets=()
   else
-    LOG_TARGETS=(app)
+    echo "Error: nenhum serviço foi encontrado para coleta de logs." >&2
+    echo "       Configure HEALTH_SERVICES ou garanta que os manifests Compose declarem serviços válidos." >&2
+    exit 1
   fi
 fi
 
