@@ -125,10 +125,12 @@ load_compose_discovery() {
     done
 
     if [[ $found_for_app -eq 0 ]]; then
-      if [[ ! -f "$app_base_abs" ]]; then
-        COMPOSE_APP_BASE_FILES[$app_name]="$app_base_rel"
+      if [[ -f "$app_base_abs" ]]; then
+        apps_without_overrides+=("$app_name")
+      else
+        echo "[!] Aplicação '$app_name' não possui base.yml nem overrides." >&2
+        return 1
       fi
-      apps_without_overrides+=("$app_name")
     fi
   done
 

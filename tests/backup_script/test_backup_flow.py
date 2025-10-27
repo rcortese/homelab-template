@@ -6,6 +6,24 @@ from pathlib import Path
 from .utils import run_backup
 
 
+EXPECTED_CORE_APPS = ["app", "monitoring", "overrideonly", "worker", "baseonly"]
+
+
+def _assert_restart_apps(stdout: str) -> None:
+    line = next(
+        (
+            entry
+            for entry in stdout.splitlines()
+            if "Aplicações detectadas para religar:" in entry
+        ),
+        None,
+    )
+    assert line is not None, f"Linha com aplicações não encontrada em: {stdout!r}"
+    _, _, tail = line.partition(":")
+    apps = tail.strip().split()
+    assert apps == EXPECTED_CORE_APPS
+
+
 def _install_compose_stub(repo_copy: Path) -> Path:
     compose_log = repo_copy / "compose_calls.log"
     compose_stub = repo_copy / "scripts" / "compose.sh"
@@ -58,7 +76,7 @@ def test_successful_backup_creates_snapshot_and_restarts_stack(
 
     assert result.returncode == 0, result.stderr
     assert "Backup da instância 'core' concluído" in result.stdout
-    assert "Aplicações detectadas para religar: app monitoring worker baseonly" in result.stdout
+    _assert_restart_apps(result.stdout)
 
     backup_dir = repo_copy / "backups" / "core-20240101-030405"
     assert backup_dir.is_dir()
@@ -69,7 +87,7 @@ def test_successful_backup_creates_snapshot_and_restarts_stack(
     assert calls == [
         "core ps --status running --services",
         "core down",
-        "core up -d app monitoring worker baseonly",
+        "core up -d " + " ".join(EXPECTED_CORE_APPS),
     ]
 
 
@@ -114,7 +132,7 @@ def test_copy_failure_still_attempts_restart(repo_copy: Path, monkeypatch) -> No
     assert calls == [
         "core ps --status running --services",
         "core down",
-        "core up -d app monitoring worker baseonly",
+        "core up -d " + " ".join(EXPECTED_CORE_APPS),
     ]
     assert cp_log.read_text(encoding="utf-8").splitlines() == [
         "-a",
@@ -152,13 +170,13 @@ def test_detected_apps_ignore_unknown_entries(repo_copy: Path, monkeypatch) -> N
     result = run_backup(repo_copy, "core")
 
     assert result.returncode == 0, result.stderr
-    assert "Aplicações detectadas para religar: app monitoring worker baseonly" in result.stdout
+    _assert_restart_apps(result.stdout)
 
     calls = compose_log.read_text(encoding="utf-8").splitlines()
     assert calls == [
         "core ps --status running --services",
         "core down",
-        "core up -d app monitoring worker baseonly",
+        "core up -d " + " ".join(EXPECTED_CORE_APPS),
     ]
 
 
@@ -186,11 +204,11 @@ def test_fallback_to_known_apps_when_no_active_dirs(repo_copy: Path, monkeypatch
 
     assert result.returncode == 0, result.stderr
     assert "Nenhuma aplicação ativa identificada; religando stack completa." not in result.stdout
-    assert "Aplicações detectadas para religar: app monitoring worker baseonly" in result.stdout
+    _assert_restart_apps(result.stdout)
 
     calls = compose_log.read_text(encoding="utf-8").splitlines()
     assert calls == [
         "core ps --status running --services",
         "core down",
-        "core up -d app monitoring worker baseonly",
+        "core up -d " + " ".join(EXPECTED_CORE_APPS),
     ]

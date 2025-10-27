@@ -27,11 +27,20 @@ adicionando rótulos, redes extras ou variáveis). Para habilitar esse fluxo:
 - Omitir `compose/apps/<app>/base.yml` é aceitável nesses casos; os scripts de
   descoberta (`scripts/lib/compose_discovery.sh`) registram o override e deixam
   de anexar um manifest inexistente ao plano.
+- Use `scripts/bootstrap_instance.sh <app> <instância> --override-only` para
+  gerar apenas o override e o modelo de variáveis quando estiver montando uma
+  aplicação sem `base.yml`. Se o diretório da aplicação já existir sem um
+  arquivo base, o script ativa esse modo automaticamente ao adicionar novas
+  instâncias.
 
 Durante a geração do plano (`scripts/lib/compose_plan.sh`), somente os overrides
 existentes são adicionados após `compose/base.yml` e quaisquer ajustes globais
 da instância. Isso evita erros com referências a arquivos ausentes, mantendo a
-ordem dos demais manifests intacta.
+ordem dos demais manifests intacta. O mapa `COMPOSE_APP_BASE_FILES`, exportado
+por `scripts/lib/compose_instances.sh`, registra apenas as aplicações que
+possuem um `base.yml` real; diretórios compostos exclusivamente por overrides
+ficam fora do mapa e, portanto, não introduzem entradas inexistentes nos planos
+ou validações.
 
 ## Stacks com múltiplas aplicações
 

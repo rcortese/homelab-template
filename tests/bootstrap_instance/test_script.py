@@ -94,3 +94,27 @@ def test_accepts_custom_base_dir(repo_copy: Path) -> None:
 
     assert instance_file.is_file()
     assert env_file.is_file()
+
+
+def test_override_only_mode_skips_base(repo_copy: Path) -> None:
+    app_dir = repo_copy / "compose" / "apps" / "overrides"
+    app_dir.mkdir(parents=True)
+    existing_override = app_dir / "core.yml"
+    existing_override.write_text("services: {}\n", encoding="utf-8")
+
+    instance_name = "sandbox"
+    result = _run_bootstrap(repo_copy, "overrides", instance_name, "--override-only")
+
+    assert result.returncode == 0, result.stderr
+    stdout = result.stdout
+
+    base_file = app_dir / "base.yml"
+    instance_file = app_dir / f"{instance_name}.yml"
+    env_file = repo_copy / "env" / f"{instance_name}.example.env"
+
+    assert not base_file.exists(), "base.yml should not be created in override-only mode"
+    assert instance_file.is_file()
+    assert env_file.is_file()
+
+    listed_lines = [line.strip() for line in stdout.splitlines() if line.strip().startswith("-")]
+    assert all("compose/apps/overrides/base.yml" not in line for line in listed_lines)

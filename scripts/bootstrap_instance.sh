@@ -18,6 +18,7 @@ Argumentos posicionais:
 Opções:
   --base-dir <dir>   Diretório raiz do repositório a ser utilizado (padrão: diretório do script/..).
   --with-docs        Cria também docs/apps/<aplicacao>.md e adiciona o link em docs/README.md.
+  --override-only    Pula a criação de compose/apps/<aplicacao>/base.yml (modo apenas overrides).
   -h, --help         Exibe esta mensagem e sai.
 USAGE
 }
@@ -71,6 +72,7 @@ APP_NAME=""
 INSTANCE_NAME=""
 BASE_DIR="$DEFAULT_BASE_DIR"
 WITH_DOCS=0
+OVERRIDE_ONLY=0
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -91,6 +93,9 @@ while [[ $# -gt 0 ]]; do
     ;;
   --with-docs)
     WITH_DOCS=1
+    ;;
+  --override-only)
+    OVERRIDE_ONLY=1
     ;;
   --*)
     error "Erro: opção desconhecida: $1"
@@ -134,8 +139,21 @@ docs_apps_dir="$BASE_DIR/docs/apps"
 app_doc_file="$docs_apps_dir/$APP_NAME.md"
 docs_readme_file="$BASE_DIR/docs/README.md"
 
+SKIP_BASE=0
+if [[ $OVERRIDE_ONLY -eq 1 ]]; then
+  SKIP_BASE=1
+elif [[ -d $compose_app_dir && ! -e $compose_base_file ]]; then
+  SKIP_BASE=1
+fi
+
 conflicts=()
-for target in "$compose_base_file" "$compose_instance_file" "$env_example_file"; do
+if [[ $SKIP_BASE -eq 0 ]]; then
+  targets=("$compose_base_file" "$compose_instance_file" "$env_example_file")
+else
+  targets=("$compose_instance_file" "$env_example_file")
+fi
+
+for target in "${targets[@]}"; do
   if [[ -e $target ]]; then
     conflicts+=("$target")
   fi
@@ -183,9 +201,19 @@ render_template() {
   printf '%s' "$content" >"$destination"
 }
 
-render_template "compose-base.yml.tpl" "$compose_base_file"
+if [[ $SKIP_BASE -eq 0 ]]; then
+  render_template "compose-base.yml.tpl" "$compose_base_file"
+fi
 render_template "compose-instance.yml.tpl" "$compose_instance_file"
 render_template "env-example.tpl" "$env_example_file"
+
+if [[ $SKIP_BASE -eq 1 ]]; then
+  if [[ $OVERRIDE_ONLY -eq 1 ]]; then
+    echo "[*] Modo override-only: compose/apps/${APP_NAME}/base.yml não será criado."
+  else
+    echo "[*] Diretório existente sem base.yml detectado; pulando criação de compose/apps/${APP_NAME}/base.yml."
+  fi
+fi
 
 if [[ $WITH_DOCS -eq 1 ]]; then
   render_template "doc-app.md.tpl" "$app_doc_file"
@@ -209,7 +237,9 @@ fi
 echo "[*] Aplicação: $APP_NAME"
 echo "[*] Instância: $INSTANCE_NAME"
 echo "[*] Arquivos criados:"
-printf '  - %s\n' "${compose_base_file#"$BASE_DIR"/}"
+if [[ $SKIP_BASE -eq 0 ]]; then
+  printf '  - %s\n' "${compose_base_file#"$BASE_DIR"/}"
+fi
 printf '  - %s\n' "${compose_instance_file#"$BASE_DIR"/}"
 printf '  - %s\n' "${env_example_file#"$BASE_DIR"/}"
 if [[ $WITH_DOCS -eq 1 ]]; then

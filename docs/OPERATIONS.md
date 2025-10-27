@@ -75,6 +75,10 @@ Use `--base-dir` para executar fora da raiz e `--with-docs` para gerar documenta
     COMPOSE_EXTRA_FILES="compose/overlays/metrics.yml" scripts/validate_compose.sh
     ```
 
+  > Diretórios de aplicações que fornecem apenas overrides (`compose/apps/<app>/<instância>.yml`) são aceitos. O helper de
+  > planejamento ignora automaticamente `compose/apps/<app>/base.yml` quando o arquivo não existir, mantendo a lista de `-f`
+  > consistente com os manifests disponíveis.
+
   > As variáveis podem ser exportadas previamente (`export COMPOSE_INSTANCES=...`) ou prefixadas ao comando, mantendo o fluxo simples.
   > **Alerta:** use a validação para confirmar se as combinações padrão de Compose permanecem compatíveis com os perfis ativos antes de implantações ou PRs.
 
