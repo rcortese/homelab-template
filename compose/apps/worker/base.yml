@@ -8,5 +8,4 @@ services:
     environment:
       WORKER_QUEUE_URL: ${WORKER_QUEUE_URL}
     networks:
-      homelab_internal:
-        ipv4_address: ${WORKER_NETWORK_IPV4}
+      homelab_internal: {}
