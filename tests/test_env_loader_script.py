@@ -98,3 +98,27 @@ def test_env_loader_supports_hash_values(tmp_path: Path) -> None:
         "COMMENT_TAB=value",
         "LITERAL=#escaped hash",
     }
+
+
+def test_env_loader_preserves_hashes_in_quoted_values(tmp_path: Path) -> None:
+    env_file = tmp_path / "quoted.env"
+    env_file.write_text(
+        "\n".join(
+            [
+                'QUOTED_HASH="#Keep #this"',
+                'QUOTED_EMBEDDED="#value#with#hash"',
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    result = run_env_loader(
+        env_file=env_file,
+        keys=["QUOTED_HASH", "QUOTED_EMBEDDED"],
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert set(result.stdout.splitlines()) == {
+        "QUOTED_HASH=#Keep #this",
+        "QUOTED_EMBEDDED=#value#with#hash",
+    }

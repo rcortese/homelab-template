@@ -8,22 +8,13 @@
 - **Dependências externas:** liste serviços, bancos ou integrações obrigatórias.
 - **Criticidade:** detalhe objetivos de disponibilidade, RTO/RPO e contatos de escalonamento.
 
-## Checklist de deploy
+## Checklist de deploy e pós-deploy
 
-1. **Preparação**
-   - Atualize `env/local/<ambiente>.env` com as variáveis mais recentes.
-   - Revise a seção [Stacks com múltiplas aplicações](./COMPOSE_GUIDE.md#stacks-com-múltiplas-aplicações) para decidir quais manifests ativar ou desativar para esta instância.
-   - Gere um resumo com `scripts/describe_instance.sh <ambiente>` para confirmar os `-f` aplicados, overlays extras e volumes críticos antes do deploy (salve a saída `--format json` junto ao checklist quando precisar de trilha de auditoria).
-   - Valide manifests com `scripts/validate_compose.sh` (ou comando equivalente).
-2. **Execução**
-   - Rode o fluxo guiado:
-     ```bash
-     scripts/deploy_instance.sh <ambiente>
-     ```
-   - Registre outputs relevantes (hash de imagens, versão de pipelines, etc.).
-3. **Pós-deploy**
-   - Execute `scripts/check_health.sh <ambiente>` ou verificação equivalente.
-   - Revise dashboards e alertas críticos.
+Siga o [checklist genérico](./OPERATIONS.md#checklist-generico-deploy-pos) e, para o ambiente primário, complemente com:
+
+- **Preparação reforçada:** gere `scripts/describe_instance.sh <ambiente> --format json` e arquive o relatório no sistema de auditoria antes de iniciar o change.
+- **Evidências de execução:** ao aplicar `scripts/deploy_instance.sh <ambiente>`, capture hash de imagens, IDs de pipelines e aprovações formais, anexando-os ao registro de change management.
+- **Pós-deploy crítico:** após `scripts/check_health.sh <ambiente>`, valide dashboards de disponibilidade e confirme com o responsável de SRE que alertas prioritários permaneceram estáveis.
 
 > Substitua `<ambiente>` pelo identificador real utilizado no projeto.
 

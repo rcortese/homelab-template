@@ -29,7 +29,8 @@ EOF
   ;;
 esac
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ROOT_DIR_DEFAULT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ROOT_DIR="${ROOT_DIR_OVERRIDE:-$ROOT_DIR_DEFAULT}"
 cd "$ROOT_DIR"
 
 missing=()

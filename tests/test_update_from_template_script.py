@@ -39,6 +39,24 @@ def create_consumer_repo(tmp_path):
     return consumer
 
 
+def setup_template_remote(tmp_path):
+    template_remote = tmp_path / "template.git"
+    run(["git", "init", "--bare", str(template_remote)], cwd=tmp_path)
+    subprocess.run(
+        ["git", "--git-dir", str(template_remote), "symbolic-ref", "HEAD", "refs/heads/main"],
+        check=True,
+    )
+
+    def clone_worktree(name="template-work"):
+        template_work = tmp_path / name
+        run(["git", "clone", str(template_remote), str(template_work)], cwd=tmp_path)
+        run(["git", "config", "user.email", "ci@example.com"], cwd=template_work)
+        run(["git", "config", "user.name", "CI"], cwd=template_work)
+        return template_work
+
+    return template_remote, clone_worktree
+
+
 def test_script_requires_remote_argument(tmp_path):
     consumer = create_consumer_repo(tmp_path)
     script = consumer / "scripts" / "update_from_template.sh"
@@ -57,12 +75,7 @@ def test_script_requires_remote_argument(tmp_path):
 
 
 def test_dry_run_outputs_expected_commands(tmp_path):
-    template_remote = tmp_path / "template.git"
-    run(["git", "init", "--bare", str(template_remote)], cwd=tmp_path)
-    subprocess.run(
-        ["git", "--git-dir", str(template_remote), "symbolic-ref", "HEAD", "refs/heads/main"],
-        check=True,
-    )
+    template_remote, clone_template_remote = setup_template_remote(tmp_path)
 
     consumer = create_consumer_repo(tmp_path)
     script = consumer / "scripts" / "update_from_template.sh"
@@ -80,10 +93,9 @@ def test_dry_run_outputs_expected_commands(tmp_path):
     run(["git", "branch", "-M", "main"], cwd=consumer)
     run(["git", "push", "template", "main"], cwd=consumer)
 
-    template_work = tmp_path / "template-work"
-    run(["git", "clone", str(template_remote), str(template_work)] , cwd=tmp_path)
-    run(["git", "config", "user.email", "ci@example.com"], cwd=template_work)
-    run(["git", "config", "user.name", "CI"], cwd=template_work)
+    template_work = clone_template_remote()
+    run(["git", "fetch", "origin", "main"], cwd=template_work)
+    run(["git", "checkout", "-B", "main", "origin/main"], cwd=template_work)
     (template_work / "base.txt").write_text("template base\nupstream change\n", encoding="utf-8")
     run(["git", "add", "base.txt"], cwd=template_work)
     run(["git", "commit", "-m", "Upstream update"], cwd=template_work)
@@ -126,12 +138,7 @@ def test_dry_run_outputs_expected_commands(tmp_path):
 
 
 def test_script_fails_with_pending_changes(tmp_path):
-    template_remote = tmp_path / "template.git"
-    run(["git", "init", "--bare", str(template_remote)], cwd=tmp_path)
-    subprocess.run(
-        ["git", "--git-dir", str(template_remote), "symbolic-ref", "HEAD", "refs/heads/main"],
-        check=True,
-    )
+    template_remote, _ = setup_template_remote(tmp_path)
 
     consumer = create_consumer_repo(tmp_path)
     script = consumer / "scripts" / "update_from_template.sh"
@@ -222,8 +229,7 @@ def test_script_errors_when_remote_missing(tmp_path):
 
 
 def test_script_errors_when_target_branch_missing(tmp_path):
-    template_remote = tmp_path / "template.git"
-    run(["git", "init", "--bare", str(template_remote)], cwd=tmp_path)
+    template_remote, _ = setup_template_remote(tmp_path)
 
     consumer = create_consumer_repo(tmp_path)
     script = consumer / "scripts" / "update_from_template.sh"
@@ -299,12 +305,7 @@ def test_script_errors_when_original_commit_is_invalid(tmp_path):
 
 
 def test_script_errors_when_first_commit_not_descends_from_original(tmp_path):
-    template_remote = tmp_path / "template.git"
-    run(["git", "init", "--bare", str(template_remote)], cwd=tmp_path)
-    subprocess.run(
-        ["git", "--git-dir", str(template_remote), "symbolic-ref", "HEAD", "refs/heads/main"],
-        check=True,
-    )
+    template_remote, _ = setup_template_remote(tmp_path)
 
     consumer = create_consumer_repo(tmp_path)
     script = consumer / "scripts" / "update_from_template.sh"

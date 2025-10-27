@@ -217,10 +217,29 @@ build_deploy_context() {
   fi
 
   local -a filtered_app_names=()
+  local -a instance_compose_files=()
+  if [[ -v COMPOSE_INSTANCE_FILES[$instance] && -n "${COMPOSE_INSTANCE_FILES[$instance]}" ]]; then
+    mapfile -t instance_compose_files < <(printf '%s\n' "${COMPOSE_INSTANCE_FILES[$instance]}")
+  fi
+
   local instance_app_name
   for instance_app_name in "${instance_app_names[@]}"; do
     if [[ -n "${COMPOSE_APP_BASE_FILES[$instance_app_name]:-}" ]]; then
       filtered_app_names+=("$instance_app_name")
+      continue
+    fi
+
+    if ((${#instance_compose_files[@]} > 0)); then
+      local compose_entry
+      for compose_entry in "${instance_compose_files[@]}"; do
+        if [[ "$compose_entry" == "compose/apps/${instance_app_name}/"* ]]; then
+          filtered_app_names+=("$instance_app_name")
+          break
+        fi
+      done
+      if [[ "${filtered_app_names[-1]:-}" == "$instance_app_name" ]]; then
+        continue
+      fi
     fi
   done
 
