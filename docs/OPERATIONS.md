@@ -29,6 +29,31 @@ Este documento apresenta um ponto de partida para descrever processos operaciona
 - Execute `scripts/check_env_sync.py` isoladamente sempre que editar manifests ou templates `.env` para garantir que as variáveis continuam sincronizadas.
 - Documente dependências extras (CLI, credenciais, acesso a registries) em seções adicionais.
 
+<a id="checklist-generico-deploy-pos"></a>
+## Checklist genérico de deploy e pós-deploy
+
+> Utilize este checklist como base comum para todos os ambientes derivados deste template.
+
+### Preparação
+
+1. Atualize `env/local/<instancia>.env` com as variáveis mais recentes antes de gerar ou aplicar manifests.
+2. Revise a seção [Stacks com múltiplas aplicações](./COMPOSE_GUIDE.md#stacks-com-múltiplas-aplicações) para confirmar quais serviços devem ser ativados ou desativados no ciclo atual.
+3. Valide os manifests com `scripts/validate_compose.sh` (ou comando equivalente) para garantir que a combinação de arquivos continua consistente.
+4. Gere um resumo com `scripts/describe_instance.sh <instancia>`; quando precisar de trilha de auditoria ou material de apoio, salve também a saída `--format json` junto ao checklist do deploy.
+
+### Execução
+
+1. Rode o fluxo guiado de deploy:
+   ```bash
+   scripts/deploy_instance.sh <instancia>
+   ```
+2. Registre outputs relevantes (hash de imagens utilizadas, versão de pipelines ou artefatos aplicados) para referência posterior.
+
+### Pós-deploy
+
+1. Execute `scripts/check_health.sh <instancia>` — ou verificação equivalente — para validar o estado dos serviços recém-publicados.
+2. Revise dashboards, alertas críticos e integrações que dependem da instância, garantindo que métricas e notificações retornaram ao comportamento esperado.
+
 ### Configurando a rede interna compartilhada
 
 - Utilize os placeholders definidos em `env/common.example.env` para nome, driver, sub-rede e gateway da rede (`APP_NETWORK_NAME`, `APP_NETWORK_DRIVER`, `APP_NETWORK_SUBNET`, `APP_NETWORK_GATEWAY`). Ajuste-os conforme a topologia do seu ambiente antes de gerar os arquivos reais em `env/local/`.
