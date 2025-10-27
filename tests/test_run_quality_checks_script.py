@@ -40,7 +40,12 @@ def _create_executable(path: Path, *, log_file: Path, exit_code: int = 0) -> Non
     path.chmod(0o755)
 
 
-def _prepare_repo(tmp_path: Path, *, python_exit: int = 0) -> tuple[Path, Path, Path]:
+def _prepare_repo(
+    tmp_path: Path,
+    *,
+    python_exit: int = 0,
+    shellcheck_exit: int = 0,
+) -> tuple[Path, Path, Path]:
     """Set up a temporary repository with stubbed executables."""
 
     repo_dir = tmp_path / "repo"
@@ -58,7 +63,7 @@ def _prepare_repo(tmp_path: Path, *, python_exit: int = 0) -> tuple[Path, Path, 
     shellcheck_stub = repo_dir / "shellcheck"
 
     _create_executable(python_stub, log_file=log_file, exit_code=python_exit)
-    _create_executable(shellcheck_stub, log_file=log_file)
+    _create_executable(shellcheck_stub, log_file=log_file, exit_code=shellcheck_exit)
 
     # Create dummy shell scripts so the wrapper has something to lint.
     (scripts_dir / "check_all.sh").write_text("#!/usr/bin/env bash\nexit 0\n")
@@ -127,4 +132,24 @@ def test_run_quality_checks_stops_after_failed_pytest(tmp_path: Path) -> None:
         "python",
         "-m",
         "pytest",
+    ]
+
+
+def test_run_quality_checks_fails_when_shellcheck_fails(tmp_path: Path) -> None:
+    """If shellcheck fails, the wrapper should propagate the failure."""
+
+    script, log_file, repo_dir = _prepare_repo(tmp_path, shellcheck_exit=1)
+    env = _build_env(repo_dir)
+
+    result = _run_script(script, repo_dir, env)
+
+    assert result.returncode == 1
+    assert log_file.read_text().splitlines() == [
+        "python",
+        "-m",
+        "pytest",
+        "shellcheck",
+        str(repo_dir / "scripts" / "check_all.sh"),
+        str(repo_dir / "scripts" / "run_quality_checks.sh"),
+        str(repo_dir / "scripts" / "lib" / "helpers.sh"),
     ]
