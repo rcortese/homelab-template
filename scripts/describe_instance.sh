@@ -3,7 +3,7 @@ set -euo pipefail
 
 print_help() {
   cat <<'USAGE'
-Uso: scripts/describe_instance.sh <instancia> [--format <formato>]
+Uso: scripts/describe_instance.sh [--list] <instancia> [--format <formato>]
 
 Gera um resumo dos serviços, portas e volumes da instância solicitada a
 partir de `docker compose config`, reutilizando as convenções do template.
@@ -13,6 +13,7 @@ Argumentos posicionais:
 
 Flags:
   -h, --help           Exibe esta ajuda e sai.
+  --list               Lista as instâncias disponíveis e sai.
   --format <formato>   Define o formato da saída. Valores aceitos: table (padrão), json.
 USAGE
 }
@@ -22,12 +23,17 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 FORMAT="table"
 INSTANCE_NAME=""
+LIST_ONLY=false
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
   -h | --help)
     print_help
     exit 0
+    ;;
+  --list)
+    LIST_ONLY=true
+    shift
     ;;
   --format)
     shift
@@ -57,6 +63,31 @@ while [[ $# -gt 0 ]]; do
     ;;
   esac
 done
+
+if [[ "$LIST_ONLY" == true && -n "$INSTANCE_NAME" ]]; then
+  echo "Error: --list não pode ser combinado com o nome da instância." >&2
+  exit 1
+fi
+
+if [[ "$LIST_ONLY" == true ]]; then
+  # shellcheck source=scripts/lib/compose_instances.sh
+  source "$SCRIPT_DIR/lib/compose_instances.sh"
+
+  if ! load_compose_instances "$REPO_ROOT"; then
+    echo "Error: falha ao carregar as instâncias disponíveis." >&2
+    exit 1
+  fi
+
+  echo "Instâncias disponíveis:"
+  if [[ ${#COMPOSE_INSTANCE_NAMES[@]} -eq 0 ]]; then
+    echo "  (nenhuma instância encontrada)"
+  else
+    for name in "${COMPOSE_INSTANCE_NAMES[@]}"; do
+      echo "  • $name"
+    done
+  fi
+  exit 0
+fi
 
 if [[ -z "$INSTANCE_NAME" ]]; then
   echo "Error: informe o nome da instância." >&2
