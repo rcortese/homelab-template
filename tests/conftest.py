@@ -83,6 +83,7 @@ record = {
     \"env\": {
         \"APP_DATA_DIR\": os.environ.get(\"APP_DATA_DIR\"),
         \"APP_DATA_DIR_MOUNT\": os.environ.get(\"APP_DATA_DIR_MOUNT\"),
+        \"APP_DATA_DIR_MOUNT_IS_ABSOLUTE\": str(pathlib.Path(os.environ.get(\"APP_DATA_DIR_MOUNT\", \"\")).is_absolute()).lower(),
     },
 }
 with log_path.open(\"a\", encoding=\"utf-8\") as handle:

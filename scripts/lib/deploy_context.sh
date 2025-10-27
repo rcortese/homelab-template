@@ -221,19 +221,33 @@ build_deploy_context() {
     app_names_string="$(printf '%s\n' "${instance_app_names[@]}")"
   fi
 
-  local primary_app="${instance_app_names[0]}"
+  local primary_app=""
+  if ((${#instance_app_names[@]} > 0)); then
+    primary_app="${instance_app_names[0]}"
+  fi
+
   local app_data_dir_value="${APP_DATA_DIR:-}"
   local app_data_dir_mount_value="${APP_DATA_DIR_MOUNT:-}"
-  if [[ -z "$app_data_dir_value" ]]; then
+  if [[ -z "$app_data_dir_value" && -z "$app_data_dir_mount_value" && -n "$primary_app" ]]; then
     app_data_dir_value="data/${primary_app}-${instance}"
   fi
 
-  if [[ -n "$app_data_dir_mount_value" ]]; then
-    app_data_dir_mount_value="$(resolve_app_data_dir_mount "$app_data_dir_mount_value")"
-  elif [[ -n "$app_data_dir_value" ]]; then
-    app_data_dir_mount_value="$(resolve_app_data_dir_mount "$app_data_dir_value")"
-  else
-    app_data_dir_mount_value=""
+  if [[ -n "$primary_app" ]]; then
+    if ! normalize_app_data_dir_inputs \
+      "$repo_root" \
+      "$primary_app" \
+      "$app_data_dir_value" \
+      "$app_data_dir_mount_value" \
+      app_data_dir_value \
+      app_data_dir_mount_value; then
+      return 1
+    fi
+  elif [[ -n "$app_data_dir_mount_value" && "$app_data_dir_mount_value" != /* ]]; then
+    app_data_dir_mount_value="$repo_root/$app_data_dir_mount_value"
+  elif [[ -z "$app_data_dir_mount_value" && -n "$app_data_dir_value" && "$app_data_dir_value" != /* ]]; then
+    app_data_dir_mount_value="$repo_root/$app_data_dir_value"
+  elif [[ -z "$app_data_dir_mount_value" && -n "$app_data_dir_value" ]]; then
+    app_data_dir_mount_value="$app_data_dir_value"
   fi
 
   if ((app_data_dir_was_set == 1)); then
@@ -273,10 +287,10 @@ build_deploy_context() {
   fi
 
   local -a persistent_dirs=()
-  if [[ "$app_data_dir_value" == /* ]]; then
-    persistent_dirs=("$app_data_dir_value" "$repo_root/backups")
+  if [[ -n "$app_data_dir_mount_value" ]]; then
+    persistent_dirs=("$app_data_dir_mount_value" "$repo_root/backups")
   else
-    persistent_dirs=("$repo_root/$app_data_dir_value" "$repo_root/backups")
+    persistent_dirs=("$repo_root/backups")
   fi
   local persistent_dirs_string
   persistent_dirs_string="$(printf '%s\n' "${persistent_dirs[@]}")"

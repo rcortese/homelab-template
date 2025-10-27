@@ -85,6 +85,7 @@ done
 COMPOSE_FILES_LIST=()
 metadata_loaded=0
 declare -a resolved_instance_app_names=()
+primary_app_name=""
 declare -a EXTRA_COMPOSE_FILES=()
 
 mapfile -t EXTRA_COMPOSE_FILES < <(
@@ -124,6 +125,9 @@ elif [[ -n "$INSTANCE_NAME" && $metadata_loaded -eq 1 ]]; then
 
     if [[ -n "${plan_metadata[app_names]:-}" ]]; then
       mapfile -t resolved_instance_app_names < <(printf '%s\n' "${plan_metadata[app_names]}")
+      if ((${#resolved_instance_app_names[@]} > 0)); then
+        primary_app_name="${resolved_instance_app_names[0]}"
+      fi
     fi
   fi
 fi
@@ -204,17 +208,30 @@ then
   fi
 fi
 
-if [[ -z "$app_data_dir_value" && $metadata_loaded -eq 1 && -n "$INSTANCE_NAME" && ${#resolved_instance_app_names[@]} -gt 0 ]]; then
+if [[ -z "$primary_app_name" && ${#resolved_instance_app_names[@]} -gt 0 ]]; then
   primary_app_name="${resolved_instance_app_names[0]}"
-  if [[ -n "$primary_app_name" ]]; then
-    app_data_dir_value="data/${primary_app_name}-${INSTANCE_NAME}"
-  fi
 fi
 
-if [[ -n "$app_data_dir_mount_value" ]]; then
-  app_data_dir_mount_value="$(resolve_app_data_dir_mount "$app_data_dir_mount_value")"
-elif [[ -n "$app_data_dir_value" ]]; then
-  app_data_dir_mount_value="$(resolve_app_data_dir_mount "$app_data_dir_value")"
+if [[ -z "$app_data_dir_value" && -z "$app_data_dir_mount_value" && $metadata_loaded -eq 1 && -n "$INSTANCE_NAME" && -n "$primary_app_name" ]]; then
+  app_data_dir_value="data/${primary_app_name}-${INSTANCE_NAME}"
+fi
+
+if [[ -n "$primary_app_name" ]]; then
+  if ! normalize_app_data_dir_inputs \
+    "$REPO_ROOT" \
+    "$primary_app_name" \
+    "$app_data_dir_value" \
+    "$app_data_dir_mount_value" \
+    app_data_dir_value \
+    app_data_dir_mount_value; then
+    exit 1
+  fi
+elif [[ -n "$app_data_dir_mount_value" && "$app_data_dir_mount_value" != /* ]]; then
+  app_data_dir_mount_value="$REPO_ROOT/$app_data_dir_mount_value"
+elif [[ -z "$app_data_dir_mount_value" && -n "$app_data_dir_value" && "$app_data_dir_value" != /* ]]; then
+  app_data_dir_mount_value="$REPO_ROOT/$app_data_dir_value"
+elif [[ -z "$app_data_dir_mount_value" && -n "$app_data_dir_value" ]]; then
+  app_data_dir_mount_value="$app_data_dir_value"
 fi
 
 if ! cd "$REPO_ROOT"; then

@@ -51,9 +51,10 @@ def test_dry_run_outputs_planned_actions(repo_copy: Path) -> None:
     uid, gid = _current_ids()
     _append_env_values(env_file, uid=uid, gid=gid)
 
-    data_dir = repo_copy / "data" / "app-core"
+    base_data_dir = repo_copy / "data" / "app-core"
+    data_mount_dir = base_data_dir / "app"
     backups_dir = repo_copy / "backups"
-    expected_dirs = (data_dir, backups_dir)
+    expected_dirs = (data_mount_dir, backups_dir)
 
     pre_existing = {directory: directory.exists() for directory in expected_dirs}
     pre_contents: dict[Path, list[Path]] = {}
@@ -79,9 +80,9 @@ def test_dry_run_outputs_planned_actions(repo_copy: Path) -> None:
     owner = f"{uid}:{gid}"
 
     assert "[*] Instância: core" in stdout
-    assert f"mkdir -p {data_dir}" in stdout
+    assert f"mkdir -p {data_mount_dir}" in stdout
     assert f"mkdir -p {backups_dir}" in stdout
-    assert f"chown {owner} {data_dir} {backups_dir}" in stdout
+    assert f"chown {owner} {data_mount_dir} {backups_dir}" in stdout
 
     post_dirs_snapshot, post_files_snapshot = _snapshot_tree(repo_copy)
     assert post_dirs_snapshot == pre_dirs_snapshot
@@ -111,9 +112,11 @@ def test_script_creates_directories_and_applies_owner(repo_copy: Path) -> None:
     assert result.returncode == 0, result.stderr
     stdout = result.stdout
 
-    data_dir = repo_copy / "custom-storage"
+    base_data_dir = repo_copy / "custom-storage"
+    data_dir = base_data_dir / "app"
     backups_dir = repo_copy / "backups"
 
+    assert base_data_dir.is_dir()
     assert data_dir.is_dir()
     assert backups_dir.is_dir()
 

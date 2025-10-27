@@ -49,7 +49,10 @@ def test_deploy_without_privileges_skips_chown(repo_copy: Path) -> None:
         in result.stdout
     )
 
-    for directory in (repo_copy / "data" / "app-core", repo_copy / "backups"):
+    for directory in (
+        (repo_copy / "data" / "app-core" / "app"),
+        repo_copy / "backups",
+    ):
         assert directory.exists()
 
 
@@ -103,8 +106,8 @@ def test_deploy_uses_convention_for_data_dir(repo_copy: Path) -> None:
 
     assert result.returncode == 0, result.stderr
     data_dir = repo_copy / "custom-storage"
-    assert data_dir.exists()
-    assert not (repo_copy / "data" / "app-core").exists()
+    assert (data_dir / "app").exists()
+    assert not (repo_copy / "data" / "app-core" / "app").exists()
     assert (repo_copy / "backups").exists()
 
 
@@ -130,12 +133,16 @@ def test_deploy_with_absolute_data_dir(repo_copy: Path, docker_stub) -> None:
 
     assert result.returncode == 0, result.stderr
 
-    assert absolute_data_dir.exists()
+    assert (absolute_data_dir / "app").exists()
     assert (repo_copy / "backups").exists()
 
     env_records = docker_stub.read_call_env()
     assert len(env_records) >= 1
-    assert env_records[0].get("APP_DATA_DIR") == str(absolute_data_dir)
+    expected_mount = str((absolute_data_dir / "app").resolve())
+    env_record = env_records[0]
+    assert env_record.get("APP_DATA_DIR") == str(absolute_data_dir)
+    assert env_record.get("APP_DATA_DIR_MOUNT") == expected_mount
+    assert env_record.get("APP_DATA_DIR_MOUNT_IS_ABSOLUTE") == "true"
 
 
 def test_deploy_with_empty_app_data_dir_uses_default(
@@ -159,10 +166,14 @@ def test_deploy_with_empty_app_data_dir_uses_default(
     )
 
     assert result.returncode == 0, result.stderr
-    assert (repo_copy / "data" / "app-core").exists()
+    expected_data_dir = repo_copy / "data" / "app-core"
+    assert (expected_data_dir / "app").exists()
     assert (repo_copy / "backups").exists()
 
     env_records = docker_stub.read_call_env()
     assert len(env_records) >= 1
-    assert env_records[0].get("APP_DATA_DIR") == "data/app-core"
-    assert env_records[0].get("APP_DATA_DIR_MOUNT") == "../data/app-core"
+    env_record = env_records[0]
+    expected_mount = str((expected_data_dir / "app").resolve())
+    assert env_record.get("APP_DATA_DIR") == "data/app-core"
+    assert env_record.get("APP_DATA_DIR_MOUNT") == expected_mount
+    assert env_record.get("APP_DATA_DIR_MOUNT_IS_ABSOLUTE") == "true"
