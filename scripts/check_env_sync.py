@@ -13,7 +13,13 @@ from pathlib import Path
 from typing import Dict, Iterable, List, Mapping, Sequence, Set
 
 RUNTIME_PROVIDED_VARIABLES: Set[str] = {"PWD"}
-IMPLICIT_ENV_VARS: Set[str] = set()
+# Additional variables implicitly accepted by the project without being listed in
+# env templates. Projects can provide overrides in scripts/local/check_env_sync.py
+# (if present); otherwise the allowlist is empty by default.
+try:  # pragma: no cover - optional local overrides
+    from scripts.local.check_env_sync import IMPLICIT_ENV_VARS  # type: ignore[attr-defined]
+except ModuleNotFoundError:  # pragma: no cover - default fallback
+    IMPLICIT_ENV_VARS: Set[str] = set()
 
 PAIR_PATTERN = re.compile(
     r"\[([^\]]+)\]="

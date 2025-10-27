@@ -1,0 +1,8 @@
+"""Exemplo de overrides locais para check_env_sync."""
+
+from typing import Set
+
+# Liste aqui variáveis extras aceitas automaticamente, se necessário.
+IMPLICIT_ENV_VARS: Set[str] = {
+    # "MINHA_VARIAVEL_CUSTOMIZADA",
+}
