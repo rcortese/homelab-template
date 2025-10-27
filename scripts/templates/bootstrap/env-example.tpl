@@ -5,8 +5,6 @@ APP_PUBLIC_URL=https://{{APP}}.domain.example
 APP_WEBHOOK_URL=https://hooks.domain.example/{{APP}}
 # Opcional • Porta exposta no host para acesso à aplicação.
 {{PORT_VAR}}=8080
-# Opcional • Nome personalizado do container.
-SERVICE_NAME={{SERVICE_NAME_DEFAULT}}
 # Opcional • Liste serviços monitorados pelo health-check automático.
 # HEALTH_SERVICES={{APP}}
 # Opcional • Inclua overlays adicionais após o override principal da instância.

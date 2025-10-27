@@ -129,7 +129,6 @@ require_valid_name "$INSTANCE_NAME" "O nome da instância"
 APP_UPPER="$(uppercase_token "$APP_NAME")"
 INSTANCE_UPPER="$(uppercase_token "$INSTANCE_NAME")"
 APP_TITLE="$(title_case "$APP_NAME")"
-SERVICE_NAME_DEFAULT="${APP_NAME}-${INSTANCE_NAME}"
 PORT_VAR="${APP_UPPER}_${INSTANCE_UPPER}_PORT"
 
 compose_app_dir="$BASE_DIR/compose/apps/$APP_NAME"
@@ -199,7 +198,6 @@ render_template() {
   content="${content//\{\{INSTANCE_UPPER\}\}/$INSTANCE_UPPER}"
   content="${content//\{\{PORT_VAR\}\}/$PORT_VAR}"
   content="${content//\{\{APP_TITLE\}\}/$APP_TITLE}"
-  content="${content//\{\{SERVICE_NAME_DEFAULT\}\}/$SERVICE_NAME_DEFAULT}"
   printf '%s' "$content" >"$destination"
 }
 

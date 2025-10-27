@@ -121,7 +121,6 @@ O script depende de `scripts/lib/deploy_context.sh` para calcular `APP_DATA_DIR`
 
 - **Argumentos e variáveis suportadas:**
   - `HEALTH_SERVICES` — lista de serviços a inspecionar (separada por espaços ou vírgulas). Quando definido, limita a execução apenas aos serviços desejados.
-  - `SERVICE_NAME` — nome de um serviço específico para reduzir o escopo (útil ao investigar incidentes pontuais).
   - `COMPOSE_ENV_FILE` — caminho para um arquivo `.env` alternativo a ser carregado antes de consultar o `docker compose`.
 - O script complementa automaticamente a lista de serviços executando `docker compose config --services`, garantindo cobertura mesmo sem `HEALTH_SERVICES` definido.
 - **Formatos de saída:**
@@ -183,7 +182,7 @@ HEALTH_SERVICES="api worker" scripts/check_health.sh --format json media | jq '.
 
 - **Novo serviço:** utilize `scripts/bootstrap_instance.sh <app> <instância>` como ponto de partida; em seguida personalize compose, `.env` e documentação antes de prosseguir com validações.
 - **Diretórios persistentes:** o caminho `data/<app>-<instância>` é calculado automaticamente; utilize `APP_DATA_DIR` (relativo) **ou** `APP_DATA_DIR_MOUNT` (absoluto) quando precisar personalizar o destino e ajuste `APP_DATA_UID`/`APP_DATA_GID` no `.env` para alinhar permissões.
-- **Serviços monitorados:** defina `HEALTH_SERVICES` ou `SERVICE_NAME` nos arquivos `.env` para que `scripts/check_health.sh` use os alvos corretos de log.
+- **Serviços monitorados:** defina `HEALTH_SERVICES` nos arquivos `.env` para que `scripts/check_health.sh` use os alvos corretos de log.
 - **Volumes extras:** utilize overrides específicos (`compose/apps/<app>/<instância>.yml`) para montar diretórios adicionais ou expor portas distintas por ambiente.
 - **Overlays por configuração:** registre overlays opcionais em `compose/overlays/*.yml` e habilite-os por ambiente via `COMPOSE_EXTRA_FILES`. Isso mantém diffs de templates restritos a arquivos de configuração, sem editar scripts.
 

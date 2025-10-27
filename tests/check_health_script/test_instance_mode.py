@@ -40,7 +40,10 @@ def test_infers_compose_files_and_env_from_instance(
     assert calls == [
         _expected_compose_call(expected_env_files, expected_files, "config", "--services"),
         _expected_compose_call(expected_env_files, expected_files, "ps"),
-        _expected_compose_call(expected_env_files, expected_files, "logs", "--tail=50", "app-core"),
+        _expected_compose_call(expected_env_files, expected_files, "logs", "--tail=50", "app"),
+        _expected_compose_call(expected_env_files, expected_files, "logs", "--tail=50", "monitoring"),
+        _expected_compose_call(expected_env_files, expected_files, "logs", "--tail=50", "worker"),
+        _expected_compose_call(expected_env_files, expected_files, "logs", "--tail=50", "baseonly"),
     ]
 
 
@@ -75,7 +78,6 @@ def test_executes_from_scripts_directory(docker_stub: DockerStub, repo_copy: Pat
     assert calls == [
         _expected_compose_call(expected_env_files, expected_files, "config", "--services"),
         _expected_compose_call(expected_env_files, expected_files, "ps"),
-        _expected_compose_call(expected_env_files, expected_files, "logs", "--tail=50", "app-core"),
         _expected_compose_call(expected_env_files, expected_files, "logs", "--tail=50", "app"),
         _expected_compose_call(expected_env_files, expected_files, "logs", "--tail=50", "monitoring"),
         _expected_compose_call(expected_env_files, expected_files, "logs", "--tail=50", "overrideonly"),

@@ -100,6 +100,11 @@ build_compose_file_plan() {
   local __app_base_file
   for __app_name in "${__instance_app_names[@]}"; do
     __app_base_file="${COMPOSE_APP_BASE_FILES[$__app_name]:-}"
+    if [[ -z "$__app_base_file" && -z "${__overrides_by_app[$__app_name]:-}" ]]; then
+      printf '[!] Instância "%s": aplicação "%s" não possui base.yml nem overrides.\n' \
+        "$instance_name" "$__app_name" >&2
+      return 1
+    fi
     if [[ -n "$__app_base_file" ]]; then
       append_unique_file __plan_ref "$__app_base_file"
     fi

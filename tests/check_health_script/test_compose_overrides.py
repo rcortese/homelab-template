@@ -43,8 +43,7 @@ def test_loads_compose_extra_files_from_env_file(
 ) -> None:
     env_file = tmp_path / "custom.env"
     env_file.write_text(
-        "COMPOSE_EXTRA_FILES=compose/overlays/extra.yml\n"
-        "SERVICE_NAME=app-extra\n",
+        "COMPOSE_EXTRA_FILES=compose/overlays/extra.yml\n",
         encoding="utf-8",
     )
 
@@ -68,7 +67,6 @@ def test_loads_compose_extra_files_from_env_file(
     assert calls == [
         _expected_compose_call(str(env_file), expected_files, "config", "--services"),
         _expected_compose_call(str(env_file), expected_files, "ps"),
-        _expected_compose_call(str(env_file), expected_files, "logs", "--tail=50", "app-extra"),
         _expected_compose_call(str(env_file), expected_files, "logs", "--tail=50", "app"),
     ]
 

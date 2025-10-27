@@ -47,12 +47,12 @@ def test_creates_files_and_updates_docs(repo_copy: Path) -> None:
     assert "services:" in base_content
     assert "analytics:" in base_content
 
-    assert "container_name: ${SERVICE_NAME:-analytics-staging}" in instance_content
+    assert "container_name" not in instance_content
     assert "${ANALYTICS_STAGING_PORT:-8080}" in instance_content
     assert "APP_PUBLIC_URL" in instance_content
 
     assert "ANALYTICS_STAGING_PORT=8080" in env_content
-    assert "SERVICE_NAME=analytics-staging" in env_content
+    assert "SERVICE_NAME" not in env_content
 
     assert "# Analytics (analytics)" in doc_content
     assert "compose/apps/analytics/base.yml" in doc_content

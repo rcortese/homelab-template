@@ -1,6 +1,5 @@
 services:
   {{APP}}:
-    container_name: ${SERVICE_NAME:-{{SERVICE_NAME_DEFAULT}}}
     # Ajuste as portas expostas por esta instância.
     ports:
       - "${{{PORT_VAR}}:-8080}:8080"
