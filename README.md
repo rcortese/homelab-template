@@ -37,7 +37,7 @@ Pipelines de CI/CD, testes e scripts adicionais podem ser adicionados, mas os di
 2. **Infraestrutura** – crie os manifests em `compose/` e modele as variáveis correspondentes em `env/`.
 3. **Automação** – adapte os scripts existentes para a nova stack e documente o uso em `docs/OPERATIONS.md`.
 4. **Runbooks** – personalize os guias operacionais (`docs/core.md`, `docs/media.md`, etc.) para refletir ambientes reais.
-5. **Qualidade** – configure testes e validações adicionais em `.github/workflows/` conforme necessário.
+5. **Qualidade** – mantenha `.github/workflows/` com `template-quality.yml` intacto e adicione workflows extras conforme necessário.
 
 <a id="documentacao-e-customizacao-local"></a>
 ## Documentação e customização local
