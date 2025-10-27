@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Usage: scripts/run_quality_checks.sh
+# Usage: scripts/run_quality_checks.sh [--no-lint]
 #
 # Executa a bateria padrão de testes e linters do template.
 # A rotina valida código Python via ``pytest`` e executa ``shellcheck``
@@ -9,6 +9,37 @@
 # Exemplo:
 #   scripts/run_quality_checks.sh
 set -euo pipefail
+
+usage() {
+  cat <<'EOF'
+Uso: scripts/run_quality_checks.sh [--no-lint]
+
+Executa ``pytest`` e ``shellcheck`` sobre o template.
+
+Opções:
+  --no-lint    Pula a etapa de linting via ``shellcheck``.
+EOF
+}
+
+RUN_LINT=1
+
+while (($# > 0)); do
+  case "$1" in
+    --no-lint)
+      RUN_LINT=0
+      shift
+      ;;
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    *)
+      echo "Argumento desconhecido: $1" >&2
+      usage >&2
+      exit 1
+      ;;
+  esac
+done
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
@@ -20,14 +51,16 @@ SHELLCHECK_BIN="${SHELLCHECK_BIN:-shellcheck}"
 cd "${REPO_ROOT}"
 "${PYTHON_BIN}" -m pytest
 
-# Prepara a lista de scripts shell para lint.
-shopt -s nullglob
-shell_scripts=("${SCRIPT_DIR}"/*.sh)
-lib_scripts=("${SCRIPT_DIR}/lib"/*.sh)
-shopt -u nullglob
+if ((RUN_LINT)); then
+  # Prepara a lista de scripts shell para lint.
+  shopt -s nullglob
+  shell_scripts=("${SCRIPT_DIR}"/*.sh)
+  lib_scripts=("${SCRIPT_DIR}/lib"/*.sh)
+  shopt -u nullglob
 
-shellcheck_targets=("${shell_scripts[@]}" "${lib_scripts[@]}")
+  shellcheck_targets=("${shell_scripts[@]}" "${lib_scripts[@]}")
 
-if ((${#shellcheck_targets[@]} > 0)); then
-  "${SHELLCHECK_BIN}" "${shellcheck_targets[@]}"
+  if ((${#shellcheck_targets[@]} > 0)); then
+    "${SHELLCHECK_BIN}" "${shellcheck_targets[@]}"
+  fi
 fi

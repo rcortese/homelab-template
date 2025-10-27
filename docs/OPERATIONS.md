@@ -93,8 +93,9 @@ Consulte o resumo na tabela acima. Inclua `scripts/check_env_sync.py` nas execu�
 - **Uso típico:**
   ```bash
   scripts/run_quality_checks.sh
+  scripts/run_quality_checks.sh --no-lint
   ```
-- **Personalização:** defina `PYTHON_BIN` ou `SHELLCHECK_BIN` para apontar binários alternativos quando necessário (por exemplo, em ambientes virtuais ou wrappers locais).
+- **Personalização:** defina `PYTHON_BIN` ou `SHELLCHECK_BIN` para apontar binários alternativos quando necessário (por exemplo, em ambientes virtuais ou wrappers locais) ou passe `--no-lint` quando quiser apenas rodar a suíte de testes Python.
 - **Boas práticas:** execute o helper durante ciclos iterativos em código Python ou shell para detectar regressões rapidamente e replique a chamada em pipelines locais antes de rodar `scripts/check_all.sh`.
 
 ## scripts/bootstrap_instance.sh

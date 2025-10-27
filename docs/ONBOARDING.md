@@ -52,7 +52,7 @@ O agregador `scripts/check_all.sh` executa, na ordem abaixo, as validações est
 - `scripts/check_env_sync.py` – verifica se manifests Compose e arquivos `env/*.example.env` permanecem sincronizados.
 - `scripts/validate_compose.sh` – valida as combinações padrão de manifests para os perfis ativos.
 
-Utilize `scripts/run_quality_checks.sh` quando quiser rodar rapidamente a bateria base de qualidade sem percorrer todas as validações.
+Utilize `scripts/run_quality_checks.sh` quando quiser rodar rapidamente a bateria base de qualidade sem percorrer todas as validações — acrescente `--no-lint` caso deseje apenas executar `pytest`.
 
 ## 5. Próximos passos
 
