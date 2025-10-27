@@ -4,7 +4,7 @@
 
 Este guia documenta como montar o manifesto do Docker Compose usando apenas os
 arquivos base e os overrides por instância. Siga estas instruções antes de
-executar `docker compose` ou os scripts em `scripts/*.sh`.
+executar `docker compose`.
 
 ## Estrutura dos manifests
 
