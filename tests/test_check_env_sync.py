@@ -3,6 +3,8 @@ from __future__ import annotations
 import subprocess
 from pathlib import Path
 
+from scripts.check_env_sync import decode_bash_string, parse_declare_array, parse_declare_mapping
+
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SCRIPT_PATH = REPO_ROOT / "scripts" / "check_env_sync.py"
 
@@ -71,3 +73,30 @@ def test_check_env_sync_reports_metadata_failure(repo_copy: Path) -> None:
     assert result.stdout == ""
     assert "[!]" in result.stderr
     assert "compose/base.yml" in result.stderr
+
+
+def test_decode_bash_string_handles_dollar_single_quotes() -> None:
+    token = "$'multi\\nline\\tvalue'"
+
+    result = decode_bash_string(token)
+
+    assert result == "multi\nline\tvalue"
+
+
+def test_parse_declare_array_with_mixed_quotes_preserves_order() -> None:
+    line = "declare -a COMPOSE_INSTANCE_NAMES=([0]=\"core\" [2]=$'media\\n' [1]='edge')"
+
+    result = parse_declare_array(line)
+
+    assert result == ["core", "edge", "media\n"]
+
+
+def test_parse_declare_mapping_with_multiple_entries_and_escapes() -> None:
+    line = "declare -A MAP=([foo]=$'line\\nA' [bar]=\"line\\nB\" [baz]=$'tab\\tvalue')"
+
+    result = parse_declare_mapping(line)
+
+    assert list(result.keys()) == ["foo", "bar", "baz"]
+    assert result["foo"] == "line\nA"
+    assert result["bar"] == "line\nB"
+    assert result["baz"] == "tab\tvalue"
