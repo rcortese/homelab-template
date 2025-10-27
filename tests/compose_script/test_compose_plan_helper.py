@@ -86,6 +86,7 @@ def build_expected_plan(
     base_file: str,
     instance: str,
     app_names_map: dict[str, list[str]],
+    app_base_map: dict[str, str],
     instance_files_map: dict[str, list[str]],
 ) -> list[str]:
     expected: list[str] = []
@@ -97,7 +98,8 @@ def build_expected_plan(
     append_unique(base_file)
 
     for app_name in app_names_map.get(instance, []):
-        append_unique(f"compose/apps/{app_name}/base.yml")
+        app_base = app_base_map.get(app_name, "")
+        append_unique(app_base)
         for candidate in instance_files_map.get(instance, []):
             prefix = f"compose/apps/{app_name}/"
             if candidate.startswith(prefix):
@@ -114,6 +116,7 @@ def test_compose_plan_matches_existing_logic(repo_copy: Path) -> None:
         expected_names,
         expected_files_map,
         expected_app_names_map,
+        expected_app_base_map,
         _env_local_map,
         _env_template_map,
         _env_file_map,
@@ -128,9 +131,16 @@ def test_compose_plan_matches_existing_logic(repo_copy: Path) -> None:
         plan_line = find_declare_line(result.stdout, "plan")
         plan_entries = parse_indexed_values(plan_line)
 
-        expected_plan = build_expected_plan(base_file, instance, expected_app_names_map, expected_files_map)
+        expected_plan = build_expected_plan(
+            base_file,
+            instance,
+            expected_app_names_map,
+            expected_app_base_map,
+            expected_files_map,
+        )
 
         assert plan_entries == expected_plan
+        assert "compose/apps/overrideonly/base.yml" not in plan_entries
 
 
 def test_compose_plan_appends_extra_files(repo_copy: Path) -> None:
@@ -146,6 +156,7 @@ def test_compose_plan_appends_extra_files(repo_copy: Path) -> None:
         _names,
         expected_files_map,
         expected_app_names_map,
+        expected_app_base_map,
         _env_local_map,
         _env_template_map,
         _env_file_map,
@@ -155,6 +166,7 @@ def test_compose_plan_appends_extra_files(repo_copy: Path) -> None:
         "compose/base.yml",
         "core",
         expected_app_names_map,
+        expected_app_base_map,
         expected_files_map,
     )
     expected_plan.extend(extras)
@@ -175,6 +187,7 @@ def test_compose_plan_optional_metadata(repo_copy: Path) -> None:
         _names,
         expected_files_map,
         expected_app_names_map,
+        expected_app_base_map,
         _env_local_map,
         _env_template_map,
         _env_file_map,
