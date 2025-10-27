@@ -161,6 +161,12 @@ def _collect_substitution_variables(text: str) -> Set[str]:
     while index < length:
         char = text[index]
         if char == "$":
+            if index > 0 and text[index - 1] == "$":
+                index += 1
+                continue
+            if text.startswith("$$${", index):
+                index += 1
+                continue
             next_index = index + 1
             if next_index < length and text[next_index] == "{":
                 brace_depth = 1
@@ -320,7 +326,9 @@ def build_sync_report(repo_root: Path, metadata: ComposeMetadata) -> SyncReport:
     )
     common_env_vars = set(common_env_data.available)
     common_env_vars.update(local_common_data.available)
-    common_env_vars.update(IMPLICIT_ENV_VARS)
+    implicit_env_vars = globals().get("IMPLICIT_ENV_VARS")
+    if implicit_env_vars:
+        common_env_vars.update(set(implicit_env_vars))
 
     missing_templates: List[str] = []
     for instance in metadata.instances:
