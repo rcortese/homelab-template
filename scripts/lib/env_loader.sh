@@ -24,8 +24,12 @@ if [[ ! -f "$ENV_FILE" ]]; then
 fi
 
 python3 - "$ENV_FILE" "$@" <<'PY'
+import re
 import sys
 from pathlib import Path
+
+COMMENT_PATTERN = re.compile(r"(?<!\\)\s+#")
+
 
 def normalize(value: str) -> str:
     value = value.strip()
@@ -34,11 +38,12 @@ def normalize(value: str) -> str:
     if value[0] in {'"', "'"} and value[-1] == value[0] and len(value) >= 2:
         value = value[1:-1]
     if value and value[0] not in {'"', "'"}:
-        if ' #' in value:
-            value = value.split(' #', 1)[0].rstrip()
-        elif value.startswith('#'):
+        match = COMMENT_PATTERN.search(value)
+        if match:
+            value = value[: match.start()].rstrip()
+        elif value.startswith('#') and (len(value) == 1 or value[1].isspace()):
             return ""
-    return value
+    return value.replace("\\#", "#")
 
 def parse_file(path: Path) -> dict[str, str]:
     result: dict[str, str] = {}
