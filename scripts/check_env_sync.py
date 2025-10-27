@@ -12,6 +12,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, Iterable, List, Mapping, Sequence, Set
 
+RUNTIME_PROVIDED_VARIABLES: Set[str] = {"PWD"}
+
 PAIR_PATTERN = re.compile(
     r"\[([^\]]+)\]="
     r"("  # opening group for value alternatives
@@ -332,6 +334,7 @@ def build_sync_report(repo_root: Path, metadata: ComposeMetadata) -> SyncReport:
         data = instance_env_files.get(template_path) if template_path else None
         instance_env_vars = data.available if data else set()
         available = set(common_env_vars)
+        available.update(RUNTIME_PROVIDED_VARIABLES)
         available.update(instance_env_vars)
         missing_by_instance[instance] = compose_vars - available
 

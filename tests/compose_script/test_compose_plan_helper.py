@@ -97,6 +97,15 @@ def build_expected_plan(
 
     append_unique(base_file)
 
+    instance_candidates = instance_files_map.get(instance, [])
+    instance_level_overrides = [
+        candidate
+        for candidate in instance_candidates
+        if not candidate.startswith("compose/apps/")
+    ]
+    for override in instance_level_overrides:
+        append_unique(override)
+
     for app_name in app_names_map.get(instance, []):
         app_base = app_base_map.get(app_name, "")
         append_unique(app_base)

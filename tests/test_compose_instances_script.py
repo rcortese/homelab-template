@@ -54,6 +54,20 @@ def _collect_compose_metadata(repo_root: Path) -> tuple[
         if not found_override and base_file.exists():
             apps_without_overrides.append(app_dir.name)
 
+    compose_dir = repo_root / "compose"
+    top_level_candidates = list(sorted(compose_dir.glob("*.yml"))) + list(
+        sorted(compose_dir.glob("*.yaml"))
+    )
+    for candidate in top_level_candidates:
+        if candidate.stem == "base":
+            continue
+
+        instance_name = candidate.stem
+        rel_path = candidate.relative_to(repo_root).as_posix()
+
+        if rel_path not in instance_files[instance_name]:
+            instance_files[instance_name].append(rel_path)
+
     known_instances = set(instance_files)
     env_dir = repo_root / "env"
     env_local_dir = env_dir / "local"
