@@ -219,10 +219,7 @@ def repo_copy(
         encoding="utf-8",
     )
 
-    (local_env_dir / "core.env").write_text(
-        "SERVICE_NAME=app-core\n",
-        encoding="utf-8",
-    )
+    (local_env_dir / "core.env").write_text("", encoding="utf-8")
 
     override_only_dir = copy_root / "compose" / "apps" / "overrideonly"
     override_only_dir.mkdir(parents=True, exist_ok=True)

@@ -124,7 +124,10 @@ load_compose_discovery() {
       compose_discovery__append_instance_file "$instance" "$instance_rel"
     done
 
-    if [[ $found_for_app -eq 0 && -f "$app_base_abs" ]]; then
+    if [[ $found_for_app -eq 0 ]]; then
+      if [[ ! -f "$app_base_abs" ]]; then
+        COMPOSE_APP_BASE_FILES[$app_name]="$app_base_rel"
+      fi
       apps_without_overrides+=("$app_name")
     fi
   done

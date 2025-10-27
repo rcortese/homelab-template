@@ -256,7 +256,7 @@ if [[ -z "${HEALTH_SERVICES:-}" ]]; then
       if [[ ! -f "$env_abs" ]]; then
         continue
       fi
-      if env_output="$("$SCRIPT_DIR/lib/env_loader.sh" "$env_abs" COMPOSE_EXTRA_FILES HEALTH_SERVICES SERVICE_NAME 2>/dev/null)"; then
+      if env_output="$("$SCRIPT_DIR/lib/env_loader.sh" "$env_abs" COMPOSE_EXTRA_FILES HEALTH_SERVICES 2>/dev/null)"; then
         while IFS= read -r line; do
           [[ -z "$line" ]] && continue
           if [[ "$line" != *=* ]]; then
@@ -278,11 +278,6 @@ if [[ -z "${HEALTH_SERVICES:-}" ]]; then
       HEALTH_SERVICES="${__health_env_values[HEALTH_SERVICES]}"
       defaults_refreshed=1
     fi
-    if [[ -n "${__health_env_values[SERVICE_NAME]+x}" ]]; then
-      SERVICE_NAME="${__health_env_values[SERVICE_NAME]}"
-      defaults_refreshed=1
-    fi
-
     if ((defaults_refreshed == 1)); then
       if ! compose_defaults_dump="$("$SCRIPT_DIR/lib/compose_defaults.sh" "$INSTANCE_NAME" ".")"; then
         echo "[!] Não foi possível preparar variáveis padrão do docker compose." >&2
@@ -296,7 +291,7 @@ if [[ -z "${HEALTH_SERVICES:-}" ]]; then
   fi
 fi
 
-mapfile -t LOG_TARGETS < <(env_file_chain__parse_list "${HEALTH_SERVICES:-${SERVICE_NAME:-}}") || true
+mapfile -t LOG_TARGETS < <(env_file_chain__parse_list "${HEALTH_SERVICES:-}") || true
 primary_targets=("${LOG_TARGETS[@]}")
 
 append_real_service_targets() {

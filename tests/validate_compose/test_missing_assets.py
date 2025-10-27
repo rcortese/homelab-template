@@ -34,5 +34,5 @@ def test_missing_compose_file_in_temporary_copy(
 
     assert result.returncode == 1
     assert "baseonly" in result.stderr
-    assert "metadados" in result.stderr
+    assert "arquivo ausente" in result.stderr
     assert docker_stub.read_calls() == []

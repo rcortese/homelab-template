@@ -69,7 +69,6 @@ def test_deploy_uses_convention_for_data_dir(repo_copy: Path) -> None:
 
     core_env = repo_copy / "env" / "local" / "core.env"
     core_env.write_text(
-        "SERVICE_NAME=app-core\n"
         "APP_DATA_DIR=custom-storage\n",
         encoding="utf-8",
     )

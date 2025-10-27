@@ -148,6 +148,27 @@ validate_executor_prepare_plan() {
 
   derived_env_ref=()
 
+  local -a instance_app_names=()
+  if [[ -v COMPOSE_INSTANCE_APP_NAMES[$instance] ]]; then
+    mapfile -t instance_app_names < <(printf '%s\n' "${COMPOSE_INSTANCE_APP_NAMES[$instance]}")
+  fi
+  if [[ ${#instance_app_names[@]} -gt 0 ]]; then
+    local -a filtered_app_names=()
+    local instance_app_name
+    for instance_app_name in "${instance_app_names[@]}"; do
+      if [[ -n "${COMPOSE_APP_BASE_FILES[$instance_app_name]:-}" ]]; then
+        filtered_app_names+=("$instance_app_name")
+      fi
+    done
+    if [[ ${#filtered_app_names[@]} -gt 0 ]]; then
+      instance_app_names=("${filtered_app_names[@]}")
+    fi
+  fi
+  if [[ ${#instance_app_names[@]} -eq 0 ]]; then
+    echo "✖ instância=\"$instance\" (aplicações associadas não encontradas)" >&2
+    return 1
+  fi
+
   local primary_app=""
   if [[ ${#instance_app_names[@]} -gt 0 ]]; then
     primary_app="${instance_app_names[0]}"
@@ -158,7 +179,7 @@ validate_executor_prepare_plan() {
     local env_file_path env_output line
     for env_file_path in "${env_files_abs[@]}"; do
       if [[ -f "$env_file_path" ]]; then
-        if env_output="$("$env_loader" "$env_file_path" SERVICE_NAME APP_DATA_DIR APP_DATA_DIR_MOUNT 2>/dev/null)"; then
+        if env_output="$("$env_loader" "$env_file_path" APP_DATA_DIR APP_DATA_DIR_MOUNT 2>/dev/null)"; then
           while IFS= read -r line; do
             [[ -z "$line" ]] && continue
             if [[ "$line" == *=* ]]; then
@@ -172,13 +193,9 @@ validate_executor_prepare_plan() {
     done
   fi
 
-  local service_name_value="${SERVICE_NAME:-}"
   local app_data_dir_value="${APP_DATA_DIR:-}"
   local app_data_dir_mount_value="${APP_DATA_DIR_MOUNT:-}"
 
-  if [[ -z "$service_name_value" && -n "${env_loaded[SERVICE_NAME]:-}" ]]; then
-    service_name_value="${env_loaded[SERVICE_NAME]}"
-  fi
   if [[ -z "$app_data_dir_value" && -n "${env_loaded[APP_DATA_DIR]:-}" ]]; then
     app_data_dir_value="${env_loaded[APP_DATA_DIR]}"
   fi
@@ -192,23 +209,21 @@ validate_executor_prepare_plan() {
   fi
 
   local default_app_data_dir=""
+  local service_slug=""
   if [[ -n "$primary_app" ]]; then
-    default_app_data_dir="data/${primary_app}-${instance}"
-  fi
-  if [[ -z "$service_name_value" && -n "$primary_app" ]]; then
-    service_name_value="${primary_app}-${instance}"
+    service_slug="${primary_app}-${instance}"
+    default_app_data_dir="data/${service_slug}"
   fi
 
   local derived_app_data_dir=""
   local derived_app_data_dir_mount=""
-  if ! env_helpers__derive_app_data_paths "$repo_root" "$service_name_value" "$default_app_data_dir" "$app_data_dir_value" "$app_data_dir_mount_value" derived_app_data_dir derived_app_data_dir_mount; then
+  if ! env_helpers__derive_app_data_paths "$repo_root" "$service_slug" "$default_app_data_dir" "$app_data_dir_value" "$app_data_dir_mount_value" derived_app_data_dir derived_app_data_dir_mount; then
     echo "✖ instância=\"$instance\" (falha ao derivar diretórios persistentes)" >&2
     return 1
   fi
 
   derived_env_ref[APP_DATA_DIR]="$derived_app_data_dir"
   derived_env_ref[APP_DATA_DIR_MOUNT]="$derived_app_data_dir_mount"
-  derived_env_ref[SERVICE_NAME]="$service_name_value"
 
   # Touch nameref arrays so shellcheck recognizes they are consumed by callers.
   : "${env_args_ref[@]}"
@@ -250,12 +265,10 @@ validate_executor_run_instances() {
     fi
 
     echo "==> Validando $instance"
-    local service_name_env="${derived_env[SERVICE_NAME]:-}"
     local app_data_dir_env="${derived_env[APP_DATA_DIR]:-}"
     local app_data_dir_mount_env="${derived_env[APP_DATA_DIR_MOUNT]:-}"
 
-    if SERVICE_NAME="$service_name_env" \
-      APP_DATA_DIR="$app_data_dir_env" \
+    if APP_DATA_DIR="$app_data_dir_env" \
       APP_DATA_DIR_MOUNT="$app_data_dir_mount_env" \
       "${compose_cmd[@]}" "${env_args[@]}" "${compose_args[@]}" config >/dev/null; then
       echo "✔ $instance"

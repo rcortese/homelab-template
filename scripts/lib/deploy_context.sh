@@ -171,16 +171,8 @@ build_deploy_context() {
     previous_app_data_dir_mount="$APP_DATA_DIR_MOUNT"
   fi
 
-  local service_name_was_set=0
-  local previous_service_name=""
-  if [[ -v SERVICE_NAME ]]; then
-    service_name_was_set=1
-    previous_service_name="$SERVICE_NAME"
-  fi
-
   local -A loaded_env_values=()
   local -a requested_env_keys=(
-    SERVICE_NAME
     APP_DATA_DIR
     APP_DATA_DIR_MOUNT
     COMPOSE_EXTRA_FILES
@@ -224,19 +216,31 @@ build_deploy_context() {
     return 1
   fi
 
+  local -a filtered_app_names=()
+  local instance_app_name
+  for instance_app_name in "${instance_app_names[@]}"; do
+    if [[ -n "${COMPOSE_APP_BASE_FILES[$instance_app_name]:-}" ]]; then
+      filtered_app_names+=("$instance_app_name")
+    fi
+  done
+  if [[ ${#filtered_app_names[@]} -gt 0 ]]; then
+    instance_app_names=("${filtered_app_names[@]}")
+  fi
+
   local app_names_string=""
   if [[ ${#instance_app_names[@]} -gt 0 ]]; then
     app_names_string="$(printf '%s\n' "${instance_app_names[@]}")"
   fi
 
   local primary_app="${instance_app_names[0]}"
-  local service_name_value="${SERVICE_NAME:-}"
   local default_app_data_dir=""
   if [[ -n "$primary_app" ]]; then
     default_app_data_dir="data/${primary_app}-${instance}"
   fi
-  if [[ -z "$service_name_value" && -n "$primary_app" ]]; then
-    service_name_value="${primary_app}-${instance}"
+
+  local service_slug=""
+  if [[ -n "$primary_app" ]]; then
+    service_slug="${primary_app}-${instance}"
   fi
 
   local app_data_dir_value_raw="${APP_DATA_DIR:-}"
@@ -244,7 +248,7 @@ build_deploy_context() {
 
   local derived_app_data_dir=""
   local derived_app_data_dir_mount=""
-  if ! env_helpers__derive_app_data_paths "$repo_root" "$service_name_value" "$default_app_data_dir" "$app_data_dir_value_raw" "$app_data_dir_mount_value_raw" derived_app_data_dir derived_app_data_dir_mount; then
+  if ! env_helpers__derive_app_data_paths "$repo_root" "$service_slug" "$default_app_data_dir" "$app_data_dir_value_raw" "$app_data_dir_mount_value_raw" derived_app_data_dir derived_app_data_dir_mount; then
     return 1
   fi
 
@@ -258,12 +262,6 @@ build_deploy_context() {
     APP_DATA_DIR_MOUNT="$previous_app_data_dir_mount"
   else
     unset APP_DATA_DIR_MOUNT
-  fi
-
-  if ((service_name_was_set == 1)); then
-    SERVICE_NAME="$previous_service_name"
-  else
-    unset SERVICE_NAME
   fi
 
   local -a extra_compose_files=()

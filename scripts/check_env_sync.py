@@ -215,7 +215,27 @@ def build_sync_report(repo_root: Path, metadata: ComposeMetadata) -> SyncReport:
     for instance, files in metadata.files_by_instance.items():
         instance_vars = set(base_vars)
         app_names = metadata.app_names_by_instance.get(instance, [])
-        app_base_files = [repo_root / "compose" / "apps" / app / "base.yml" for app in app_names]
+        app_base_files = []
+        for app in app_names:
+            base_candidate = repo_root / "compose" / "apps" / app / "base.yml"
+            if base_candidate.exists():
+                app_base_files.append(base_candidate)
+                continue
+
+            has_override = False
+            for override in files:
+                try:
+                    relative = override.resolve().relative_to(repo_root)
+                except Exception:  # pragma: no cover - defensive
+                    continue
+                parts = relative.parts
+                if len(parts) >= 4 and parts[0] == "compose" and parts[1] == "apps" and parts[2] == app:
+                    has_override = True
+                    break
+
+            if not has_override:
+                raise ComposeMetadataError(f"Arquivo Compose ausente: {base_candidate}")
+
         if app_base_files:
             instance_vars.update(extract_compose_variables(app_base_files))
         instance_vars.update(extract_compose_variables(files))

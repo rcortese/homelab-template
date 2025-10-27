@@ -205,6 +205,7 @@ def test_json_summary_structure(repo_copy: Path, tmp_path: Path) -> None:
         "compose/apps/app/core.yml",
         "compose/apps/monitoring/base.yml",
         "compose/apps/monitoring/core.yml",
+        "compose/apps/overrideonly/core.yml",
         "compose/apps/worker/base.yml",
         "compose/apps/worker/core.yml",
         "compose/apps/baseonly/base.yml",

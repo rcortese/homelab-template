@@ -38,7 +38,6 @@ Monte uma tabela semelhante à abaixo para cada arquivo `env/<alvo>.example.env`
 | Variável | Obrigatória? | Uso | Referência |
 | --- | --- | --- | --- |
 | `APP_PUBLIC_URL` | Opcional | Define URL pública para links e cookies. | `compose/apps/<app>/<instância>.yml` (ex.: `compose/apps/app/core.yml`). |
-| `SERVICE_NAME` | Opcional | Personaliza o nome do container ou alvo de logs. | `compose/apps/<app>/<instância>.yml`, `scripts/check_health.sh`. |
 | `COMPOSE_EXTRA_FILES` | Opcional | Lista overlays adicionais aplicados após o override da instância (separados por espaço ou vírgula). | `scripts/deploy_instance.sh`, `scripts/validate_compose.sh`, `scripts/lib/compose_defaults.sh`. |
 
 > Substitua a tabela pelos campos reais da sua stack. Utilize a coluna **Referência** para apontar onde a variável é consumida (manifests, scripts, infraestrutura externa, etc.).
