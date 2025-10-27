@@ -3,6 +3,8 @@ import shutil
 import subprocess
 from pathlib import Path
 
+import pytest
+
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SCRIPT_PATH = REPO_ROOT / "scripts" / "detect_template_commits.sh"
 
@@ -106,6 +108,47 @@ def prepare_script_tree(tmp_path):
 
 def run(cmd, cwd):
     subprocess.run(cmd, cwd=cwd, check=True)
+
+
+@pytest.mark.parametrize("flag", ["-h", "--help"])
+def test_detect_template_commits_help_flags(tmp_path, flag):
+    repo_root, script = prepare_script_tree(tmp_path)
+
+    result = subprocess.run(
+        [str(script), flag],
+        cwd=repo_root,
+        text=True,
+        capture_output=True,
+        check=False,
+        env=os.environ,
+    )
+
+    assert result.returncode == 0
+    assert "Uso: scripts/detect_template_commits.sh [opções]" in result.stdout
+    assert "-h, --help" in result.stdout
+
+
+@pytest.mark.parametrize(
+    "args, expected_error",
+    [
+        (["--remote"], "--remote requer um argumento."),
+        (["--unknown"], "argumento desconhecido: --unknown"),
+    ],
+)
+def test_detect_template_commits_argument_errors(tmp_path, args, expected_error):
+    repo_root, script = prepare_script_tree(tmp_path)
+
+    result = subprocess.run(
+        [str(script), *args],
+        cwd=repo_root,
+        text=True,
+        capture_output=True,
+        check=False,
+        env=os.environ,
+    )
+
+    assert result.returncode != 0
+    assert expected_error in result.stderr
 
 
 def test_detect_template_commits_generates_file(tmp_path):

@@ -19,6 +19,7 @@ Este documento apresenta um ponto de partida para descrever processos operaciona
 | [`scripts/describe_instance.sh`](#scriptsdescribe_instancesh) | Resumir serviços, portas e volumes de uma instância. | `scripts/describe_instance.sh <instancia>` | Auditorias rápidas ou geração de runbooks. |
 | [`scripts/check_health.sh`](#scriptscheck_healthsh) | Conferir status dos serviços após mudanças. | `scripts/check_health.sh <instancia>` | Pós-deploy, pós-restore ou troubleshooting. |
 | [`scripts/check_db_integrity.sh`](#scriptscheck_db_integritysh) | Validar integridade de bancos SQLite com pausa controlada. | `scripts/check_db_integrity.sh <instancia>` | Manutenções programadas ou investigação de falhas. |
+| [`scripts/detect_template_commits.sh`](#scriptsdetect_template_commitssh) | Identificar o commit base do template e o primeiro commit exclusivo do fork. | `scripts/detect_template_commits.sh` | Antes de seguir o fluxo de [atualização a partir do template original](../README.md#atualizando-a-partir-do-template-original) ou revisar divergências locais. |
 | [`scripts/update_from_template.sh`](#scriptsupdate_from_templatesh) | Reaplicar customizações após atualizar o template. | Consulte o [guia canônico](../README.md#atualizando-a-partir-do-template-original). | Ao sincronizar forks com o upstream. |
 
 ## Antes de começar
@@ -100,7 +101,14 @@ Consulte o resumo na tabela acima. Inclua `scripts/check_env_sync.py` nas execu�
 
 ## scripts/bootstrap_instance.sh
 
-Use `--base-dir` para executar fora da raiz e `--with-docs` para gerar documentação inicial. Após o bootstrap, ajuste overrides (`compose/apps/<app>/<instancia>.yml`), preencha `env/<instancia>.example.env` e complemente `docs/apps/<app>.md`.
+Use `--base-dir`, `--with-docs` e `--override-only` para declarar explicitamente diretórios alternativos, gerar documentação inicial e limitar o bootstrap a arquivos de override. Após o bootstrap, ajuste overrides (`compose/apps/<app>/<instancia>.yml`), preencha `env/<instancia>.example.env` e complemente `docs/apps/<app>.md`.
+
+- **Quando usar `--override-only`:** aplicações sem `compose/apps/<app>/base.yml` podem utilizar somente overrides (`compose/apps/<app>/<instancia>.yml`). O script detecta automaticamente a ausência do `base.yml`, mas a flag garante o comportamento em execuções não interativas ou quando quiser enfatizar o cenário.
+- **Exemplo rápido:**
+  ```bash
+  scripts/bootstrap_instance.sh minha-app prod --override-only --with-docs
+  ```
+  Para mais detalhes sobre stacks formadas apenas por overrides, consulte [`docs/COMPOSE_GUIDE.md#aplicações-compostas-apenas-por-overrides`](./COMPOSE_GUIDE.md#aplicações-compostas-apenas-por-overrides).
 
 <a id="scriptsvalidate_compose.sh"></a>
 ## scripts/validate_compose.sh
@@ -216,6 +224,31 @@ após sincronizar o fork com o template. Para o passo a passo detalhado, parâme
 execução, consulte a seção ["Atualizando a partir do template original"](../README.md#atualizando-a-partir-do-template-original)
 no `README.md`, que é a fonte única de verdade para esse fluxo. Registre aqui apenas adaptações locais que não
 entrem em conflito com o guia principal.
+
+## scripts/detect_template_commits.sh
+
+- **Parâmetros principais:**
+  - `--remote` — define explicitamente o remote que aponta para o template; é detectado automaticamente quando possível.
+  - `--target-branch` — informa a branch do template usada como referência; quando omitida, o script tenta descobrir o HEAD padrão (`main`/`master`).
+  - `--output` — sobrescreve o caminho padrão `env/local/template_commits.env` ao salvar os hashes calculados.
+  - `--no-fetch` — evita executar `git fetch --prune` antes dos cálculos, útil quando o espelho local já está atualizado.
+- **Saída gerada:** cria (ou atualiza) `env/local/template_commits.env` com `ORIGINAL_COMMIT_ID` e `FIRST_COMMIT_ID`, permitindo reutilizar os valores no passo seguinte do fluxo de ["Atualizando a partir do template original"](../README.md#atualizando-a-partir-do-template-original).
+- **Exemplos alinhados ao fluxo padrão:**
+  - Detecção automática antes de rodar `scripts/update_from_template.sh`:
+    ```bash
+    scripts/detect_template_commits.sh
+    ```
+  - Forçando o remote, branch de origem e reaproveitando a saída sugerida pelo README:
+    ```bash
+    scripts/detect_template_commits.sh \
+      --remote template \
+      --target-branch main \
+      --output env/local/template_commits.env
+    ```
+  - Em pipelines que já atualizaram os refs do template, combine com `--no-fetch` para agilizar o processo:
+    ```bash
+    scripts/detect_template_commits.sh --no-fetch
+    ```
 
 ## Personalizações sugeridas
 
