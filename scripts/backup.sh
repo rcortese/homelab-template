@@ -107,17 +107,17 @@ else
   exit 1
 fi
 
-app_data_dir="${DEPLOY_CONTEXT[APP_DATA_DIR]}"
-if [[ -z "$app_data_dir" ]]; then
+app_data_dir_rel="${DEPLOY_CONTEXT[APP_DATA_DIR]}"
+app_data_dir_mount="${DEPLOY_CONTEXT[APP_DATA_DIR_MOUNT]}"
+
+echo "[*] Diretório de dados (base relativa): ${app_data_dir_rel:-<não configurado>}"
+
+if [[ -z "$app_data_dir_mount" ]]; then
   echo "[!] Diretório de dados não identificado para a instância '$INSTANCE'." >&2
   exit 1
 fi
 
-if [[ "$app_data_dir" != /* ]]; then
-  data_src="$REPO_ROOT/$app_data_dir"
-else
-  data_src="$app_data_dir"
-fi
+data_src="$app_data_dir_mount"
 
 if [[ ! -d "$data_src" ]]; then
   echo "[!] Diretório de dados '$data_src' inexistente." >&2

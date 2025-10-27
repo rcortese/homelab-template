@@ -176,18 +176,23 @@ if [[ -n "${COMPOSE_ENV_FILE:-}" ]]; then
   fi
 fi
 
+service_name_value="${SERVICE_NAME:-}"
 app_data_dir_value="${APP_DATA_DIR:-}"
 app_data_dir_mount_value="${APP_DATA_DIR_MOUNT:-}"
 
-if [[ (-z "$app_data_dir_value" || -z "$app_data_dir_mount_value") && -n "$compose_env_file_abs" && -f "$compose_env_file_abs" ]];
-then
-  if app_data_dir_kv="$("$SCRIPT_DIR/lib/env_loader.sh" "$compose_env_file_abs" APP_DATA_DIR APP_DATA_DIR_MOUNT)"; then
+if [[ (-z "$service_name_value" || -z "$app_data_dir_value" || -z "$app_data_dir_mount_value") && -n "$compose_env_file_abs" && -f "$compose_env_file_abs" ]]; then
+  if app_data_dir_kv="$("$SCRIPT_DIR/lib/env_loader.sh" "$compose_env_file_abs" SERVICE_NAME APP_DATA_DIR APP_DATA_DIR_MOUNT)"; then
     if [[ -n "$app_data_dir_kv" ]]; then
       while IFS= read -r env_line; do
         if [[ -z "$env_line" ]]; then
           continue
         fi
         case "$env_line" in
+        SERVICE_NAME=*)
+          if [[ -z "$service_name_value" ]]; then
+            service_name_value="${env_line#SERVICE_NAME=}"
+          fi
+          ;;
         APP_DATA_DIR=*)
           if [[ -z "$app_data_dir_value" ]]; then
             app_data_dir_value="${env_line#APP_DATA_DIR=}"
@@ -204,17 +209,75 @@ then
   fi
 fi
 
-if [[ -z "$app_data_dir_value" && $metadata_loaded -eq 1 && -n "$INSTANCE_NAME" && ${#resolved_instance_app_names[@]} -gt 0 ]]; then
+primary_app_name=""
+if [[ $metadata_loaded -eq 1 && ${#resolved_instance_app_names[@]} -gt 0 ]]; then
   primary_app_name="${resolved_instance_app_names[0]}"
-  if [[ -n "$primary_app_name" ]]; then
-    app_data_dir_value="data/${primary_app_name}-${INSTANCE_NAME}"
+fi
+
+default_app_data_dir=""
+if [[ -n "$primary_app_name" && -n "$INSTANCE_NAME" ]]; then
+  default_app_data_dir="data/${primary_app_name}-${INSTANCE_NAME}"
+fi
+
+if [[ -z "$service_name_value" && -n "$primary_app_name" && -n "$INSTANCE_NAME" ]]; then
+  service_name_value="${primary_app_name}-${INSTANCE_NAME}"
+fi
+
+derived_app_data_dir=""
+derived_app_data_dir_mount=""
+precomputed_values=0
+
+if [[ -n "$service_name_value" && -n "$app_data_dir_value" && -n "$app_data_dir_mount_value" ]]; then
+  temp_app_data_dir=""
+  temp_app_data_mount=""
+  if env_helpers__derive_app_data_paths "$REPO_ROOT" "$service_name_value" "$default_app_data_dir" "$app_data_dir_value" "" temp_app_data_dir temp_app_data_mount; then
+    if [[ -n "$temp_app_data_mount" && "$temp_app_data_mount" == "$app_data_dir_mount_value" ]]; then
+      derived_app_data_dir="$temp_app_data_dir"
+      derived_app_data_dir_mount="$app_data_dir_mount_value"
+      precomputed_values=1
+    fi
+  fi
+
+  if ((precomputed_values == 0)); then
+    temp_app_data_dir=""
+    temp_app_data_mount=""
+    if env_helpers__derive_app_data_paths "$REPO_ROOT" "$service_name_value" "$default_app_data_dir" "" "$app_data_dir_mount_value" temp_app_data_dir temp_app_data_mount; then
+      if [[ -n "$temp_app_data_mount" && "$temp_app_data_mount" == "$app_data_dir_mount_value" ]]; then
+        if [[ -z "$temp_app_data_dir" ]]; then
+          temp_app_data_dir="$app_data_dir_value"
+        fi
+        derived_app_data_dir="$temp_app_data_dir"
+        derived_app_data_dir_mount="$temp_app_data_mount"
+        precomputed_values=1
+      fi
+    fi
+  fi
+
+  if ((precomputed_values == 0)); then
+    echo "Error: APP_DATA_DIR e APP_DATA_DIR_MOUNT não podem ser definidos simultaneamente." >&2
+    exit 1
+  fi
+
+  app_data_dir_value="$derived_app_data_dir"
+  app_data_dir_mount_value="$derived_app_data_dir_mount"
+fi
+
+should_derive=0
+if [[ -n "$INSTANCE_NAME" && -n "$service_name_value" ]]; then
+  if [[ -n "$default_app_data_dir" || -n "$app_data_dir_value" || -n "$app_data_dir_mount_value" ]]; then
+    should_derive=1
   fi
 fi
 
-if [[ -n "$app_data_dir_mount_value" ]]; then
-  app_data_dir_mount_value="$(resolve_app_data_dir_mount "$app_data_dir_mount_value")"
-elif [[ -n "$app_data_dir_value" ]]; then
-  app_data_dir_mount_value="$(resolve_app_data_dir_mount "$app_data_dir_value")"
+if ((precomputed_values == 1)); then
+  should_derive=0
+elif ((should_derive == 1)); then
+  if ! env_helpers__derive_app_data_paths "$REPO_ROOT" "$service_name_value" "$default_app_data_dir" "$app_data_dir_value" "$app_data_dir_mount_value" derived_app_data_dir derived_app_data_dir_mount; then
+    exit 1
+  fi
+else
+  derived_app_data_dir="$app_data_dir_value"
+  derived_app_data_dir_mount="$app_data_dir_mount_value"
 fi
 
 if ! cd "$REPO_ROOT"; then
@@ -246,8 +309,19 @@ if [[ ${#COMPOSE_ARGS[@]} -gt 0 ]]; then
   COMPOSE_CMD+=("${COMPOSE_ARGS[@]}")
 fi
 
-if [[ -n "$app_data_dir_value" ]]; then
-  APP_DATA_DIR="$app_data_dir_value" APP_DATA_DIR_MOUNT="$app_data_dir_mount_value" exec -- "${COMPOSE_CMD[@]}"
+declare -a env_prefix=()
+if [[ -n "$service_name_value" ]]; then
+  env_prefix+=("SERVICE_NAME=$service_name_value")
+fi
+if [[ -n "$derived_app_data_dir" ]]; then
+  env_prefix+=("APP_DATA_DIR=$derived_app_data_dir")
+fi
+if [[ -n "$derived_app_data_dir_mount" ]]; then
+  env_prefix+=("APP_DATA_DIR_MOUNT=$derived_app_data_dir_mount")
+fi
+
+if ((${#env_prefix[@]} > 0)); then
+  exec env "${env_prefix[@]}" "${COMPOSE_CMD[@]}"
 else
   exec "${COMPOSE_CMD[@]}"
 fi

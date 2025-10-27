@@ -1,3 +1,4 @@
+import os
 import subprocess
 from pathlib import Path
 
@@ -8,24 +9,124 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 SCRIPT_PATH = REPO_ROOT / "scripts" / "lib" / "env_helpers.sh"
 
 
-@pytest.mark.parametrize(
-    "input_value,expected",
-    [
-        ("", ""),
-        ("data", "../data"),
-        ("./data", "../data"),
-        ("../data", "../data"),
-        ("../../nested/data", "../../nested/data"),
-    ],
-)
-def test_resolve_app_data_dir_mount_handles_relative_paths(input_value, expected):
-    command = f"source '{SCRIPT_PATH}' && resolve_app_data_dir_mount \"$1\""
-    result = subprocess.run(
-        ["bash", "-c", command, "bash", input_value],
+def _run_derive(
+    *,
+    repo_root: Path,
+    service_slug: str,
+    default_rel: str,
+    app_dir: str,
+    app_mount: str,
+) -> subprocess.CompletedProcess[str]:
+    script = f"""
+set -euo pipefail
+source '{SCRIPT_PATH}'
+declare output_dir=""
+declare output_mount=""
+if env_helpers__derive_app_data_paths "$REPO_ROOT" "$SERVICE_SLUG" "$DEFAULT_REL" "$APP_DIR" "$APP_MOUNT" output_dir output_mount; then
+  printf '%s\n%s\n' "$output_dir" "$output_mount"
+else
+  exit 42
+fi
+"""
+
+    env = os.environ.copy()
+    env.update(
+        {
+            "REPO_ROOT": str(repo_root),
+            "SERVICE_SLUG": service_slug,
+            "DEFAULT_REL": default_rel,
+            "APP_DIR": app_dir,
+            "APP_MOUNT": app_mount,
+        }
+    )
+
+    return subprocess.run(
+        ["bash", "-c", script],
         check=False,
         capture_output=True,
         text=True,
+        env=env,
     )
 
-    assert result.returncode == 0
-    assert result.stdout == expected
+
+def test_derive_from_relative_app_dir() -> None:
+    result = _run_derive(
+        repo_root=REPO_ROOT,
+        service_slug="app-core",
+        default_rel="data/app-core",
+        app_dir="custom/storage",
+        app_mount="",
+    )
+
+    assert result.returncode == 0, result.stderr
+    lines = result.stdout.splitlines()
+    assert lines == ["custom/storage", f"{REPO_ROOT}/custom/storage/app-core"]
+
+
+def test_derive_from_default_when_app_dir_blank() -> None:
+    result = _run_derive(
+        repo_root=REPO_ROOT,
+        service_slug="app-core",
+        default_rel="data/app-core",
+        app_dir="",
+        app_mount="",
+    )
+
+    assert result.returncode == 0, result.stderr
+    lines = result.stdout.splitlines()
+    assert lines == ["data/app-core", f"{REPO_ROOT}/data/app-core/app-core"]
+
+
+def test_derive_normalizes_absolute_app_dir() -> None:
+    absolute_dir = (REPO_ROOT / "absolute" / "storage").as_posix()
+    result = _run_derive(
+        repo_root=REPO_ROOT,
+        service_slug="app-core",
+        default_rel="data/app-core",
+        app_dir=absolute_dir,
+        app_mount="",
+    )
+
+    assert result.returncode == 0, result.stderr
+    lines = result.stdout.splitlines()
+    assert lines == ["absolute/storage", f"{REPO_ROOT}/absolute/storage/app-core"]
+
+
+def test_derive_from_relative_mount_path() -> None:
+    result = _run_derive(
+        repo_root=REPO_ROOT,
+        service_slug="app-core",
+        default_rel="data/app-core",
+        app_dir="",
+        app_mount="custom-mount",
+    )
+
+    assert result.returncode == 0, result.stderr
+    lines = result.stdout.splitlines()
+    assert lines == ["custom-mount", f"{REPO_ROOT}/custom-mount/app-core"]
+
+
+def test_derive_from_external_mount_keeps_default_rel() -> None:
+    result = _run_derive(
+        repo_root=REPO_ROOT,
+        service_slug="app-core",
+        default_rel="data/app-core",
+        app_dir="",
+        app_mount="/srv/external",
+    )
+
+    assert result.returncode == 0, result.stderr
+    lines = result.stdout.splitlines()
+    assert lines == ["data/app-core", "/srv/external/app-core"]
+
+
+def test_derive_rejects_conflicting_inputs() -> None:
+    result = _run_derive(
+        repo_root=REPO_ROOT,
+        service_slug="app-core",
+        default_rel="data/app-core",
+        app_dir="custom/storage",
+        app_mount="/srv/custom",
+    )
+
+    assert result.returncode == 42

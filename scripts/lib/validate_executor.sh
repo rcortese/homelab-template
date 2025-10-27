@@ -7,8 +7,8 @@ VALIDATE_EXECUTOR_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=./scripts/lib/env_file_chain.sh
 source "$VALIDATE_EXECUTOR_DIR/env_file_chain.sh"
 
-# shellcheck source=./scripts/lib/compose_plan.sh
-source "$VALIDATE_EXECUTOR_DIR/compose_plan.sh"
+# shellcheck source=./scripts/lib/env_helpers.sh
+source "$VALIDATE_EXECUTOR_DIR/env_helpers.sh"
 
 validate_executor_prepare_plan() {
   local instance="$1"
@@ -18,6 +18,7 @@ validate_executor_prepare_plan() {
   local -n files_ref=$5
   local -n compose_args_ref=$6
   local -n env_args_ref=$7
+  local -n derived_env_ref=$8
 
   if [[ ! -v COMPOSE_INSTANCE_FILES[$instance] ]]; then
     mapfile -t potential_matches < <(
@@ -142,6 +143,70 @@ validate_executor_prepare_plan() {
     return 1
   fi
 
+  derived_env_ref=()
+
+  local primary_app=""
+  if [[ ${#instance_app_names[@]} -gt 0 ]]; then
+    primary_app="${instance_app_names[0]}"
+  fi
+
+  declare -A env_loaded=()
+  if [[ ${#env_files_abs[@]} -gt 0 ]]; then
+    local env_file_path env_output line
+    for env_file_path in "${env_files_abs[@]}"; do
+      if [[ -f "$env_file_path" ]]; then
+        if env_output="$("$env_loader" "$env_file_path" SERVICE_NAME APP_DATA_DIR APP_DATA_DIR_MOUNT 2>/dev/null)"; then
+          while IFS= read -r line; do
+            [[ -z "$line" ]] && continue
+            if [[ "$line" == *=* ]]; then
+              local key="${line%%=*}"
+              local value="${line#*=}"
+              env_loaded[$key]="$value"
+            fi
+          done <<<"$env_output"
+        fi
+      fi
+    done
+  fi
+
+  local service_name_value="${SERVICE_NAME:-}"
+  local app_data_dir_value="${APP_DATA_DIR:-}"
+  local app_data_dir_mount_value="${APP_DATA_DIR_MOUNT:-}"
+
+  if [[ -z "$service_name_value" && -n "${env_loaded[SERVICE_NAME]:-}" ]]; then
+    service_name_value="${env_loaded[SERVICE_NAME]}"
+  fi
+  if [[ -z "$app_data_dir_value" && -n "${env_loaded[APP_DATA_DIR]:-}" ]]; then
+    app_data_dir_value="${env_loaded[APP_DATA_DIR]}"
+  fi
+  if [[ -z "$app_data_dir_mount_value" && -n "${env_loaded[APP_DATA_DIR_MOUNT]:-}" ]]; then
+    app_data_dir_mount_value="${env_loaded[APP_DATA_DIR_MOUNT]}"
+  fi
+
+  if [[ -n "$app_data_dir_value" && -n "$app_data_dir_mount_value" ]]; then
+    echo "✖ instância=\"$instance\" (APP_DATA_DIR e APP_DATA_DIR_MOUNT não podem ser definidos simultaneamente)" >&2
+    return 1
+  fi
+
+  local default_app_data_dir=""
+  if [[ -n "$primary_app" ]]; then
+    default_app_data_dir="data/${primary_app}-${instance}"
+  fi
+  if [[ -z "$service_name_value" && -n "$primary_app" ]]; then
+    service_name_value="${primary_app}-${instance}"
+  fi
+
+  local derived_app_data_dir=""
+  local derived_app_data_dir_mount=""
+  if ! env_helpers__derive_app_data_paths "$repo_root" "$service_name_value" "$default_app_data_dir" "$app_data_dir_value" "$app_data_dir_mount_value" derived_app_data_dir derived_app_data_dir_mount; then
+    echo "✖ instância=\"$instance\" (falha ao derivar diretórios persistentes)" >&2
+    return 1
+  fi
+
+  derived_env_ref[APP_DATA_DIR]="$derived_app_data_dir"
+  derived_env_ref[APP_DATA_DIR_MOUNT]="$derived_app_data_dir_mount"
+  derived_env_ref[SERVICE_NAME]="$service_name_value"
+
   # Touch nameref arrays so shellcheck recognizes they are consumed by callers.
   : "${env_args_ref[@]}"
 
@@ -171,7 +236,8 @@ validate_executor_run_instances() {
     local -a files=()
     local -a compose_args=()
     local -a env_args=()
-    if ! validate_executor_prepare_plan "$instance" "$repo_root" "$base_file" "$env_loader" files compose_args env_args; then
+    declare -A derived_env=()
+    if ! validate_executor_prepare_plan "$instance" "$repo_root" "$base_file" "$env_loader" files compose_args env_args derived_env; then
       local prepare_status=$?
       if [[ $prepare_status -eq 2 ]]; then
         return 2
@@ -181,7 +247,14 @@ validate_executor_run_instances() {
     fi
 
     echo "==> Validando $instance"
-    if "${compose_cmd[@]}" "${env_args[@]}" "${compose_args[@]}" config >/dev/null; then
+    local service_name_env="${derived_env[SERVICE_NAME]:-}"
+    local app_data_dir_env="${derived_env[APP_DATA_DIR]:-}"
+    local app_data_dir_mount_env="${derived_env[APP_DATA_DIR_MOUNT]:-}"
+
+    if SERVICE_NAME="$service_name_env" \
+      APP_DATA_DIR="$app_data_dir_env" \
+      APP_DATA_DIR_MOUNT="$app_data_dir_mount_env" \
+      "${compose_cmd[@]}" "${env_args[@]}" "${compose_args[@]}" config >/dev/null; then
       echo "✔ $instance"
     else
       echo "✖ instância=\"$instance\"" >&2

@@ -23,6 +23,8 @@ def test_instance_uses_expected_env_and_compose_files(
     env_records = docker_stub.read_call_env()
     assert len(env_records) == 1
     assert env_records[0].get("APP_DATA_DIR") == "data/app-core"
+    expected_mount = (repo_copy / "data" / "app-core" / "app-core").resolve()
+    assert env_records[0].get("APP_DATA_DIR_MOUNT") == str(expected_mount)
 
     env_files = [
         command[index + 1]
@@ -101,7 +103,9 @@ def test_instance_with_absolute_app_data_dir(repo_copy: Path, docker_stub: Docke
 
     env_records = docker_stub.read_call_env()
     assert len(env_records) == 1
-    assert env_records[0].get("APP_DATA_DIR") == str(absolute_data_dir)
+    expected_relative = absolute_data_dir.relative_to(repo_copy.resolve()).as_posix()
+    assert env_records[0].get("APP_DATA_DIR") == expected_relative
+    assert env_records[0].get("APP_DATA_DIR_MOUNT") == f"{absolute_data_dir}/app-core"
 
 
 def test_instance_with_empty_app_data_dir_falls_back_to_default(
@@ -121,4 +125,23 @@ def test_instance_with_empty_app_data_dir_falls_back_to_default(
     env_records = docker_stub.read_call_env()
     assert len(env_records) == 1
     assert env_records[0].get("APP_DATA_DIR") == "data/app-core"
-    assert env_records[0].get("APP_DATA_DIR_MOUNT") == "../data/app-core"
+    expected_mount = (repo_copy / "data" / "app-core" / "app-core").resolve()
+    assert env_records[0].get("APP_DATA_DIR_MOUNT") == str(expected_mount)
+
+
+def test_instance_with_only_mount_defined(repo_copy: Path, docker_stub: DockerStub) -> None:
+    core_env = repo_copy / "env" / "local" / "core.env"
+    existing_content = core_env.read_text(encoding="utf-8")
+    core_env.write_text(
+        f"{existing_content}APP_DATA_DIR_MOUNT=/srv/external\n",
+        encoding="utf-8",
+    )
+
+    result = run_compose_in_repo(repo_copy, args=["core"])
+
+    assert result.returncode == 0
+
+    env_records = docker_stub.read_call_env()
+    assert len(env_records) == 1
+    assert env_records[0].get("APP_DATA_DIR") == "data/app-core"
+    assert env_records[0].get("APP_DATA_DIR_MOUNT") == "/srv/external/app-core"
