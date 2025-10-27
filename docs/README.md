@@ -26,6 +26,11 @@ utilize [`docs/local/`](./local/README.md) e apenas referencie esses materiais q
 
 - [Sobrescritas de workflows](./ci-overrides.md) — Centraliza as diretrizes para adaptar ou estender pipelines sem alterar o workflow base do template.
 
+## Qualidade e testes
+
+- [Manutenção da suíte de testes](../tests/README.md) — Reúne instruções para configurar, executar e estender os testes automatizados do template.
+- [`run_quality_checks.sh`](../scripts/run_quality_checks.sh) — Script de orquestração que roda a bateria de validações de qualidade descritas na documentação de testes.
+
 ## Runbooks
 
 - [Modelo de runbook primário](./core.md) — Estruture o runbook do ambiente principal do seu serviço.
