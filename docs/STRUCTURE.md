@@ -30,7 +30,7 @@ Este guia descreve a estrutura mínima esperada para qualquer repositório que h
 
 Cada aplicação adicional precisa seguir o padrão abaixo para manter a compatibilidade com os scripts e runbooks do template:
 
-> Dica: utilize `scripts/bootstrap_instance.sh <app> <instância>` para gerar automaticamente os arquivos listados na tabela abaixo antes de personalizá-los.
+> Dica: utilize `scripts/bootstrap_instance.sh <app> <instância>` para gerar automaticamente os arquivos listados na tabela abaixo antes de personalizá-los. Para aplicações compostas apenas por overrides, adicione `--override-only` ou deixe o script detectar diretórios existentes sem `base.yml`.
 
 | Caminho | Obrigatório? | Descrição |
 | --- | --- | --- |

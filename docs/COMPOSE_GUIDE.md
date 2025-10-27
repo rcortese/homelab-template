@@ -27,6 +27,11 @@ adicionando rótulos, redes extras ou variáveis). Para habilitar esse fluxo:
 - Omitir `compose/apps/<app>/base.yml` é aceitável nesses casos; os scripts de
   descoberta (`scripts/lib/compose_discovery.sh`) registram o override e deixam
   de anexar um manifest inexistente ao plano.
+- Use `scripts/bootstrap_instance.sh <app> <instância> --override-only` para
+  gerar apenas o override e o modelo de variáveis quando estiver montando uma
+  aplicação sem `base.yml`. Se o diretório da aplicação já existir sem um
+  arquivo base, o script ativa esse modo automaticamente ao adicionar novas
+  instâncias.
 
 Durante a geração do plano (`scripts/lib/compose_plan.sh`), somente os overrides
 existentes são adicionados após `compose/base.yml` e quaisquer ajustes globais
