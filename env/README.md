@@ -26,10 +26,11 @@ Este diretório armazena modelos (`*.example.env`) e instruções para gerar arq
 
 | Variável | Obrigatória? | Uso | Referência |
 | --- | --- | --- | --- |
-| `TZ` | Sim | Define timezone para logs e agendamentos. | `compose/base.yml`. |
-| `APP_SECRET` | Sim | Chave utilizada para criptografar dados sensíveis. | `compose/base.yml`. |
-| `APP_RETENTION_HOURS` | Opcional | Controla a retenção de registros/processos. | `compose/base.yml` e runbooks. |
+| `TZ` | Sim | Define timezone para logs e agendamentos. | `compose/apps/app/base.yml`. |
+| `APP_SECRET` | Sim | Chave utilizada para criptografar dados sensíveis. | `compose/apps/app/base.yml`. |
+| `APP_RETENTION_HOURS` | Opcional | Controla a retenção de registros/processos. | `compose/apps/app/base.yml` e runbooks. |
 | `APP_DATA_UID`/`APP_DATA_GID` | Opcional | Ajusta o proprietário padrão dos volumes persistentes. | `scripts/deploy_instance.sh`, `scripts/backup.sh`, `scripts/fix_permission_issues.sh`. |
+| `APP_SHARED_DATA_VOLUME_NAME` | Opcional | Personaliza o volume persistente compartilhado entre aplicações. | `compose/base.yml`. |
 
 Monte uma tabela semelhante à abaixo para cada arquivo `env/<alvo>.example.env`:
 

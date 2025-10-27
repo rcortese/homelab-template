@@ -1,22 +1,7 @@
 # Compose base compartilhado. Combine com overrides de instância (ex.: core/media).
-# Define os defaults comuns para cada serviço "app"; os arquivos das aplicações
-# apenas extendem/ajustam o que for necessário. O volume persistente aponta para
-# `data/<app>-<instancia>`, resolvido automaticamente pelos scripts de deploy.
-
-services:
-  app:
-    image: example/app:latest
-    environment:
-      TZ: ${TZ}
-      APP_SECRET: ${APP_SECRET}
-      APP_RETENTION_HOURS: ${APP_RETENTION_HOURS:-168}
-    volumes:
-      - ${APP_DATA_DIR_MOUNT}:/var/lib/app
-      - ../backups:/var/backups
-    restart: unless-stopped
-    networks:
-      homelab_internal:
-        ipv4_address: ${APP_NETWORK_IPV4}
+# Este arquivo define apenas recursos reutilizados pelas aplicações, como redes
+# e volumes nomeados. Os serviços são declarados nos respectivos manifests em
+# `compose/apps/<app>/`.
 
 networks:
   homelab_internal:
@@ -26,3 +11,7 @@ networks:
       config:
         - subnet: ${APP_NETWORK_SUBNET}
           gateway: ${APP_NETWORK_GATEWAY}
+
+volumes:
+  homelab_shared_data:
+    name: ${APP_SHARED_DATA_VOLUME_NAME:-homelab_shared_data}

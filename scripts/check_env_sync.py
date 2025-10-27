@@ -28,6 +28,7 @@ class ComposeMetadata:
     base_file: Path
     instances: Sequence[str]
     files_by_instance: Mapping[str, Sequence[Path]]
+    app_names_by_instance: Mapping[str, Sequence[str]]
     env_template_by_instance: Mapping[str, Path | None]
 
 
@@ -84,6 +85,7 @@ def load_compose_metadata(repo_root: Path) -> ComposeMetadata:
     instances: List[str] = []
     files_map: Dict[str, List[Path]] = {}
     env_templates: Dict[str, Path | None] = {}
+    app_names_map: Dict[str, List[str]] = {}
 
     for raw_line in result.stdout.splitlines():
         line = raw_line.strip()
@@ -107,6 +109,12 @@ def load_compose_metadata(repo_root: Path) -> ComposeMetadata:
             raw_map = parse_declare_mapping(line)
             for instance, value in raw_map.items():
                 env_templates[instance] = (repo_root / value).resolve() if value else None
+        elif line.startswith("declare -A COMPOSE_INSTANCE_APP_NAMES="):
+            raw_map = parse_declare_mapping(line)
+            for instance, value in raw_map.items():
+                app_names_map[instance] = [
+                    entry for entry in (item.strip() for item in value.splitlines()) if entry
+                ]
 
     if base_file is None or not base_file.exists():
         raise ComposeMetadataError("Arquivo compose/base.yml não encontrado.")
@@ -120,10 +128,15 @@ def load_compose_metadata(repo_root: Path) -> ComposeMetadata:
             raise ComposeMetadataError(f"Nenhum override localizado para a instância '{instance}'.")
         normalized_files_map[instance] = files
 
+    normalized_app_names: Dict[str, Sequence[str]] = {}
+    for instance in instances:
+        normalized_app_names[instance] = app_names_map.get(instance, [])
+
     return ComposeMetadata(
         base_file=base_file,
         instances=instances,
         files_by_instance=normalized_files_map,
+        app_names_by_instance=normalized_app_names,
         env_template_by_instance=env_templates,
     )
 
@@ -201,6 +214,10 @@ def build_sync_report(repo_root: Path, metadata: ComposeMetadata) -> SyncReport:
     compose_vars_by_instance: Dict[str, Set[str]] = {}
     for instance, files in metadata.files_by_instance.items():
         instance_vars = set(base_vars)
+        app_names = metadata.app_names_by_instance.get(instance, [])
+        app_base_files = [repo_root / "compose" / "apps" / app / "base.yml" for app in app_names]
+        if app_base_files:
+            instance_vars.update(extract_compose_variables(app_base_files))
         instance_vars.update(extract_compose_variables(files))
         compose_vars_by_instance[instance] = instance_vars
 
