@@ -78,11 +78,16 @@ import pathlib
 import sys
 
 log_path = pathlib.Path(os.environ[\"DOCKER_STUB_LOG\"])
+app_data_dir_mount = os.environ.get(\"APP_DATA_DIR_MOUNT\")
+absolute_mount = None
+if app_data_dir_mount:
+    absolute_mount = os.path.abspath(app_data_dir_mount)
 record = {
     \"args\": sys.argv[1:],
     \"env\": {
         \"APP_DATA_DIR\": os.environ.get(\"APP_DATA_DIR\"),
         \"APP_DATA_DIR_MOUNT\": os.environ.get(\"APP_DATA_DIR_MOUNT\"),
+        \"APP_DATA_DIR_MOUNT_ABS\": absolute_mount,
     },
 }
 with log_path.open(\"a\", encoding=\"utf-8\") as handle:
