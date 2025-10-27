@@ -25,7 +25,9 @@ Ao combinar diversas aplicações, carregue os manifests em blocos (`base.yml`, 
 | 3 | `compose/apps/app/<instância>.yml` | Ajusta a aplicação principal para a instância alvo. |
 | 4 | `compose/apps/monitoring/base.yml` | Declara serviços auxiliares (ex.: observabilidade). |
 | 5 | `compose/apps/monitoring/<instância>.yml` | Personaliza os serviços auxiliares para a instância. |
-| 6 | `compose/apps/<outra-app>/...` | Repita o padrão para cada aplicação extra adicionada. |
+| 6 | `compose/apps/worker/base.yml` | Introduz workers assíncronos que dependem da aplicação principal. |
+| 7 | `compose/apps/worker/<instância>.yml` | Ajusta nome/concurrência dos workers por instância. |
+| 8 | `compose/apps/<outra-app>/...` | Repita o padrão para cada aplicação extra adicionada. |
 
 ### Exemplo: stack completa na instância core
 
@@ -38,12 +40,14 @@ docker compose \
   -f compose/apps/app/core.yml \
   -f compose/apps/monitoring/base.yml \
   -f compose/apps/monitoring/core.yml \
+  -f compose/apps/worker/base.yml \
+  -f compose/apps/worker/core.yml \
   up -d
 ```
 
 ### Exemplo: desativando uma aplicação auxiliar
 
-Para subir apenas a aplicação principal, omita o par `monitoring` (ou outro diretório em `compose/apps/`).
+Para subir apenas a aplicação principal, omita os pares `monitoring` e `worker` (ou outro diretório em `compose/apps/`).
 
 ```bash
 docker compose \
@@ -67,6 +71,10 @@ docker compose \
   -f compose/base.yml \
   -f compose/apps/app/base.yml \
   -f compose/apps/app/<instância>.yml \
+  -f compose/apps/monitoring/base.yml \
+  -f compose/apps/monitoring/<instância>.yml \
+  -f compose/apps/worker/base.yml \
+  -f compose/apps/worker/<instância>.yml \
   ${COMPOSE_EXTRA_FLAGS:-} \
   up -d
 ```

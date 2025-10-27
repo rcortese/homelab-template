@@ -30,12 +30,14 @@ def test_dry_run_reports_all_application_bases(repo_copy: Path) -> None:
 
     assert result.returncode == 0, result.stderr
     compose_files = _extract_compose_files(result.stdout)
-    assert compose_files[:6] == [
+    assert compose_files[:8] == [
         "compose/base.yml",
         "compose/apps/app/base.yml",
         "compose/apps/app/core.yml",
         "compose/apps/monitoring/base.yml",
         "compose/apps/monitoring/core.yml",
+        "compose/apps/worker/base.yml",
+        "compose/apps/worker/core.yml",
         "compose/apps/baseonly/base.yml",
     ]
 

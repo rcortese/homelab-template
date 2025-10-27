@@ -75,6 +75,8 @@ def test_defaults_for_core_instance(repo_copy: Path) -> None:
         "compose/apps/app/core.yml",
         "compose/apps/monitoring/base.yml",
         "compose/apps/monitoring/core.yml",
+        "compose/apps/worker/base.yml",
+        "compose/apps/worker/core.yml",
         "compose/apps/baseonly/base.yml",
     ]
     expected_files = [
@@ -293,6 +295,8 @@ def test_loads_extra_files_from_env_file(repo_copy: Path) -> None:
         "compose/apps/app/core.yml",
         "compose/apps/monitoring/base.yml",
         "compose/apps/monitoring/core.yml",
+        "compose/apps/worker/base.yml",
+        "compose/apps/worker/core.yml",
         "compose/apps/baseonly/base.yml",
         *overlays,
     ]

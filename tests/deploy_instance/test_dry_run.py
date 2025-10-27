@@ -40,6 +40,8 @@ def test_dry_run_includes_extra_files_from_env_file(repo_copy: Path) -> None:
         "compose/apps/app/core.yml",
         "compose/apps/monitoring/base.yml",
         "compose/apps/monitoring/core.yml",
+        "compose/apps/worker/base.yml",
+        "compose/apps/worker/core.yml",
         "compose/apps/baseonly/base.yml",
         "compose/overlays/metrics.yml",
         "compose/overlays/logging.yml",
@@ -83,6 +85,8 @@ def test_env_override_takes_precedence_for_extra_files(repo_copy: Path) -> None:
         "compose/apps/app/core.yml",
         "compose/apps/monitoring/base.yml",
         "compose/apps/monitoring/core.yml",
+        "compose/apps/worker/base.yml",
+        "compose/apps/worker/core.yml",
         "compose/apps/baseonly/base.yml",
         "compose/overlays/custom.yml",
     ]
