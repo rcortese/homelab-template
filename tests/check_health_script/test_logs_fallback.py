@@ -29,9 +29,10 @@ def test_logs_fallback_through_alternative_services(
     docker_stub.reset_fail_once_state()
     if state_file.exists():
         state_file.unlink()
-    monkeypatch.setenv("HEALTH_SERVICES", "app-core")
-    monkeypatch.setenv("DOCKER_STUB_FAIL_ONCE_FOR", "app-core")
+    monkeypatch.setenv("HEALTH_SERVICES", "svc-core")
+    monkeypatch.setenv("DOCKER_STUB_FAIL_ONCE_FOR", "svc-core")
     monkeypatch.setenv("DOCKER_STUB_FAIL_ONCE_STATE", str(state_file))
+    monkeypatch.setenv("DOCKER_STUB_SERVICES_OUTPUT", "svc-api")
 
     result = run_check_health()
 
@@ -43,8 +44,8 @@ def test_logs_fallback_through_alternative_services(
     assert calls == [
         ["compose", "config", "--services"],
         ["compose", "ps"],
-        ["compose", "logs", "--tail=50", "app-core"],
-        ["compose", "logs", "--tail=50", "app"],
+        ["compose", "logs", "--tail=50", "svc-core"],
+        ["compose", "logs", "--tail=50", "svc-api"],
     ]
 
 
@@ -53,7 +54,12 @@ def test_logs_reports_failure_when_all_services_fail(
 ) -> None:
     monkeypatch.setenv("DOCKER_STUB_ALWAYS_FAIL_LOGS", "1")
 
-    result = run_check_health(env={"HEALTH_SERVICES": "app app-core app-media"})
+    env = {
+        "HEALTH_SERVICES": "svc-main svc-core svc-media",
+        "DOCKER_STUB_SERVICES_OUTPUT": "svc-aux",
+    }
+
+    result = run_check_health(env=env)
 
     assert result.returncode != 0
     assert "Failed to retrieve logs for services" in result.stderr
@@ -64,22 +70,24 @@ def test_logs_reports_failure_when_all_services_fail(
     assert calls == [
         ["compose", "config", "--services"],
         ["compose", "ps"],
-        ["compose", "logs", "--tail=50", "app"],
-        ["compose", "logs", "--tail=50", "app-core"],
-        ["compose", "logs", "--tail=50", "app-media"],
+        ["compose", "logs", "--tail=50", "svc-main"],
+        ["compose", "logs", "--tail=50", "svc-core"],
+        ["compose", "logs", "--tail=50", "svc-media"],
+        ["compose", "logs", "--tail=50", "svc-aux"],
     ]
 
 
 def test_logs_handles_comma_separated_health_services(docker_stub: DockerStub) -> None:
     env = {
-        "HEALTH_SERVICES": "app-core,app-extra",
-        "DOCKER_STUB_FAIL_ALWAYS_FOR": "app-core",
+        "HEALTH_SERVICES": "svc-core,svc-extra",
+        "DOCKER_STUB_FAIL_ALWAYS_FOR": "svc-core",
+        "DOCKER_STUB_SERVICES_OUTPUT": "svc-auto",
     }
 
     result = run_check_health(env=env)
 
     assert result.returncode == 0, result.stderr
-    assert "Warning: Failed to retrieve logs for services: app-core" in result.stderr
+    assert "Warning: Failed to retrieve logs for services: svc-core" in result.stderr
 
     calls = [
         _strip_env_and_file_flags(entry) for entry in docker_stub.read_calls()
@@ -87,14 +95,17 @@ def test_logs_handles_comma_separated_health_services(docker_stub: DockerStub) -
     assert calls == [
         ["compose", "config", "--services"],
         ["compose", "ps"],
-        ["compose", "logs", "--tail=50", "app-core"],
-        ["compose", "logs", "--tail=50", "app-extra"],
-        ["compose", "logs", "--tail=50", "app"],
+        ["compose", "logs", "--tail=50", "svc-core"],
+        ["compose", "logs", "--tail=50", "svc-extra"],
+        ["compose", "logs", "--tail=50", "svc-auto"],
     ]
 
 
 def test_logs_attempts_all_services_even_after_success(docker_stub: DockerStub) -> None:
-    env = {"HEALTH_SERVICES": "app app-extra"}
+    env = {
+        "HEALTH_SERVICES": "svc-main svc-extra",
+        "DOCKER_STUB_SERVICES_OUTPUT": "svc-auto",
+    }
 
     result = run_check_health(env=env)
 
@@ -107,6 +118,41 @@ def test_logs_attempts_all_services_even_after_success(docker_stub: DockerStub) 
     assert calls == [
         ["compose", "config", "--services"],
         ["compose", "ps"],
-        ["compose", "logs", "--tail=50", "app"],
-        ["compose", "logs", "--tail=50", "app-extra"],
+        ["compose", "logs", "--tail=50", "svc-main"],
+        ["compose", "logs", "--tail=50", "svc-extra"],
+        ["compose", "logs", "--tail=50", "svc-auto"],
     ]
+
+
+def test_logs_without_targets_uses_compose_services(docker_stub: DockerStub) -> None:
+    env = {"DOCKER_STUB_SERVICES_OUTPUT": "svc-one\nsvc-two"}
+
+    result = run_check_health(env=env)
+
+    assert result.returncode == 0, result.stderr
+
+    calls = [
+        _strip_env_and_file_flags(entry) for entry in docker_stub.read_calls()
+    ]
+    assert calls == [
+        ["compose", "config", "--services"],
+        ["compose", "ps"],
+        ["compose", "logs", "--tail=50", "svc-one"],
+        ["compose", "logs", "--tail=50", "svc-two"],
+    ]
+
+
+def test_logs_without_targets_and_no_services_reports_error(
+    docker_stub: DockerStub,
+) -> None:
+    env = {"DOCKER_STUB_SERVICES_OUTPUT": ""}
+
+    result = run_check_health(env=env)
+
+    assert result.returncode != 0
+    assert "nenhum serviço foi encontrado" in result.stderr
+
+    calls = [
+        _strip_env_and_file_flags(entry) for entry in docker_stub.read_calls()
+    ]
+    assert calls == [["compose", "config", "--services"]]

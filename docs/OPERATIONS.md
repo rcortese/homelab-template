@@ -169,7 +169,7 @@ O script depende de `scripts/lib/deploy_context.sh` para calcular `APP_DATA_DIR`
 - **Argumentos e variáveis suportadas:**
   - `HEALTH_SERVICES` — lista de serviços a inspecionar (separada por espaços ou vírgulas). Quando definido, limita a execução apenas aos serviços desejados.
   - `COMPOSE_ENV_FILE` — caminho para um arquivo `.env` alternativo a ser carregado antes de consultar o `docker compose`.
-- O script complementa automaticamente a lista de serviços executando `docker compose config --services`, garantindo cobertura mesmo sem `HEALTH_SERVICES` definido.
+- O script complementa automaticamente a lista de serviços executando `docker compose config --services`. Caso nenhum serviço seja encontrado, a execução aborta com erro para evitar supressão silenciosa de logs.
 - **Formatos de saída:**
   - `text` (padrão) — replica o comportamento histórico imprimindo o resultado de `docker compose ps` seguido dos logs recentes.
   - `json` — serializa o status dos contêineres (incluindo `docker compose ps --format json`, quando disponível) e os logs de cada serviço monitorado para consumo por pipelines ou páginas de status.
