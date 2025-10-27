@@ -9,25 +9,58 @@ from .utils import run_backup
 
 
 def _assert_restart_apps(stdout: str, expected_apps: list[str]) -> None:
-    line = next(
-        (
-            entry
-            for entry in stdout.splitlines()
-            if "Aplicações detectadas para religar:" in entry
-        ),
-        None,
-    )
-    assert line is not None, f"Linha com aplicações não encontrada em: {stdout!r}"
-    _, _, tail = line.partition(":")
-    apps = tail.strip().split()
-    assert sorted(apps) == sorted(expected_apps)
+    if expected_apps:
+        line = next(
+            (
+                entry
+                for entry in stdout.splitlines()
+                if "Aplicações detectadas para religar:" in entry
+            ),
+            None,
+        )
+        assert line is not None, f"Linha com aplicações não encontrada em: {stdout!r}"
+        _, _, tail = line.partition(":")
+        apps = tail.strip().split()
+        assert apps == expected_apps
+    else:
+        assert (
+            "Nenhuma aplicação ativa identificada; nenhum serviço será religado." in stdout
+        ), f"Mensagem de ausência de serviços não encontrada em: {stdout!r}"
+        assert (
+            "Aplicações detectadas para religar:" not in stdout
+        ), "Mensagem inesperada de aplicações detectadas encontrada"
 
 
-def _install_compose_stub(repo_copy: Path) -> Path:
+def _install_compose_stub(
+    repo_copy: Path, running_services: dict[str, list[str]] | None = None
+) -> Path:
     compose_log = repo_copy / "compose_calls.log"
     compose_stub = repo_copy / "scripts" / "compose.sh"
+    running_services = running_services or {}
+    case_entries: list[str] = []
+    for instance, services in running_services.items():
+        case_entries.append(f"    {instance})")
+        for service in services:
+            case_entries.append(f"      printf '%s\\n' \"{service}\"")
+        case_entries.append("      ;;")
+    case_entries.append("    * ) ;;")
+    case_block = "\n".join(case_entries)
     compose_stub.write_text(
-        f"""#!/usr/bin/env bash\nset -euo pipefail\nprintf '%s\\n' \"$*\" >> {compose_log!s}\n""",
+        "\n".join(
+            [
+                "#!/usr/bin/env bash",
+                "set -euo pipefail",
+                f"printf '%s\\n' \"$*\" >> {compose_log!s}",
+                "instance=\"$1\"",
+                "shift || true",
+                "if [[ \"${1:-}\" == 'ps' && \"${2:-}\" == '--status' && \"${3:-}\" == 'running' && \"${4:-}\" == '--services' ]]; then",
+                "  case \"$instance\" in",
+                case_block,
+                "  esac",
+                "fi",
+            ]
+        )
+        + "\n",
         encoding="utf-8",
     )
     compose_stub.chmod(0o755)
@@ -56,11 +89,14 @@ def _assert_compose_restart_calls(
         "core ps --status running --services",
         "core down",
     ]
-    assert len(calls) >= 3
-    third_command = calls[2]
-    assert third_command.startswith("core up -d ")
-    actual_apps = third_command.split()[3:]
-    assert sorted(actual_apps) == sorted(expected_apps)
+    if expected_apps:
+        assert len(calls) >= 3
+        third_command = calls[2]
+        assert third_command.startswith("core up -d ")
+        actual_apps = third_command.split()[3:]
+        assert actual_apps == expected_apps
+    else:
+        assert all(not entry.startswith("core up -d") for entry in calls[2:])
 
 
 def test_successful_backup_creates_snapshot_and_restarts_stack(
@@ -68,7 +104,11 @@ def test_successful_backup_creates_snapshot_and_restarts_stack(
     monkeypatch,
     compose_instances_data: ComposeInstancesData,
 ) -> None:
-    compose_log = _install_compose_stub(repo_copy)
+    expected_core_apps = compose_instances_data.instance_app_names.get("core", [])
+    compose_log = _install_compose_stub(
+        repo_copy,
+        {"core": expected_core_apps},
+    )
     _prepend_fake_bin(
         repo_copy,
         monkeypatch,
@@ -92,7 +132,6 @@ def test_successful_backup_creates_snapshot_and_restarts_stack(
 
     assert result.returncode == 0, result.stderr
     assert "Backup da instância 'core' concluído" in result.stdout
-    expected_core_apps = compose_instances_data.instance_app_names.get("core", [])
     _assert_restart_apps(result.stdout, expected_core_apps)
 
     backup_dir = repo_copy / "backups" / "core-20240101-030405"
@@ -108,7 +147,11 @@ def test_copy_failure_still_attempts_restart(
     monkeypatch,
     compose_instances_data: ComposeInstancesData,
 ) -> None:
-    compose_log = _install_compose_stub(repo_copy)
+    expected_core_apps = compose_instances_data.instance_app_names.get("core", [])
+    compose_log = _install_compose_stub(
+        repo_copy,
+        {"core": expected_core_apps},
+    )
     cp_log = repo_copy / "cp_calls.log"
     fake_bin, original_path = _prepend_fake_bin(
         repo_copy,
@@ -144,7 +187,6 @@ def test_copy_failure_still_attempts_restart(
     assert backup_dir.is_dir()
     assert list(backup_dir.iterdir()) == []
 
-    expected_core_apps = compose_instances_data.instance_app_names.get("core", [])
     _assert_compose_restart_calls(compose_log, expected_core_apps)
     assert cp_log.read_text(encoding="utf-8").splitlines() == [
         "-a",
@@ -158,7 +200,55 @@ def test_copy_failure_still_attempts_restart(
     fake_bin.rmdir()
 
 
-def test_detected_apps_ignore_unknown_entries(
+def test_detected_apps_prioritize_known_order(
+    repo_copy: Path,
+    monkeypatch,
+    compose_instances_data: ComposeInstancesData,
+) -> None:
+    expected_core_apps = compose_instances_data.instance_app_names.get("core", [])
+    running_services = ["desconhecido"] + expected_core_apps
+    compose_log = _install_compose_stub(
+        repo_copy,
+        {"core": running_services},
+    )
+    _prepend_fake_bin(
+        repo_copy,
+        monkeypatch,
+        (
+            "date",
+            "#!/usr/bin/env bash\nset -euo pipefail\nprintf '20240101-030405\\n'\n",
+        ),
+    )
+
+    env_file = repo_copy / "env" / "local" / "core.env"
+    env_file.write_text(
+        env_file.read_text(encoding="utf-8") + "APP_DATA_DIR=data/core-root\n",
+        encoding="utf-8",
+    )
+
+    data_mount = repo_copy / "data" / "core-root" / "app-core"
+    data_mount.mkdir(parents=True)
+
+    result = run_backup(repo_copy, "core")
+
+    assert result.returncode == 0, result.stderr
+    line = next(
+        (
+            entry
+            for entry in result.stdout.splitlines()
+            if "Aplicações detectadas para religar:" in entry
+        ),
+        None,
+    )
+    assert line is not None, result.stdout
+    _, _, tail = line.partition(":")
+    apps = tail.strip().split()
+    assert apps == [*expected_core_apps, "desconhecido"]
+
+    _assert_compose_restart_calls(compose_log, [*expected_core_apps, "desconhecido"])
+
+
+def test_no_restart_when_no_active_services(
     repo_copy: Path,
     monkeypatch,
     compose_instances_data: ComposeInstancesData,
@@ -185,41 +275,6 @@ def test_detected_apps_ignore_unknown_entries(
     result = run_backup(repo_copy, "core")
 
     assert result.returncode == 0, result.stderr
-    expected_core_apps = compose_instances_data.instance_app_names.get("core", [])
-    _assert_restart_apps(result.stdout, expected_core_apps)
+    _assert_restart_apps(result.stdout, [])
 
-    _assert_compose_restart_calls(compose_log, expected_core_apps)
-
-
-def test_fallback_to_known_apps_when_no_active_dirs(
-    repo_copy: Path,
-    monkeypatch,
-    compose_instances_data: ComposeInstancesData,
-) -> None:
-    compose_log = _install_compose_stub(repo_copy)
-    _prepend_fake_bin(
-        repo_copy,
-        monkeypatch,
-        (
-            "date",
-            "#!/usr/bin/env bash\nset -euo pipefail\nprintf '20240101-030405\\n'\n",
-        ),
-    )
-
-    env_file = repo_copy / "env" / "local" / "core.env"
-    env_file.write_text(
-        env_file.read_text(encoding="utf-8") + "APP_DATA_DIR=data/core-root\n",
-        encoding="utf-8",
-    )
-
-    data_mount = repo_copy / "data" / "core-root" / "app-core"
-    data_mount.mkdir(parents=True)
-
-    result = run_backup(repo_copy, "core")
-
-    assert result.returncode == 0, result.stderr
-    assert "Nenhuma aplicação ativa identificada; religando stack completa." not in result.stdout
-    expected_core_apps = compose_instances_data.instance_app_names.get("core", [])
-    _assert_restart_apps(result.stdout, expected_core_apps)
-
-    _assert_compose_restart_calls(compose_log, expected_core_apps)
+    _assert_compose_restart_calls(compose_log, [])
