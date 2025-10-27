@@ -319,6 +319,7 @@ def build_sync_report(repo_root: Path, metadata: ComposeMetadata) -> SyncReport:
     )
     common_env_vars = set(common_env_data.available)
     common_env_vars.update(local_common_data.available)
+    common_env_vars.update(IMPLICIT_ENV_VARS)
 
     missing_templates: List[str] = []
     for instance in metadata.instances:

@@ -170,6 +170,23 @@ def _extract_flag_arguments(args: list[str], flag: str) -> list[str]:
     return values
 
 
+def test_list_flag_prints_available_instances(
+    repo_copy: Path, compose_instances_data: ComposeInstancesData
+) -> None:
+    env = os.environ.copy()
+
+    result = _run_script(repo_copy, "--list", env=env)
+
+    assert result.returncode == 0, result.stderr
+
+    lines = [line.strip() for line in result.stdout.splitlines() if line.strip()]
+    assert lines, "esperado conteúdo na saída"
+    assert lines[0] == "Instâncias disponíveis:"
+
+    bullets = [line[2:].strip() for line in lines[1:] if line.startswith("• ")]
+    assert bullets == compose_instances_data.instance_names
+
+
 def test_table_summary_highlights_overlays(
     repo_copy: Path,
     tmp_path: Path,

@@ -47,6 +47,7 @@ for dir in \
   "env" \
   "scripts" \
   "docs" \
+  "tests" \
   ".github/workflows"; do
   require_path "$dir"
 done
