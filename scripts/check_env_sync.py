@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Dict, Iterable, List, Mapping, Sequence, Set
 
 RUNTIME_PROVIDED_VARIABLES: Set[str] = {"PWD"}
+IMPLICIT_ENV_VARS: Set[str] = set()
 
 PAIR_PATTERN = re.compile(
     r"\[([^\]]+)\]="
