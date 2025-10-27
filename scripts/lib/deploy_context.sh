@@ -243,16 +243,17 @@ build_deploy_context() {
     fi
   done
 
-  if [[ ${#filtered_app_names[@]} -gt 0 ]]; then
-    instance_app_names=("${filtered_app_names[@]}")
-  fi
-
   local app_names_string=""
   if [[ ${#instance_app_names[@]} -gt 0 ]]; then
     app_names_string="$(printf '%s\n' "${instance_app_names[@]}")"
   fi
 
-  local primary_app="${instance_app_names[0]}"
+  local primary_app=""
+  if [[ ${#filtered_app_names[@]} -gt 0 ]]; then
+    primary_app="${filtered_app_names[0]}"
+  else
+    primary_app="${instance_app_names[0]}"
+  fi
   local default_app_data_dir=""
   if [[ -n "$primary_app" ]]; then
     default_app_data_dir="data/${primary_app}-${instance}"

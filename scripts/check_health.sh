@@ -41,6 +41,9 @@ source "$SCRIPT_DIR/lib/env_helpers.sh"
 # shellcheck source=./lib/env_file_chain.sh
 source "$SCRIPT_DIR/lib/env_file_chain.sh"
 
+# shellcheck source=./lib/compose_instances.sh
+source "$SCRIPT_DIR/lib/compose_instances.sh"
+
 print_help() {
   cat <<'EOF'
 Uso: scripts/check_health.sh [opções] [instancia]
@@ -292,6 +295,34 @@ if [[ -z "${HEALTH_SERVICES:-}" ]]; then
 fi
 
 mapfile -t LOG_TARGETS < <(env_file_chain__parse_list "${HEALTH_SERVICES:-}") || true
+
+declare -a METADATA_APP_NAMES=()
+declare -a METADATA_PRIMARY_APPS=()
+if [[ -n "$INSTANCE_NAME" ]]; then
+  if load_compose_instances "$REPO_ROOT"; then
+    if [[ -n "${COMPOSE_INSTANCE_APP_NAMES[$INSTANCE_NAME]:-}" ]]; then
+      mapfile -t METADATA_APP_NAMES < <(printf '%s\n' "${COMPOSE_INSTANCE_APP_NAMES[$INSTANCE_NAME]}")
+      if [[ ${#METADATA_APP_NAMES[@]} -gt 0 ]]; then
+        __metadata_app_name=""
+        for __metadata_app_name in "${METADATA_APP_NAMES[@]}"; do
+          if [[ -n "${COMPOSE_APP_BASE_FILES[$__metadata_app_name]:-}" ]]; then
+            METADATA_PRIMARY_APPS+=("$__metadata_app_name")
+          fi
+        done
+        unset __metadata_app_name
+      fi
+    fi
+  fi
+fi
+
+if [[ ${#LOG_TARGETS[@]} -eq 0 ]]; then
+  if [[ "$CHANGED_TO_REPO_ROOT" == false && ${#METADATA_PRIMARY_APPS[@]} -gt 0 ]]; then
+    LOG_TARGETS=("${METADATA_PRIMARY_APPS[@]}")
+  elif [[ ${#METADATA_APP_NAMES[@]} -gt 0 ]]; then
+    LOG_TARGETS=("${METADATA_APP_NAMES[@]}")
+  fi
+fi
+
 primary_targets=("${LOG_TARGETS[@]}")
 
 append_real_service_targets() {
