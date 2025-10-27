@@ -84,12 +84,26 @@ def test_env_loader_supports_hash_values(tmp_path: Path) -> None:
                 "COMMENT=value    # inline comment",
                 "COMMENT_TAB=value\t# another comment",
                 "LITERAL=\\#escaped hash",
+                'COMMENTED_QUOTE="value" # keep comment out',
+                "COMMENTED_SINGLE='value' # drop trailing",
+                'COMMENTED_HASH="value # literal" # trailing comment',
             ]
         ),
         encoding="utf-8",
     )
 
-    result = run_env_loader(env_file=env_file, keys=["PASSWORD", "COMMENT", "COMMENT_TAB", "LITERAL"])
+    result = run_env_loader(
+        env_file=env_file,
+        keys=[
+            "PASSWORD",
+            "COMMENT",
+            "COMMENT_TAB",
+            "LITERAL",
+            "COMMENTED_QUOTE",
+            "COMMENTED_SINGLE",
+            "COMMENTED_HASH",
+        ],
+    )
 
     assert result.returncode == 0
     assert set(result.stdout.splitlines()) == {
@@ -97,6 +111,9 @@ def test_env_loader_supports_hash_values(tmp_path: Path) -> None:
         "COMMENT=value",
         "COMMENT_TAB=value",
         "LITERAL=#escaped hash",
+        "COMMENTED_QUOTE=value",
+        "COMMENTED_SINGLE=value",
+        "COMMENTED_HASH=value # literal",
     }
 
 

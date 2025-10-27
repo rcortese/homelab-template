@@ -69,20 +69,46 @@ def normalize(value: str) -> str:
     value = value.strip()
     if not value:
         return ""
-    was_quoted = (
+
+    if value[0] in {'"', "'"}:
+        quote = value[0]
+        escaped = False
+        closing_index: int | None = None
+        for index in range(1, len(value)):
+            char = value[index]
+            if char == "\\" and not escaped:
+                escaped = True
+                continue
+            if escaped:
+                escaped = False
+                continue
+            if char == quote:
+                closing_index = index
+                break
+        if closing_index is not None:
+            remainder = value[closing_index + 1 :].strip()
+            if not remainder or (
+                remainder.startswith('#')
+                and (len(remainder) == 1 or remainder[1].isspace())
+            ):
+                return value[1:closing_index].replace("\\#", "#")
+
+    if value.startswith('#') and (len(value) == 1 or value[1].isspace()):
+        return ""
+
+    comment_index = find_comment_index(value)
+    if comment_index is not None:
+        value = value[:comment_index].rstrip()
+
+    value = value.strip()
+    if not value:
+        return ""
+    if (
         value[0] in {'"', "'"}
         and value[-1] == value[0]
         and len(value) >= 2
-    )
-    if was_quoted:
+    ):
         value = value[1:-1]
-    if value and not was_quoted:
-        if value.startswith('#') and (len(value) == 1 or value[1].isspace()):
-            return ""
-
-        comment_index = find_comment_index(value)
-        if comment_index is not None:
-            value = value[:comment_index].rstrip()
     return value.replace("\\#", "#")
 
 def parse_file(path: Path) -> dict[str, str]:
