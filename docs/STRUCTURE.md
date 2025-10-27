@@ -40,8 +40,7 @@ Cada aplicação adicional precisa seguir o padrão abaixo para manter a compati
 | `docs/apps/<app>.md` | Recomendado | Documento de apoio descrevendo responsabilidades e requisitos da aplicação. |
 | `env/<instância>.example.env` | Um por instância | Deve incluir todas as variáveis consumidas pelos manifests das aplicações habilitadas para a instância. |
 
-> Aplicações sem `base.yml` continuam válidas desde que forneçam pelo menos um override (`<instância>.yml`). Os scripts do template
-> detectam automaticamente esses diretórios e evitam anexar manifests inexistentes aos planos de `docker compose -f`.
+> Para aplicações compostas apenas por overrides, garanta a presença dos arquivos `<instância>.yml` e siga as orientações detalhadas em [Aplicações override-only](./COMPOSE_GUIDE.md#aplicações-compostas-apenas-por-overrides).
 
 ## Validações sugeridas
 

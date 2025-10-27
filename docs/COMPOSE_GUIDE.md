@@ -19,28 +19,38 @@ executar `docker compose`.
 ### Aplicações compostas apenas por overrides
 
 Nem toda aplicação precisa de um `base.yml`. Algumas stacks reutilizam serviços
-existentes e declaram apenas ajustes específicos por instância (por exemplo,
-adicionando rótulos, redes extras ou variáveis). Para habilitar esse fluxo:
+existentes e aplicam apenas ajustes específicos por instância (por exemplo,
+adicionando rótulos, redes extras ou variáveis). Nestes casos, o diretório da
+aplicação é considerado **override-only**.
 
-- Crie o diretório `compose/apps/<app>/` normalmente.
-- Adicione pelo menos um arquivo `compose/apps/<app>/<instância>.yml`.
-- Omitir `compose/apps/<app>/base.yml` é aceitável nesses casos; os scripts de
-  descoberta (`scripts/lib/compose_discovery.sh`) registram o override e deixam
-  de anexar um manifest inexistente ao plano.
-- Use `scripts/bootstrap_instance.sh <app> <instância> --override-only` para
-  gerar apenas o override e o modelo de variáveis quando estiver montando uma
-  aplicação sem `base.yml`. Se o diretório da aplicação já existir sem um
-  arquivo base, o script ativa esse modo automaticamente ao adicionar novas
-  instâncias.
+#### Como preparar o diretório
 
-Durante a geração do plano (`scripts/lib/compose_plan.sh`), somente os overrides
-existentes são adicionados após `compose/base.yml` e quaisquer ajustes globais
-da instância. Isso evita erros com referências a arquivos ausentes, mantendo a
-ordem dos demais manifests intacta. O mapa `COMPOSE_APP_BASE_FILES`, exportado
-por `scripts/lib/compose_instances.sh`, registra apenas as aplicações que
-possuem um `base.yml` real; diretórios compostos exclusivamente por overrides
-ficam fora do mapa e, portanto, não introduzem entradas inexistentes nos planos
-ou validações.
+1. Crie o diretório `compose/apps/<app>/` normalmente.
+2. Adicione pelo menos um arquivo `compose/apps/<app>/<instância>.yml` com os
+   serviços e ajustes específicos daquela instância.
+3. Omitir `compose/apps/<app>/base.yml` é aceitável. Sempre que o diretório não
+   contiver esse arquivo, os scripts assumem automaticamente que a aplicação é
+   override-only e não tentam anexar um manifest inexistente ao plano.
+
+#### Geração automática com `bootstrap_instance`
+
+Use `scripts/bootstrap_instance.sh <app> <instância> --override-only` para
+gerar apenas o override e o arquivo de variáveis quando estiver montando uma
+aplicação sem `base.yml`. Se o diretório da aplicação já existir sem um arquivo
+base, o script detecta o modo override-only automaticamente ao adicionar novas
+instâncias, evitando a criação de artefatos redundantes.
+
+#### Como os scripts tratam overrides puros
+
+- `scripts/lib/compose_discovery.sh` identifica diretórios override-only e
+  registra somente os arquivos `<instância>.yml` existentes.
+- Durante a geração do plano (`scripts/lib/compose_plan.sh`), apenas esses
+  overrides são encadeados após `compose/base.yml` e os ajustes globais da
+  instância, preservando a ordem dos demais manifests.
+- O mapa `COMPOSE_APP_BASE_FILES`, exportado por
+  `scripts/lib/compose_instances.sh`, mantém apenas aplicações com `base.yml`
+  real. Diretórios override-only ficam fora desse mapa e, portanto, não
+  introduzem referências quebradas nas validações ou comandos `docker compose`.
 
 ## Stacks com múltiplas aplicações
 
