@@ -177,12 +177,29 @@ if [[ -n "${COMPOSE_ENV_FILE:-}" ]]; then
 fi
 
 app_data_dir_value="${APP_DATA_DIR:-}"
-app_data_dir_mount_value=""
+app_data_dir_mount_value="${APP_DATA_DIR_MOUNT:-}"
 
-if [[ -z "$app_data_dir_value" && -n "$compose_env_file_abs" && -f "$compose_env_file_abs" ]]; then
-  if app_data_dir_kv="$("$SCRIPT_DIR/lib/env_loader.sh" "$compose_env_file_abs" APP_DATA_DIR)"; then
+if [[ (-z "$app_data_dir_value" || -z "$app_data_dir_mount_value") && -n "$compose_env_file_abs" && -f "$compose_env_file_abs" ]];
+then
+  if app_data_dir_kv="$("$SCRIPT_DIR/lib/env_loader.sh" "$compose_env_file_abs" APP_DATA_DIR APP_DATA_DIR_MOUNT)"; then
     if [[ -n "$app_data_dir_kv" ]]; then
-      app_data_dir_value="${app_data_dir_kv#APP_DATA_DIR=}"
+      while IFS= read -r env_line; do
+        if [[ -z "$env_line" ]]; then
+          continue
+        fi
+        case "$env_line" in
+        APP_DATA_DIR=*)
+          if [[ -z "$app_data_dir_value" ]]; then
+            app_data_dir_value="${env_line#APP_DATA_DIR=}"
+          fi
+          ;;
+        APP_DATA_DIR_MOUNT=*)
+          if [[ -z "$app_data_dir_mount_value" ]]; then
+            app_data_dir_mount_value="${env_line#APP_DATA_DIR_MOUNT=}"
+          fi
+          ;;
+        esac
+      done <<<"$app_data_dir_kv"
     fi
   fi
 fi
@@ -192,6 +209,12 @@ if [[ -z "$app_data_dir_value" && $metadata_loaded -eq 1 && -n "$INSTANCE_NAME" 
   if [[ -n "$primary_app_name" ]]; then
     app_data_dir_value="data/${primary_app_name}-${INSTANCE_NAME}"
   fi
+fi
+
+if [[ -n "$app_data_dir_mount_value" ]]; then
+  app_data_dir_mount_value="$(resolve_app_data_dir_mount "$app_data_dir_mount_value")"
+elif [[ -n "$app_data_dir_value" ]]; then
+  app_data_dir_mount_value="$(resolve_app_data_dir_mount "$app_data_dir_value")"
 fi
 
 if ! cd "$REPO_ROOT"; then
@@ -224,7 +247,6 @@ if [[ ${#COMPOSE_ARGS[@]} -gt 0 ]]; then
 fi
 
 if [[ -n "$app_data_dir_value" ]]; then
-  app_data_dir_mount_value="$(resolve_app_data_dir_mount "$app_data_dir_value")"
   APP_DATA_DIR="$app_data_dir_value" APP_DATA_DIR_MOUNT="$app_data_dir_mount_value" exec -- "${COMPOSE_CMD[@]}"
 else
   exec "${COMPOSE_CMD[@]}"

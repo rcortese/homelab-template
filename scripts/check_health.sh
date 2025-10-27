@@ -257,8 +257,11 @@ if [[ -z "${HEALTH_SERVICES:-}" ]]; then
         continue
       fi
       if env_output="$("$SCRIPT_DIR/lib/env_loader.sh" "$env_abs" COMPOSE_EXTRA_FILES HEALTH_SERVICES SERVICE_NAME 2>/dev/null)"; then
-        while IFS='=' read -r line; do
+        while IFS= read -r line; do
           [[ -z "$line" ]] && continue
+          if [[ "$line" != *=* ]]; then
+            continue
+          fi
           key="${line%%=*}"
           value="${line#*=}"
           __health_env_values[$key]="$value"

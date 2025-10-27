@@ -136,4 +136,33 @@ def test_deploy_with_absolute_data_dir(repo_copy: Path, docker_stub) -> None:
     env_records = docker_stub.read_call_env()
     assert len(env_records) >= 1
     assert env_records[0].get("APP_DATA_DIR") == str(absolute_data_dir)
-    assert env_records[0].get("APP_DATA_DIR_MOUNT") == str(absolute_data_dir)
+
+
+def test_deploy_with_empty_app_data_dir_uses_default(
+    repo_copy: Path, docker_stub
+) -> None:
+    core_env = repo_copy / "env" / "local" / "core.env"
+    existing_content = core_env.read_text(encoding="utf-8")
+    core_env.write_text(
+        f"{existing_content}APP_DATA_DIR=\n",
+        encoding="utf-8",
+    )
+
+    result = run_deploy(
+        repo_copy,
+        "core",
+        "--skip-structure",
+        "--skip-validate",
+        "--skip-health",
+        "--force",
+        env_overrides={"CI": "1"},
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert (repo_copy / "data" / "app-core").exists()
+    assert (repo_copy / "backups").exists()
+
+    env_records = docker_stub.read_call_env()
+    assert len(env_records) >= 1
+    assert env_records[0].get("APP_DATA_DIR") == "data/app-core"
+    assert env_records[0].get("APP_DATA_DIR_MOUNT") == "../data/app-core"
