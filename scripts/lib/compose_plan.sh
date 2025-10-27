@@ -70,10 +70,15 @@ build_compose_file_plan() {
 
   append_unique_file __plan_ref "$BASE_COMPOSE_FILE"
 
+  local -a __instance_level_overrides=()
   declare -A __overrides_by_app=()
   local __compose_file __app_for_file
   for __compose_file in "${__instance_compose_files[@]}"; do
     [[ -z "$__compose_file" ]] && continue
+    if [[ "$__compose_file" == "compose/${instance_name}.yml" || "$__compose_file" == "compose/${instance_name}.yaml" ]]; then
+      append_unique_file __instance_level_overrides "$__compose_file"
+      continue
+    fi
     __app_for_file="${__compose_file#compose/apps/}"
     __app_for_file="${__app_for_file%%/*}"
     if [[ -z "$__app_for_file" ]]; then
@@ -84,6 +89,11 @@ build_compose_file_plan() {
     else
       __overrides_by_app[$__app_for_file]="$__compose_file"
     fi
+  done
+
+  local __instance_override
+  for __instance_override in "${__instance_level_overrides[@]}"; do
+    append_unique_file __plan_ref "$__instance_override"
   done
 
   local __app_name
