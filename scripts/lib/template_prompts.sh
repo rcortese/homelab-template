@@ -3,7 +3,12 @@
 require_interactive_input() {
   local message="$1"
   if [[ ! -t 0 ]]; then
-    error "$message"
+    if command -v error >/dev/null 2>&1; then
+      error "$message"
+    else
+      printf '%s\n' "$message" >&2
+    fi
+    return 1
   fi
 }
 
