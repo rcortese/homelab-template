@@ -219,4 +219,16 @@ def repo_copy(
         encoding="utf-8",
     )
 
+    override_only_dir = copy_root / "compose" / "apps" / "overrideonly"
+    override_only_dir.mkdir(parents=True, exist_ok=True)
+    (override_only_dir / "core.yml").write_text(
+        "services:\n"
+        "  overrideonly:\n"
+        "    image: alpine:3.18\n"
+        "    command:\n"
+        "      - sleep\n"
+        "      - infinity\n",
+        encoding="utf-8",
+    )
+
     return copy_root

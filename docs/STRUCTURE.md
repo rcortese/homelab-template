@@ -35,10 +35,13 @@ Cada aplicação adicional precisa seguir o padrão abaixo para manter a compati
 | Caminho | Obrigatório? | Descrição |
 | --- | --- | --- |
 | `compose/apps/<app>/` | Sim | Diretório próprio com manifests da aplicação. |
-| `compose/apps/<app>/base.yml` | Sim | Serviços base reutilizáveis por todas as instâncias. |
+| `compose/apps/<app>/base.yml` | Quando aplicável | Serviços base reutilizáveis por todas as instâncias. Opcional para aplicações compostas apenas por overrides específicos de instância. |
 | `compose/apps/<app>/<instância>.yml` | Um por instância | Override com nomes de serviços, portas e variáveis específicas. |
 | `docs/apps/<app>.md` | Recomendado | Documento de apoio descrevendo responsabilidades e requisitos da aplicação. |
 | `env/<instância>.example.env` | Um por instância | Deve incluir todas as variáveis consumidas pelos manifests das aplicações habilitadas para a instância. |
+
+> Aplicações sem `base.yml` continuam válidas desde que forneçam pelo menos um override (`<instância>.yml`). Os scripts do template
+> detectam automaticamente esses diretórios e evitam anexar manifests inexistentes aos planos de `docker compose -f`.
 
 ## Validações sugeridas
 

@@ -75,6 +75,7 @@ def test_defaults_for_core_instance(repo_copy: Path) -> None:
         "compose/apps/app/core.yml",
         "compose/apps/monitoring/base.yml",
         "compose/apps/monitoring/core.yml",
+        "compose/apps/overrideonly/core.yml",
         "compose/apps/worker/base.yml",
         "compose/apps/worker/core.yml",
         "compose/apps/baseonly/base.yml",
@@ -84,6 +85,7 @@ def test_defaults_for_core_instance(repo_copy: Path) -> None:
         for path in expected_relative
     ]
     assert compose_files == " ".join(expected_relative)
+    assert "compose/apps/overrideonly/base.yml" not in compose_files.split()
 
     env_files = _extract_env_files(stdout)
     expected_env_files = [
@@ -295,6 +297,7 @@ def test_loads_extra_files_from_env_file(repo_copy: Path) -> None:
         "compose/apps/app/core.yml",
         "compose/apps/monitoring/base.yml",
         "compose/apps/monitoring/core.yml",
+        "compose/apps/overrideonly/core.yml",
         "compose/apps/worker/base.yml",
         "compose/apps/worker/core.yml",
         "compose/apps/baseonly/base.yml",

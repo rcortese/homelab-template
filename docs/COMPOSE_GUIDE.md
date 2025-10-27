@@ -13,8 +13,25 @@ executar `docker compose`.
 | --------------- | ----------- | ----- |
 | **Base** | `compose/base.yml` | Mantém apenas anchors e volumes compartilhados reutilizados pelas aplicações. Deve ser carregado **sempre** como primeiro manifesto. |
 | **Instância (global)** | `compose/<instância>.yml` | Reúne ajustes compartilhados por todas as aplicações daquela instância (ex.: redes extras, volumes padrão ou labels globais). É aplicado imediatamente após o arquivo base para que os recursos sejam sobrescritos antes dos manifests das aplicações. |
-| **Aplicação** | `compose/apps/<app>/base.yml` | Declara os serviços adicionais que compõem uma aplicação (ex.: `app`). Usa os anchors definidos em `compose/base.yml`. É incluído automaticamente para todas as instâncias. |
+| **Aplicação** | `compose/apps/<app>/base.yml` | Declara os serviços adicionais que compõem uma aplicação (ex.: `app`). Usa os anchors definidos em `compose/base.yml`. É incluído automaticamente para todas as instâncias **quando o arquivo existir**. |
 | **Overrides da aplicação** | `compose/apps/<app>/<instância>.yml` | Especializa os serviços da aplicação para cada ambiente (nome do container, portas, variáveis específicas como `APP_PUBLIC_URL` ou `MEDIA_ROOT`). Cada instância possui um arquivo por aplicação (ex.: `compose/apps/app/core.yml`). |
+
+### Aplicações compostas apenas por overrides
+
+Nem toda aplicação precisa de um `base.yml`. Algumas stacks reutilizam serviços
+existentes e declaram apenas ajustes específicos por instância (por exemplo,
+adicionando rótulos, redes extras ou variáveis). Para habilitar esse fluxo:
+
+- Crie o diretório `compose/apps/<app>/` normalmente.
+- Adicione pelo menos um arquivo `compose/apps/<app>/<instância>.yml`.
+- Omitir `compose/apps/<app>/base.yml` é aceitável nesses casos; os scripts de
+  descoberta (`scripts/lib/compose_discovery.sh`) registram o override e deixam
+  de anexar um manifest inexistente ao plano.
+
+Durante a geração do plano (`scripts/lib/compose_plan.sh`), somente os overrides
+existentes são adicionados após `compose/base.yml` e quaisquer ajustes globais
+da instância. Isso evita erros com referências a arquivos ausentes, mantendo a
+ordem dos demais manifests intacta.
 
 ## Stacks com múltiplas aplicações
 
@@ -31,6 +48,10 @@ Ao combinar diversas aplicações, carregue os manifests em blocos (`base.yml`, 
 | 7 | `compose/apps/worker/base.yml` | Introduz workers assíncronos que dependem da aplicação principal. |
 | 8 | `compose/apps/worker/<instância>.yml` | Ajusta nome/concurrência dos workers por instância. |
 | 9 | `compose/apps/<outra-app>/...` | Repita o padrão para cada aplicação extra adicionada. |
+
+> Se uma aplicação não tiver `base.yml`, pule o passo correspondente e mantenha
+> apenas o override (`compose/apps/<app>/<instância>.yml`). Os scripts do
+> template fazem esse ajuste automaticamente ao gerar o plano.
 
 ### Exemplo: stack completa na instância core
 
@@ -156,7 +177,7 @@ Serviços:
 
 - Sempre carregue `compose/base.yml` em primeiro lugar.
 - Quando existir, aplique `compose/<instância>.yml` logo após o arquivo base.
-- Inclua todos os arquivos `compose/apps/<app>/base.yml` antes dos overrides por instância.
+- Inclua os arquivos `compose/apps/<app>/base.yml` antes dos overrides por instância **quando existirem**.
 - Combine o override `compose/apps/<app>/<instância>.yml` correspondente logo após o `base.yml` da aplicação.
 - Sincronize a combinação de arquivos com a cadeia de variáveis de ambiente (`env/local/common.env` → `env/local/<instância>.env`).
 - Revalide as combinações com [`scripts/validate_compose.sh`](./OPERATIONS.md#scriptsvalidate_compose.sh) ao alterar qualquer arquivo em `compose/`.

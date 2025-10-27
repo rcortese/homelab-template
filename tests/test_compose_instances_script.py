@@ -13,6 +13,7 @@ def _collect_compose_metadata(repo_root: Path) -> tuple[
     dict[str, str],
     dict[str, str],
     dict[str, str],
+    dict[str, str],
 ]:
     base_rel = Path("compose/base.yml")
     assert (repo_root / base_rel).exists(), "Missing compose/base.yml in repo copy"
@@ -23,11 +24,12 @@ def _collect_compose_metadata(repo_root: Path) -> tuple[
     instance_files: dict[str, list[str]] = defaultdict(list)
     instance_app_names: dict[str, list[str]] = defaultdict(list)
     apps_without_overrides: list[str] = []
+    app_base_files: dict[str, str] = {}
 
     for app_dir in sorted(path for path in apps_dir.iterdir() if path.is_dir()):
         base_file = app_dir / "base.yml"
-        if not base_file.exists():
-            raise AssertionError(f"Expected base compose file for app {app_dir.name}: {base_file}")
+        if base_file.exists():
+            app_base_files[app_dir.name] = base_file.relative_to(repo_root).as_posix()
 
         app_files = list(sorted(app_dir.glob("*.yml"))) + list(sorted(app_dir.glob("*.yaml")))
 
@@ -47,7 +49,7 @@ def _collect_compose_metadata(repo_root: Path) -> tuple[
             if app_name not in instance_app_names[instance_name]:
                 instance_app_names[instance_name].append(app_name)
 
-        if not found_override:
+        if not found_override and base_file.exists():
             apps_without_overrides.append(app_dir.name)
 
     known_instances = set(instance_files)
@@ -118,6 +120,7 @@ def _collect_compose_metadata(repo_root: Path) -> tuple[
         instance_names,
         {name: list(paths) for name, paths in instance_files.items()},
         {name: list(apps) for name, apps in instance_app_names.items()},
+        app_base_files,
         env_local_map,
         env_template_map,
         env_file_map,
@@ -178,6 +181,7 @@ def test_compose_instances_outputs_expected_metadata(repo_copy: Path) -> None:
         expected_names,
         expected_files_map,
         expected_app_names_map,
+        expected_app_base_map,
         expected_env_local_map,
         expected_env_template_map,
         expected_env_files_map,
@@ -204,6 +208,9 @@ def test_compose_instances_outputs_expected_metadata(repo_copy: Path) -> None:
         name: [entry for entry in value.splitlines() if entry]
         for name, value in app_names_map.items()
     } == expected_app_names_map
+
+    app_base_line = find_declare_line(result.stdout, "COMPOSE_APP_BASE_FILES")
+    assert parse_mapping(app_base_line) == expected_app_base_map
 
     env_local_line = find_declare_line(result.stdout, "COMPOSE_INSTANCE_ENV_LOCAL")
     env_local_map = parse_mapping(env_local_line)

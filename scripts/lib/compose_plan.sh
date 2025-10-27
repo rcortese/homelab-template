@@ -97,8 +97,12 @@ build_compose_file_plan() {
   done
 
   local __app_name
+  local __app_base_file
   for __app_name in "${__instance_app_names[@]}"; do
-    append_unique_file __plan_ref "compose/apps/${__app_name}/base.yml"
+    __app_base_file="${COMPOSE_APP_BASE_FILES[$__app_name]:-}"
+    if [[ -n "$__app_base_file" ]]; then
+      append_unique_file __plan_ref "$__app_base_file"
+    fi
     if [[ -n "${__overrides_by_app[$__app_name]:-}" ]]; then
       mapfile -t __instance_compose_files < <(printf '%s\n' "${__overrides_by_app[$__app_name]}")
       local __override_file

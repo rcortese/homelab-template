@@ -49,6 +49,7 @@ load_compose_discovery() {
 
   declare -gA COMPOSE_INSTANCE_FILES=()
   declare -gA COMPOSE_INSTANCE_APP_NAMES=()
+  declare -gA COMPOSE_APP_BASE_FILES=()
   declare -ga COMPOSE_INSTANCE_NAMES=()
 
   shopt -s nullglob
@@ -79,9 +80,8 @@ load_compose_discovery() {
     app_base_rel="$apps_dir_rel/$app_name/base.yml"
     app_base_abs="$repo_root/$app_base_rel"
 
-    if [[ ! -f "$app_base_abs" ]]; then
-      echo "[!] Arquivo base da aplicação '$app_name' não encontrado: $app_base_rel" >&2
-      return 1
+    if [[ -f "$app_base_abs" ]]; then
+      COMPOSE_APP_BASE_FILES[$app_name]="$app_base_rel"
     fi
 
     shopt -s nullglob
@@ -124,7 +124,7 @@ load_compose_discovery() {
       compose_discovery__append_instance_file "$instance" "$instance_rel"
     done
 
-    if [[ $found_for_app -eq 0 ]]; then
+    if [[ $found_for_app -eq 0 && -f "$app_base_abs" ]]; then
       apps_without_overrides+=("$app_name")
     fi
   done
