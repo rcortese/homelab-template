@@ -124,8 +124,13 @@ load_compose_discovery() {
       compose_discovery__append_instance_file "$instance" "$instance_rel"
     done
 
-    if [[ $found_for_app -eq 0 && -f "$app_base_abs" ]]; then
-      apps_without_overrides+=("$app_name")
+    if [[ $found_for_app -eq 0 ]]; then
+      if [[ -f "$app_base_abs" ]]; then
+        apps_without_overrides+=("$app_name")
+      else
+        echo "[!] Aplicação '$app_name' não possui base.yml nem overrides." >&2
+        return 1
+      fi
     fi
   done
 

@@ -94,6 +94,11 @@ validate_executor_prepare_plan() {
     return 1
   fi
 
+  local -a instance_app_names=()
+  if [[ -n "${COMPOSE_INSTANCE_APP_NAMES[$instance]:-}" ]]; then
+    mapfile -t instance_app_names < <(printf '%s\n' "${COMPOSE_INSTANCE_APP_NAMES[$instance]}")
+  fi
+
   files_ref=()
   local plan_entry resolved_entry
   for plan_entry in "${compose_plan_rel[@]}"; do

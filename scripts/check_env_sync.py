@@ -30,6 +30,7 @@ class ComposeMetadata:
     files_by_instance: Mapping[str, Sequence[Path]]
     app_names_by_instance: Mapping[str, Sequence[str]]
     env_template_by_instance: Mapping[str, Path | None]
+    app_base_by_name: Mapping[str, Path]
 
 
 class ComposeMetadataError(RuntimeError):
@@ -86,6 +87,7 @@ def load_compose_metadata(repo_root: Path) -> ComposeMetadata:
     files_map: Dict[str, List[Path]] = {}
     env_templates: Dict[str, Path | None] = {}
     app_names_map: Dict[str, List[str]] = {}
+    app_base_map: Dict[str, Path] = {}
 
     for raw_line in result.stdout.splitlines():
         line = raw_line.strip()
@@ -115,6 +117,11 @@ def load_compose_metadata(repo_root: Path) -> ComposeMetadata:
                 app_names_map[instance] = [
                     entry for entry in (item.strip() for item in value.splitlines()) if entry
                 ]
+        elif line.startswith("declare -A COMPOSE_APP_BASE_FILES="):
+            raw_map = parse_declare_mapping(line)
+            for app_name, value in raw_map.items():
+                if value:
+                    app_base_map[app_name] = (repo_root / value).resolve()
 
     if base_file is None or not base_file.exists():
         raise ComposeMetadataError("Arquivo compose/base.yml não encontrado.")
@@ -138,6 +145,7 @@ def load_compose_metadata(repo_root: Path) -> ComposeMetadata:
         files_by_instance=normalized_files_map,
         app_names_by_instance=normalized_app_names,
         env_template_by_instance=env_templates,
+        app_base_by_name=app_base_map,
     )
 
 
@@ -215,7 +223,9 @@ def build_sync_report(repo_root: Path, metadata: ComposeMetadata) -> SyncReport:
     for instance, files in metadata.files_by_instance.items():
         instance_vars = set(base_vars)
         app_names = metadata.app_names_by_instance.get(instance, [])
-        app_base_files = [repo_root / "compose" / "apps" / app / "base.yml" for app in app_names]
+        app_base_files = [
+            path for app in app_names if (path := metadata.app_base_by_name.get(app))
+        ]
         if app_base_files:
             instance_vars.update(extract_compose_variables(app_base_files))
         instance_vars.update(extract_compose_variables(files))

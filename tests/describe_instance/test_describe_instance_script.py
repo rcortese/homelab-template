@@ -109,6 +109,10 @@ def test_table_summary_highlights_overlays(repo_copy: Path, tmp_path: Path) -> N
                 "ports": [],
                 "volumes": [],
             },
+            "overrideonly": {
+                "ports": [],
+                "volumes": [],
+            },
         }
     }
 
@@ -132,6 +136,7 @@ def test_table_summary_highlights_overlays(repo_copy: Path, tmp_path: Path) -> N
     assert "compose/base.yml" in stdout
     assert "compose/apps/app/base.yml" in stdout
     assert "compose/apps/monitoring/base.yml" in stdout
+    assert "compose/apps/overrideonly/core.yml" in stdout
     assert "compose/apps/baseonly/base.yml" in stdout
     assert "compose/apps/worker/base.yml" in stdout
     assert "compose/overlays/metrics.yml (overlay extra)" in stdout
@@ -177,6 +182,10 @@ def test_json_summary_structure(repo_copy: Path, tmp_path: Path) -> None:
                 "ports": [],
                 "volumes": [],
             },
+            "overrideonly": {
+                "ports": [],
+                "volumes": [],
+            },
         }
     }
 
@@ -205,6 +214,7 @@ def test_json_summary_structure(repo_copy: Path, tmp_path: Path) -> None:
         "compose/apps/app/core.yml",
         "compose/apps/monitoring/base.yml",
         "compose/apps/monitoring/core.yml",
+        "compose/apps/overrideonly/core.yml",
         "compose/apps/worker/base.yml",
         "compose/apps/worker/core.yml",
         "compose/apps/baseonly/base.yml",
@@ -219,7 +229,7 @@ def test_json_summary_structure(repo_copy: Path, tmp_path: Path) -> None:
 
     services = payload["services"]
     names = [service["name"] for service in services]
-    assert sorted(names) == ["app", "baseonly", "monitoring", "worker"]
+    assert sorted(names) == ["app", "baseonly", "monitoring", "overrideonly", "worker"]
 
     app_service = next(service for service in services if service["name"] == "app")
     assert app_service["ports"] == ["8080 -> 80/tcp"]
