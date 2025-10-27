@@ -25,19 +25,19 @@ RUN_LINT=1
 
 while (($# > 0)); do
   case "$1" in
-    --no-lint)
-      RUN_LINT=0
-      shift
-      ;;
-    -h|--help)
-      usage
-      exit 0
-      ;;
-    *)
-      echo "Argumento desconhecido: $1" >&2
-      usage >&2
-      exit 1
-      ;;
+  --no-lint)
+    RUN_LINT=0
+    shift
+    ;;
+  -h | --help)
+    usage
+    exit 0
+    ;;
+  *)
+    echo "Argumento desconhecido: $1" >&2
+    usage >&2
+    exit 1
+    ;;
   esac
 done
 
