@@ -63,38 +63,65 @@ def test_script_succeeds_from_subdirectory():
     assert "Estrutura do repositório validada com sucesso." in result.stdout
 
 
+@pytest.mark.parametrize("repo_copy", [(
+    ".github",
+    "docs",
+)], indirect=True)
 @pytest.mark.parametrize("missing_relative", REQUIRED_PATHS)
-def test_missing_required_item_returns_error(tmp_path, missing_relative):
-    repo_copy = tmp_path / "repo"
-    repo_copy.mkdir()
-
-    for relative in REQUIRED_PATHS:
-        source = REPO_ROOT / relative
-        destination = repo_copy / relative
-        destination.parent.mkdir(parents=True, exist_ok=True)
-
-        if source.is_dir():
-            shutil.copytree(source, destination)
-        else:
-            shutil.copy2(source, destination)
-
-    script_dir = tmp_path / "scripts"
-    shutil.copytree(SCRIPT_PATH.parent, script_dir)
-    runner_script = script_dir / "check_structure.sh"
+def test_missing_required_item_returns_error(repo_copy: Path, missing_relative: str) -> None:
+    readme_copy = repo_copy / "README.md"
+    if not readme_copy.exists():
+        readme_copy.write_text((REPO_ROOT / "README.md").read_text(encoding="utf-8"), encoding="utf-8")
 
     missing_path = repo_copy / missing_relative
-    if missing_path.is_dir():
-        shutil.rmtree(missing_path)
-    elif missing_path.exists():
-        missing_path.unlink()
+    if not missing_path.exists():
+        source = REPO_ROOT / missing_relative
+        if source.is_dir():
+            shutil.copytree(source, missing_path)
+        elif source.exists():
+            missing_path.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(source, missing_path)
+        else:
+            pytest.fail(f"O caminho {missing_relative} não foi copiado para o diretório temporário.")
+
+    if missing_relative == "scripts":
+        backup_dir = missing_path.with_name("scripts.bak")
+        missing_path.rename(backup_dir)
+        runner_dir = repo_copy / "scripts"
+        runner_dir.mkdir(parents=True, exist_ok=True)
+        runner_script = runner_dir / "check_structure.sh"
+        runner_script.write_text(
+            "#!/usr/bin/env bash\n"
+            "set -euo pipefail\n"
+            "script_dir=\"$(cd \"$(dirname \"${BASH_SOURCE[0]}\")\" && pwd)\"\n"
+            "backup_dir=\"${script_dir}.bak\"\n"
+            "rm -rf \"${script_dir}\"\n"
+            "exec bash \"${backup_dir}/check_structure.sh\" \"$@\"\n",
+            encoding="utf-8",
+        )
+        runner_script.chmod(0o755)
+    elif missing_relative == "scripts/check_structure.sh":
+        backup_script = missing_path.with_suffix(".bak")
+        missing_path.rename(backup_script)
+        missing_path.write_text(
+            "#!/usr/bin/env bash\n"
+            "set -euo pipefail\n"
+            "rm -- \"$0\"\n"
+            f"exec bash \"{backup_script}\" \"$@\"\n",
+            encoding="utf-8",
+        )
+        missing_path.chmod(0o755)
     else:
-        pytest.fail(f"O caminho {missing_relative} não foi copiado para o diretório temporário.")
+        if missing_path.is_dir():
+            shutil.rmtree(missing_path)
+        else:
+            missing_path.unlink()
 
     env = os.environ.copy()
     env.update({"CI": "true", "ROOT_DIR_OVERRIDE": str(repo_copy)})
 
     result = subprocess.run(
-        [str(script_dir / "check_structure.sh")],
+        [str(repo_copy / "scripts" / "check_structure.sh")],
         capture_output=True,
         text=True,
         check=False,
