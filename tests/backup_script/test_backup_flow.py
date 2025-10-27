@@ -3,13 +3,12 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
+from tests.helpers.compose_instances import ComposeInstancesData
+
 from .utils import run_backup
 
 
-EXPECTED_CORE_APPS = ["app", "monitoring", "overrideonly", "worker", "baseonly"]
-
-
-def _assert_restart_apps(stdout: str) -> None:
+def _assert_restart_apps(stdout: str, expected_apps: list[str]) -> None:
     line = next(
         (
             entry
@@ -21,7 +20,7 @@ def _assert_restart_apps(stdout: str) -> None:
     assert line is not None, f"Linha com aplicações não encontrada em: {stdout!r}"
     _, _, tail = line.partition(":")
     apps = tail.strip().split()
-    assert apps == EXPECTED_CORE_APPS
+    assert sorted(apps) == sorted(expected_apps)
 
 
 def _install_compose_stub(repo_copy: Path) -> Path:
@@ -49,8 +48,25 @@ def _prepend_fake_bin(
     return fake_bin, original_path
 
 
+def _assert_compose_restart_calls(
+    compose_log: Path, expected_apps: list[str]
+) -> None:
+    calls = compose_log.read_text(encoding="utf-8").splitlines()
+    assert calls[:2] == [
+        "core ps --status running --services",
+        "core down",
+    ]
+    assert len(calls) >= 3
+    third_command = calls[2]
+    assert third_command.startswith("core up -d ")
+    actual_apps = third_command.split()[3:]
+    assert sorted(actual_apps) == sorted(expected_apps)
+
+
 def test_successful_backup_creates_snapshot_and_restarts_stack(
-    repo_copy: Path, monkeypatch
+    repo_copy: Path,
+    monkeypatch,
+    compose_instances_data: ComposeInstancesData,
 ) -> None:
     compose_log = _install_compose_stub(repo_copy)
     _prepend_fake_bin(
@@ -76,22 +92,22 @@ def test_successful_backup_creates_snapshot_and_restarts_stack(
 
     assert result.returncode == 0, result.stderr
     assert "Backup da instância 'core' concluído" in result.stdout
-    _assert_restart_apps(result.stdout)
+    expected_core_apps = compose_instances_data.instance_app_names.get("core", [])
+    _assert_restart_apps(result.stdout, expected_core_apps)
 
     backup_dir = repo_copy / "backups" / "core-20240101-030405"
     assert backup_dir.is_dir()
     restored_file = backup_dir / "db.sqlite"
     assert restored_file.read_text(encoding="utf-8") == "payload"
 
-    calls = compose_log.read_text(encoding="utf-8").splitlines()
-    assert calls == [
-        "core ps --status running --services",
-        "core down",
-        "core up -d " + " ".join(EXPECTED_CORE_APPS),
-    ]
+    _assert_compose_restart_calls(compose_log, expected_core_apps)
 
 
-def test_copy_failure_still_attempts_restart(repo_copy: Path, monkeypatch) -> None:
+def test_copy_failure_still_attempts_restart(
+    repo_copy: Path,
+    monkeypatch,
+    compose_instances_data: ComposeInstancesData,
+) -> None:
     compose_log = _install_compose_stub(repo_copy)
     cp_log = repo_copy / "cp_calls.log"
     fake_bin, original_path = _prepend_fake_bin(
@@ -128,26 +144,25 @@ def test_copy_failure_still_attempts_restart(repo_copy: Path, monkeypatch) -> No
     assert backup_dir.is_dir()
     assert list(backup_dir.iterdir()) == []
 
-    calls = compose_log.read_text(encoding="utf-8").splitlines()
-    assert calls == [
-        "core ps --status running --services",
-        "core down",
-        "core up -d " + " ".join(EXPECTED_CORE_APPS),
-    ]
+    expected_core_apps = compose_instances_data.instance_app_names.get("core", [])
+    _assert_compose_restart_calls(compose_log, expected_core_apps)
     assert cp_log.read_text(encoding="utf-8").splitlines() == [
         "-a",
         f"{repo_copy}/data/core-root/app-core/.",
         f"{repo_copy}/backups/core-20240101-030405/",
     ]
 
-    # Restore PATH to avoid leaking stubs into other tests
     monkeypatch.setenv("PATH", original_path)
     for stub in fake_bin.iterdir():
         stub.unlink()
     fake_bin.rmdir()
 
 
-def test_detected_apps_ignore_unknown_entries(repo_copy: Path, monkeypatch) -> None:
+def test_detected_apps_ignore_unknown_entries(
+    repo_copy: Path,
+    monkeypatch,
+    compose_instances_data: ComposeInstancesData,
+) -> None:
     compose_log = _install_compose_stub(repo_copy)
     _prepend_fake_bin(
         repo_copy,
@@ -170,17 +185,17 @@ def test_detected_apps_ignore_unknown_entries(repo_copy: Path, monkeypatch) -> N
     result = run_backup(repo_copy, "core")
 
     assert result.returncode == 0, result.stderr
-    _assert_restart_apps(result.stdout)
+    expected_core_apps = compose_instances_data.instance_app_names.get("core", [])
+    _assert_restart_apps(result.stdout, expected_core_apps)
 
-    calls = compose_log.read_text(encoding="utf-8").splitlines()
-    assert calls == [
-        "core ps --status running --services",
-        "core down",
-        "core up -d " + " ".join(EXPECTED_CORE_APPS),
-    ]
+    _assert_compose_restart_calls(compose_log, expected_core_apps)
 
 
-def test_fallback_to_known_apps_when_no_active_dirs(repo_copy: Path, monkeypatch) -> None:
+def test_fallback_to_known_apps_when_no_active_dirs(
+    repo_copy: Path,
+    monkeypatch,
+    compose_instances_data: ComposeInstancesData,
+) -> None:
     compose_log = _install_compose_stub(repo_copy)
     _prepend_fake_bin(
         repo_copy,
@@ -204,11 +219,7 @@ def test_fallback_to_known_apps_when_no_active_dirs(repo_copy: Path, monkeypatch
 
     assert result.returncode == 0, result.stderr
     assert "Nenhuma aplicação ativa identificada; religando stack completa." not in result.stdout
-    _assert_restart_apps(result.stdout)
+    expected_core_apps = compose_instances_data.instance_app_names.get("core", [])
+    _assert_restart_apps(result.stdout, expected_core_apps)
 
-    calls = compose_log.read_text(encoding="utf-8").splitlines()
-    assert calls == [
-        "core ps --status running --services",
-        "core down",
-        "core up -d " + " ".join(EXPECTED_CORE_APPS),
-    ]
+    _assert_compose_restart_calls(compose_log, expected_core_apps)

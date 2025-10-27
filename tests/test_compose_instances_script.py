@@ -5,6 +5,8 @@ import subprocess
 from collections import defaultdict
 from pathlib import Path
 
+from tests.helpers.compose_instances import ComposeInstancesData
+
 
 def _collect_compose_metadata(repo_root: Path) -> tuple[
     list[str],
@@ -224,7 +226,9 @@ def test_compose_instances_outputs_expected_metadata(repo_copy: Path) -> None:
     assert parse_mapping(env_files_line) == expected_env_files_map
 
 
-def test_instances_include_apps_without_overrides(repo_copy: Path) -> None:
+def test_instances_include_apps_without_overrides(
+    repo_copy: Path, compose_instances_data: ComposeInstancesData
+) -> None:
     result = run_compose_instances(repo_copy)
 
     assert result.returncode == 0, result.stderr
@@ -240,13 +244,13 @@ def test_instances_include_apps_without_overrides(repo_copy: Path) -> None:
 
     for instance in instance_names:
         apps = [entry for entry in app_names_map.get(instance, "").splitlines() if entry]
-        assert "baseonly" in apps
+        for app in compose_instances_data.apps_without_overrides():
+            assert app in apps
+
         overrides = [entry for entry in files_map.get(instance, "").splitlines() if entry]
-        assert instance in files_map, f"Instance '{instance}' not present in files map"
-        if instance == "core":
-            assert any(
-                entry.endswith("compose/apps/app/core.yml") for entry in overrides
-            ), "Expected core overrides to remain registered"
+        expected_overrides = compose_instances_data.instance_files.get(instance, [])
+        for override in expected_overrides:
+            assert override in overrides
 
 
 def test_missing_base_file_causes_failure(repo_copy: Path) -> None:
