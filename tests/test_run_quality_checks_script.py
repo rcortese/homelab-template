@@ -45,6 +45,7 @@ def _prepare_repo(
     *,
     python_exit: int = 0,
     shellcheck_exit: int = 0,
+    shfmt_exit: int = 0,
 ) -> tuple[Path, Path, Path]:
     """Set up a temporary repository with stubbed executables."""
 
@@ -61,9 +62,11 @@ def _prepare_repo(
 
     python_stub = repo_dir / "python"
     shellcheck_stub = repo_dir / "shellcheck"
+    shfmt_stub = repo_dir / "shfmt"
 
     _create_executable(python_stub, log_file=log_file, exit_code=python_exit)
     _create_executable(shellcheck_stub, log_file=log_file, exit_code=shellcheck_exit)
+    _create_executable(shfmt_stub, log_file=log_file, exit_code=shfmt_exit)
 
     # Create dummy shell scripts so the wrapper has something to lint.
     (scripts_dir / "check_all.sh").write_text(
@@ -104,6 +107,7 @@ def _build_env(repo_dir: Path) -> dict[str, str]:
         {
             "PYTHON_BIN": str(repo_dir / "python"),
             "SHELLCHECK_BIN": str(repo_dir / "shellcheck"),
+            "SHFMT_BIN": str(repo_dir / "shfmt"),
             "PATH": f"{repo_dir}:{env['PATH']}",
         }
     )
@@ -111,7 +115,7 @@ def _build_env(repo_dir: Path) -> dict[str, str]:
 
 
 def test_run_quality_checks_invokes_commands(tmp_path: Path) -> None:
-    """The wrapper should call pytest first and shellcheck afterwards."""
+    """The wrapper should call pytest first and run shfmt before shellcheck."""
 
     script, log_file, repo_dir = _prepare_repo(tmp_path)
     env = _build_env(repo_dir)
@@ -123,6 +127,11 @@ def test_run_quality_checks_invokes_commands(tmp_path: Path) -> None:
         "python",
         "-m",
         "pytest",
+        "shfmt",
+        "-d",
+        str(repo_dir / "scripts" / "check_all.sh"),
+        str(repo_dir / "scripts" / "run_quality_checks.sh"),
+        str(repo_dir / "scripts" / "lib" / "helpers.sh"),
         "shellcheck",
         str(repo_dir / "scripts" / "check_all.sh"),
         str(repo_dir / "scripts" / "run_quality_checks.sh"),
@@ -147,7 +156,7 @@ def test_run_quality_checks_stops_after_failed_pytest(tmp_path: Path) -> None:
 
 
 def test_run_quality_checks_fails_when_shellcheck_fails(tmp_path: Path) -> None:
-    """If shellcheck fails, the wrapper should propagate the failure."""
+    """If shellcheck fails, the wrapper should propagate the failure after shfmt."""
 
     script, log_file, repo_dir = _prepare_repo(tmp_path, shellcheck_exit=1)
     env = _build_env(repo_dir)
@@ -159,6 +168,11 @@ def test_run_quality_checks_fails_when_shellcheck_fails(tmp_path: Path) -> None:
         "python",
         "-m",
         "pytest",
+        "shfmt",
+        "-d",
+        str(repo_dir / "scripts" / "check_all.sh"),
+        str(repo_dir / "scripts" / "run_quality_checks.sh"),
+        str(repo_dir / "scripts" / "lib" / "helpers.sh"),
         "shellcheck",
         str(repo_dir / "scripts" / "check_all.sh"),
         str(repo_dir / "scripts" / "run_quality_checks.sh"),
@@ -166,8 +180,29 @@ def test_run_quality_checks_fails_when_shellcheck_fails(tmp_path: Path) -> None:
     ]
 
 
+def test_run_quality_checks_fails_when_shfmt_fails(tmp_path: Path) -> None:
+    """If shfmt fails, the wrapper should fail before running shellcheck."""
+
+    script, log_file, repo_dir = _prepare_repo(tmp_path, shfmt_exit=1)
+    env = _build_env(repo_dir)
+
+    result = _run_script(script, repo_dir, env)
+
+    assert result.returncode == 1
+    assert log_file.read_text(encoding="utf-8").splitlines() == [
+        "python",
+        "-m",
+        "pytest",
+        "shfmt",
+        "-d",
+        str(repo_dir / "scripts" / "check_all.sh"),
+        str(repo_dir / "scripts" / "run_quality_checks.sh"),
+        str(repo_dir / "scripts" / "lib" / "helpers.sh"),
+    ]
+
+
 def test_run_quality_checks_skips_shellcheck_when_disabled(tmp_path: Path) -> None:
-    """Passing ``--no-lint`` should prevent shellcheck from running."""
+    """Passing ``--no-lint`` should prevent shfmt and shellcheck from running."""
 
     script, log_file, repo_dir = _prepare_repo(tmp_path)
     env = _build_env(repo_dir)
