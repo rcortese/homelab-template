@@ -232,11 +232,16 @@ def build_sync_report(repo_root: Path, metadata: ComposeMetadata) -> SyncReport:
         compose_vars_by_instance[instance] = instance_vars
 
     common_env_path = repo_root / "env" / "common.example.env"
+    local_common_path = repo_root / "env" / "local" / "common.env"
     instance_env_files: Dict[Path, EnvTemplateData] = {}
-    if common_env_path.exists():
-        common_env_vars = load_env_variables(common_env_path).available
-    else:
-        common_env_vars = set()
+
+    empty_env_data = EnvTemplateData(defined=set(), documented=set())
+    common_env_data = load_env_variables(common_env_path) if common_env_path.exists() else empty_env_data
+    local_common_data = (
+        load_env_variables(local_common_path) if local_common_path.exists() else empty_env_data
+    )
+    common_env_vars = set(common_env_data.available)
+    common_env_vars.update(local_common_data.available)
 
     missing_templates: List[str] = []
     for instance in metadata.instances:

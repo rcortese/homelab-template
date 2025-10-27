@@ -39,6 +39,22 @@ def test_check_env_sync_detects_missing_variables(repo_copy: Path) -> None:
     assert "CORE_MISSING_VAR" in result.stdout
 
 
+def test_check_env_sync_accepts_local_common_variables(repo_copy: Path) -> None:
+    common_example_path = repo_copy / "env" / "common.example.env"
+    content = common_example_path.read_text(encoding="utf-8")
+    content = content.replace("APP_SECRET=defina-uma-chave-segura\n", "")
+    common_example_path.write_text(content, encoding="utf-8")
+
+    local_common_path = repo_copy / "env" / "local" / "common.env"
+    local_common_path.parent.mkdir(parents=True, exist_ok=True)
+    local_common_path.write_text("APP_SECRET=local-value\n", encoding="utf-8")
+
+    result = run_check(repo_copy)
+
+    assert result.returncode == 0, result.stdout
+    assert "APP_SECRET" not in result.stdout
+
+
 def test_check_env_sync_detects_obsolete_variables(repo_copy: Path) -> None:
     env_file = repo_copy / "env" / "core.example.env"
     with env_file.open("a", encoding="utf-8") as handle:
