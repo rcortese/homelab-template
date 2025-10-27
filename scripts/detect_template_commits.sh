@@ -28,7 +28,7 @@ error() {
   exit 1
 }
 
-# shellcheck source=lib/template_validate.sh
+# shellcheck source=scripts/lib/template_validate.sh
 source "$SCRIPT_DIR/lib/template_validate.sh"
 
 remote="${TEMPLATE_REMOTE:-}"

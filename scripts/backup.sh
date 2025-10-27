@@ -20,10 +20,10 @@ fi
 
 INSTANCE="$1"
 
-# shellcheck source=./lib/deploy_context.sh
+# shellcheck source=scripts/lib/deploy_context.sh
 source "$SCRIPT_DIR/lib/deploy_context.sh"
 
-# shellcheck source=./lib/app_detection.sh
+# shellcheck source=scripts/lib/app_detection.sh
 source "$SCRIPT_DIR/lib/app_detection.sh"
 
 deploy_context_eval=""

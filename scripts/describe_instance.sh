@@ -70,7 +70,7 @@ if [[ "$FORMAT_LOWER" != "table" && "$FORMAT_LOWER" != "json" ]]; then
   exit 1
 fi
 
-# shellcheck source=./lib/compose_defaults.sh
+# shellcheck source=scripts/lib/compose_defaults.sh
 source "$SCRIPT_DIR/lib/compose_defaults.sh"
 
 if ! setup_compose_defaults "$INSTANCE_NAME" "$REPO_ROOT"; then

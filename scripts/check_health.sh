@@ -32,16 +32,16 @@ fi
 
 REPO_ROOT="$(pwd)"
 
-# shellcheck source=./lib/compose_command.sh
+# shellcheck source=scripts/lib/compose_command.sh
 source "$SCRIPT_DIR/lib/compose_command.sh"
 
-# shellcheck source=./lib/env_helpers.sh
+# shellcheck source=scripts/lib/env_helpers.sh
 source "$SCRIPT_DIR/lib/env_helpers.sh"
 
-# shellcheck source=./lib/env_file_chain.sh
+# shellcheck source=scripts/lib/env_file_chain.sh
 source "$SCRIPT_DIR/lib/env_file_chain.sh"
 
-# shellcheck source=./lib/compose_instances.sh
+# shellcheck source=scripts/lib/compose_instances.sh
 source "$SCRIPT_DIR/lib/compose_instances.sh"
 
 print_help() {

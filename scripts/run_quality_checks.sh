@@ -29,5 +29,5 @@ shopt -u nullglob
 shellcheck_targets=("${shell_scripts[@]}" "${lib_scripts[@]}")
 
 if ((${#shellcheck_targets[@]} > 0)); then
-    "${SHELLCHECK_BIN}" "${shellcheck_targets[@]}"
+  "${SHELLCHECK_BIN}" "${shellcheck_targets[@]}"
 fi

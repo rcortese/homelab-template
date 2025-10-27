@@ -7,7 +7,7 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 ORIGINAL_PWD="${PWD:-}"
 CHANGED_TO_REPO_ROOT=false
 
-# shellcheck source=./lib/app_detection.sh
+# shellcheck source=scripts/lib/app_detection.sh
 source "$SCRIPT_DIR/lib/app_detection.sh"
 
 if [[ "$ORIGINAL_PWD" != "$REPO_ROOT" ]]; then

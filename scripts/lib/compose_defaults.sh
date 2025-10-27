@@ -8,13 +8,13 @@ set -euo pipefail
 
 LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# shellcheck source=./scripts/lib/compose_command.sh
+# shellcheck source=scripts/lib/compose_command.sh
 source "${LIB_DIR}/compose_command.sh"
 
-# shellcheck source=./scripts/lib/compose_plan.sh
+# shellcheck source=scripts/lib/compose_plan.sh
 source "${LIB_DIR}/compose_plan.sh"
 
-# shellcheck source=./scripts/lib/env_file_chain.sh
+# shellcheck source=scripts/lib/env_file_chain.sh
 source "${LIB_DIR}/env_file_chain.sh"
 
 setup_compose_defaults() {

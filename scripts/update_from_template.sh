@@ -55,11 +55,11 @@ error() {
   exit 1
 }
 
-# shellcheck source=lib/template_prompts.sh
+# shellcheck source=scripts/lib/template_prompts.sh
 source "$SCRIPT_DIR/lib/template_prompts.sh"
-# shellcheck source=lib/template_validate.sh
+# shellcheck source=scripts/lib/template_validate.sh
 source "$SCRIPT_DIR/lib/template_validate.sh"
-# shellcheck source=lib/template_sync.sh
+# shellcheck source=scripts/lib/template_sync.sh
 source "$SCRIPT_DIR/lib/template_sync.sh"
 
 template_remote="${TEMPLATE_REMOTE:-}"
