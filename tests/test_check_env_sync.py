@@ -106,6 +106,34 @@ def test_check_env_sync_reports_metadata_failure(repo_copy: Path) -> None:
     assert "compose/base.yml" in result.stderr
 
 
+def test_check_env_sync_reports_missing_compose_override(repo_copy: Path) -> None:
+    script_path = repo_copy / "scripts" / "lib" / "compose_instances.sh"
+    script_path.write_text(
+        """#!/usr/bin/env bash
+cat <<'EOF'
+declare -- BASE_COMPOSE_FILE="compose/base.yml"
+declare -a COMPOSE_INSTANCE_NAMES=([0]="core")
+declare -A COMPOSE_INSTANCE_FILES=([core]=$'compose/missing.yml')
+declare -A COMPOSE_INSTANCE_ENV_LOCAL=([core]=$'env/local/core.env')
+declare -A COMPOSE_INSTANCE_ENV_TEMPLATES=([core]=$'env/core.example.env')
+declare -A COMPOSE_INSTANCE_ENV_FILES=([core]=$'env/local/core.env')
+declare -A COMPOSE_INSTANCE_APP_NAMES=([core]=$'')
+declare -A COMPOSE_APP_BASE_FILES=([core]=$'')
+EOF
+""",
+        encoding="utf-8",
+    )
+    script_path.chmod(0o755)
+
+    result = run_check(repo_copy)
+
+    missing_path = (repo_copy / "compose" / "missing.yml").resolve()
+    assert result.returncode == 1
+    assert "[!]" in result.stderr
+    assert "Arquivo Compose ausente" in result.stderr
+    assert str(missing_path) in result.stderr
+
+
 def test_decode_bash_string_handles_dollar_single_quotes() -> None:
     token = "$'multi\\nline\\tvalue'"
 
