@@ -25,7 +25,8 @@ O `scripts/backup.sh` encapsula a sequência padrão de **parar ➜ copiar dados
 - O diretório final seguirá o padrão `backups/<instancia>-<YYYYMMDD-HHMMSS>`. Utilize `date` com `TZ` apropriado se precisar gerar snapshots em fusos distintos.
 - Logs são emitidos na saída padrão/erro; redirecione para arquivos quando integrar a automações (ex.: `scripts/backup.sh core >> logs/backup.log 2>&1`).
 - Para cenários com dados adicionais, exporte-os antes de executar o script (ex.: dumps de banco) e mova os artefatos para dentro do diretório gerado.
-- Durante a parada, o script identifica automaticamente quais aplicações estavam ativas analisando subdiretórios em `apps/` e `data/`. Somente essas aplicações são religadas ao final, respeitando a lista de serviços conhecida pela instância. Caso nenhum diretório seja encontrado, o script recorre aos serviços definidos na configuração da instância.
+- Antes de interromper a stack, o script lista os serviços em execução chamando `docker compose ps --status running --services` via `scripts/compose.sh`. Os nomes retornados são combinados com o `deploy_context` para preservar a ordem esperada ao religar.
+- Apenas os serviços identificados como ativos no início são religados ao final. Se nenhum serviço estava em execução antes do backup, o script finaliza sem subir novos serviços, mantendo o estado da stack.
 
 #### Testando o fluxo
 

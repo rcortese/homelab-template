@@ -77,10 +77,6 @@ if ((${#KNOWN_APP_NAMES[@]} > 0)) && ((${#ACTIVE_APP_SERVICES[@]} > 0)); then
   ACTIVE_APP_SERVICES=("${ORDERED_ACTIVE_APPS[@]}")
 fi
 
-if ((${#ACTIVE_APP_SERVICES[@]} == 0)) && ((${#KNOWN_APP_NAMES[@]} > 0)); then
-  ACTIVE_APP_SERVICES=("${KNOWN_APP_NAMES[@]}")
-fi
-
 restart_stack() {
   if [[ $stack_was_stopped -eq 1 ]]; then
     if ((${#ACTIVE_APP_SERVICES[@]} > 0)); then
@@ -89,10 +85,8 @@ restart_stack() {
       else
         echo "[!] Falha ao religar as aplicações '${ACTIVE_APP_SERVICES[*]}' da instância '$INSTANCE'. Verifique manualmente." >&2
       fi
-    elif "${compose_cmd[@]}" up -d; then
-      echo "[*] Stack '$INSTANCE' reativada."
     else
-      echo "[!] Falha ao religar a stack '$INSTANCE'. Verifique manualmente." >&2
+      echo "[*] Nenhum serviço será religado; nenhum estava ativo no início do backup."
     fi
     stack_was_stopped=0
   fi
@@ -127,7 +121,7 @@ fi
 if ((${#ACTIVE_APP_SERVICES[@]} > 0)); then
   echo "[*] Aplicações detectadas para religar: ${ACTIVE_APP_SERVICES[*]}"
 else
-  echo "[*] Nenhuma aplicação ativa identificada; religando stack completa."
+  echo "[*] Nenhuma aplicação ativa identificada; nenhum serviço será religado."
 fi
 
 timestamp="$(date +%Y%m%d-%H%M%S)"
