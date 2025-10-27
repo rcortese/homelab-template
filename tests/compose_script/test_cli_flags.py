@@ -43,6 +43,7 @@ with log_path.open(\"a\", encoding=\"utf-8\") as handle:
 
 sys.exit(0)
 """,
+        encoding="utf-8",
     )
     stub_path.chmod(0o755)
 
@@ -54,7 +55,11 @@ sys.exit(0)
 
     assert result.returncode == 0, result.stderr
 
-    entries = [json.loads(line) for line in log_path.read_text().splitlines() if line.strip()]
+    entries = [
+        json.loads(line)
+        for line in log_path.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
     assert len(entries) == 1
     entry = entries[0]
     assert entry["executable"] == "custom-compose"

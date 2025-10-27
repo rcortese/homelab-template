@@ -28,7 +28,7 @@ set -euo pipefail
 echo {message!r} >> {str(log_file)!r}
 exit {exit_code}
 """
-    path.write_text(content)
+    path.write_text(content, encoding="utf-8")
     path.chmod(0o755)
 
 
@@ -46,7 +46,7 @@ def _create_python_stub(path: Path, log_file: Path, message: str, exit_code: int
     if exit_code:
         lines.append(f"raise SystemExit({exit_code})")
     content = "\n".join(lines) + "\n"
-    path.write_text(content)
+    path.write_text(content, encoding="utf-8")
     path.chmod(0o755)
 
 
@@ -110,7 +110,7 @@ def test_check_all_invokes_scripts_in_order(tmp_path: Path) -> None:
 
     assert result.returncode == 0, result.stderr
     assert log_file.exists()
-    assert log_file.read_text().splitlines() == [
+    assert log_file.read_text(encoding="utf-8").splitlines() == [
         "check_structure",
         "check_env_sync",
         "validate_compose",
@@ -126,7 +126,7 @@ def test_check_all_stops_on_first_failure(tmp_path: Path) -> None:
 
     assert result.returncode != 0
     assert log_file.exists()
-    assert log_file.read_text().splitlines() == [
+    assert log_file.read_text(encoding="utf-8").splitlines() == [
         "check_structure",
         "check_env_sync",
     ]
@@ -144,7 +144,7 @@ def test_check_all_fails_when_validate_compose_fails(tmp_path: Path) -> None:
 
     assert result.returncode != 0
     assert log_file.exists()
-    assert log_file.read_text().splitlines() == [
+    assert log_file.read_text(encoding="utf-8").splitlines() == [
         "check_structure",
         "check_env_sync",
         "validate_compose",
