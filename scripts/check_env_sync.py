@@ -12,6 +12,11 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, Iterable, List, Mapping, Sequence, Set
 
+IMPLICIT_ENV_VARS = frozenset({
+    "PWD",
+})
+
+
 PAIR_PATTERN = re.compile(
     r"\[([^\]]+)\]="
     r"("  # opening group for value alternatives
@@ -317,6 +322,7 @@ def build_sync_report(repo_root: Path, metadata: ComposeMetadata) -> SyncReport:
     )
     common_env_vars = set(common_env_data.available)
     common_env_vars.update(local_common_data.available)
+    common_env_vars.update(IMPLICIT_ENV_VARS)
 
     missing_templates: List[str] = []
     for instance in metadata.instances:
