@@ -3,7 +3,13 @@ from __future__ import annotations
 import subprocess
 from pathlib import Path
 
-from scripts.check_env_sync import decode_bash_string, parse_declare_array, parse_declare_mapping
+from scripts.check_env_sync import (
+    build_sync_report,
+    decode_bash_string,
+    load_compose_metadata,
+    parse_declare_array,
+    parse_declare_mapping,
+)
 from tests.helpers.compose_instances import ComposeInstancesData
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -124,6 +130,30 @@ def test_check_env_sync_detects_obsolete_variables(
     assert result.returncode == 1
     assert "Variáveis obsoletas" in result.stdout
     assert "UNUSED_ONLY_FOR_TEST" in result.stdout
+
+
+def test_build_sync_report_uses_runtime_provided_variables(
+    repo_copy: Path, monkeypatch
+) -> None:
+    metadata = load_compose_metadata(repo_copy)
+
+    report = build_sync_report(repo_copy, metadata)
+    missing_vars = {
+        variable
+        for variables in report.missing_by_instance.values()
+        for variable in variables
+    }
+    assert "PWD" not in missing_vars
+
+    monkeypatch.setattr("scripts.check_env_sync.RUNTIME_PROVIDED_VARIABLES", set())
+
+    report_without_runtime = build_sync_report(repo_copy, metadata)
+    missing_without_runtime = {
+        variable
+        for variables in report_without_runtime.missing_by_instance.values()
+        for variable in variables
+    }
+    assert "PWD" in missing_without_runtime
 
 
 def test_check_env_sync_detects_missing_template(
