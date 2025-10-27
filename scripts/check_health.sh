@@ -308,6 +308,11 @@ append_real_service_targets() {
       if [[ -z "$compose_service" ]]; then
         continue
       fi
+      if [[ "$CHANGED_TO_REPO_ROOT" == false && -n "$INSTANCE_NAME" ]]; then
+        if [[ ! -f "$REPO_ROOT/compose/apps/$compose_service/base.yml" ]]; then
+          continue
+        fi
+      fi
       if [[ -n "${__log_targets_seen["$compose_service"]:-}" ]]; then
         continue
       fi
