@@ -8,7 +8,7 @@ services:
       APP_RETENTION_HOURS: ${APP_RETENTION_HOURS:-168}
     volumes:
       - ${APP_DATA_DIR_MOUNT:-./${APP_DATA_DIR:-data/app-core}}:/var/lib/app
-      - ../backups:/var/backups
+      - ${PWD:-.}/backups:/var/backups
     networks:
       homelab_internal:
         ipv4_address: ${APP_NETWORK_IPV4}
