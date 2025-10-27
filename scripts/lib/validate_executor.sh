@@ -6,6 +6,8 @@ VALIDATE_EXECUTOR_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # shellcheck source=./scripts/lib/env_file_chain.sh
 source "$VALIDATE_EXECUTOR_DIR/env_file_chain.sh"
+# shellcheck source=./scripts/lib/env_helpers.sh
+source "$VALIDATE_EXECUTOR_DIR/env_helpers.sh"
 
 validate_executor_prepare_plan() {
   local instance="$1"
@@ -213,7 +215,77 @@ validate_executor_run_instances() {
     fi
 
     echo "==> Validando $instance"
-    if "${compose_cmd[@]}" "${env_args[@]}" "${compose_args[@]}" config >/dev/null; then
+    local app_data_dir_value="${APP_DATA_DIR:-}"
+    local app_data_dir_mount_value="${APP_DATA_DIR_MOUNT:-}"
+
+    if ((${#env_args[@]} > 0)); then
+      local index=0
+      while ((index < ${#env_args[@]})); do
+        local arg="${env_args[$index]}"
+        if [[ "$arg" == "--env-file" ]]; then
+          ((index++))
+          local env_file="${env_args[$index]:-}"
+          if [[ -n "$env_file" && -f "$env_file" ]]; then
+            if [[ -z "$app_data_dir_value" || -z "$app_data_dir_mount_value" ]]; then
+              local app_data_dir_kv=""
+              if app_data_dir_kv="$("$env_loader" "$env_file" APP_DATA_DIR APP_DATA_DIR_MOUNT)"; then
+                if [[ -n "$app_data_dir_kv" ]]; then
+                  while IFS= read -r env_line; do
+                    if [[ -z "$env_line" ]]; then
+                      continue
+                    fi
+                    case "$env_line" in
+                    APP_DATA_DIR=*)
+                      if [[ -z "$app_data_dir_value" ]]; then
+                        app_data_dir_value="${env_line#APP_DATA_DIR=}"
+                      fi
+                      ;;
+                    APP_DATA_DIR_MOUNT=*)
+                      if [[ -z "$app_data_dir_mount_value" ]]; then
+                        app_data_dir_mount_value="${env_line#APP_DATA_DIR_MOUNT=}"
+                      fi
+                      ;;
+                    esac
+                  done <<<"$app_data_dir_kv"
+                fi
+              fi
+            fi
+          fi
+        fi
+        ((index++))
+      done
+    fi
+
+    if [[ -z "$app_data_dir_value" ]]; then
+      local instance_apps_raw="${COMPOSE_INSTANCE_APP_NAMES[$instance]:-}"
+      if [[ -n "$instance_apps_raw" ]]; then
+        local primary_app_name="${instance_apps_raw%%$'\n'*}"
+        if [[ -z "$primary_app_name" ]]; then
+          primary_app_name="$instance_apps_raw"
+        fi
+        if [[ -n "$primary_app_name" ]]; then
+          app_data_dir_value="data/${primary_app_name}-${instance}"
+        fi
+      fi
+    fi
+
+    if [[ -n "$app_data_dir_mount_value" ]]; then
+      app_data_dir_mount_value="$(resolve_app_data_dir_mount "$app_data_dir_mount_value")"
+    elif [[ -n "$app_data_dir_value" ]]; then
+      app_data_dir_mount_value="$(resolve_app_data_dir_mount "$app_data_dir_value")"
+    fi
+
+    local -a compose_invocation=("${compose_cmd[@]}" "${env_args[@]}" "${compose_args[@]}" config)
+
+    if [[ -n "$app_data_dir_value" ]]; then
+      if APP_DATA_DIR="$app_data_dir_value" APP_DATA_DIR_MOUNT="$app_data_dir_mount_value" "${compose_invocation[@]}" >/dev/null; then
+        echo "✔ $instance"
+      else
+        echo "✖ instância=\"$instance\"" >&2
+        echo "   files: ${files[*]}" >&2
+        status=1
+      fi
+    elif "${compose_invocation[@]}" >/dev/null; then
       echo "✔ $instance"
     else
       echo "✖ instância=\"$instance\"" >&2
