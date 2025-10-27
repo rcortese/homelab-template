@@ -10,6 +10,9 @@ source "$VALIDATE_EXECUTOR_DIR/env_file_chain.sh"
 # shellcheck source=./scripts/lib/env_helpers.sh
 source "$VALIDATE_EXECUTOR_DIR/env_helpers.sh"
 
+# shellcheck source=./scripts/lib/compose_plan.sh
+source "$VALIDATE_EXECUTOR_DIR/compose_plan.sh"
+
 validate_executor_prepare_plan() {
   local instance="$1"
   local repo_root="$2"
