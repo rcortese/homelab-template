@@ -48,6 +48,21 @@ def test_script_succeeds_on_repository_root():
 
     assert result.returncode == 0
     assert "Estrutura do repositório validada com sucesso." in result.stdout
+
+
+def test_script_succeeds_from_subdirectory():
+    result = subprocess.run(
+        [str(SCRIPT_PATH)],
+        capture_output=True,
+        text=True,
+        check=False,
+        cwd=REPO_ROOT / "docs",
+    )
+
+    assert result.returncode == 0
+    assert "Estrutura do repositório validada com sucesso." in result.stdout
+
+
 @pytest.mark.parametrize("missing_relative", REQUIRED_PATHS)
 def test_missing_required_item_returns_error(tmp_path, missing_relative):
     repo_copy = tmp_path / "repo"
