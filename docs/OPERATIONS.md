@@ -18,7 +18,7 @@ Este documento apresenta um ponto de partida para descrever processos operaciona
 | [`scripts/describe_instance.sh`](#scriptsdescribe_instancesh) | Resumir serviços, portas e volumes de uma instância. | `scripts/describe_instance.sh <instancia>` | Auditorias rápidas ou geração de runbooks. |
 | [`scripts/check_health.sh`](#scriptscheck_healthsh) | Conferir status dos serviços após mudanças. | `scripts/check_health.sh <instancia>` | Pós-deploy, pós-restore ou troubleshooting. |
 | [`scripts/check_db_integrity.sh`](#scriptscheck_db_integritysh) | Validar integridade de bancos SQLite com pausa controlada. | `scripts/check_db_integrity.sh <instancia>` | Manutenções programadas ou investigação de falhas. |
-| [`scripts/update_from_template.sh`](#scriptsupdate_from_templatesh) | Reaplicar customizações após atualizar o template. | `scripts/update_from_template.sh --remote <remote>` | Ao sincronizar forks com o upstream. |
+| [`scripts/update_from_template.sh`](#scriptsupdate_from_templatesh) | Reaplicar customizações após atualizar o template. | Consulte o [guia canônico](../README.md#atualizando-a-partir-do-template-original). | Ao sincronizar forks com o upstream. |
 
 ## Antes de começar
 
@@ -173,21 +173,11 @@ HEALTH_SERVICES="api worker" scripts/check_health.sh --format json media | jq '.
 
 ## scripts/update_from_template.sh
 
-- **Parâmetros principais:**
-  - `--remote` — nome do remote que aponta para o repositório original do template.
-  - `--original-commit` — hash do commit do template usado quando o fork foi criado.
-  - `--first-local-commit` — hash do primeiro commit exclusivo do repositório derivado.
-  - `--dry-run` — executa apenas a simulação do rebase sem alterar a branch atual.
-- Consulte a seção ["Atualizando a partir do template original"](../README.md#atualizando-a-partir-do-template-original) do `README.md` para o passo a passo completo.
-- **Exemplo:**
-  ```bash
-  scripts/update_from_template.sh \
-    --remote template \
-    --original-commit <hash-do-template-inicial> \
-    --first-local-commit <hash-do-primeiro-commit-local> \
-    --target-branch main \
-    --dry-run
-  ```
+Este documento mantém apenas um resumo: utilize `scripts/update_from_template.sh` para reaplicar customizações
+após sincronizar o fork com o template. Para o passo a passo detalhado, parâmetros explicados e exemplos de
+execução, consulte a seção ["Atualizando a partir do template original"](../README.md#atualizando-a-partir-do-template-original)
+no `README.md`, que é a fonte única de verdade para esse fluxo. Registre aqui apenas adaptações locais que não
+entrem em conflito com o guia principal.
 
 ## Personalizações sugeridas
 

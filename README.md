@@ -60,6 +60,9 @@ Ao personalizar o projeto, priorize as alterações em `docs/local/` e complemen
 
 ## Atualizando a partir do template original
 
+Esta seção é a referência canônica para o fluxo de atualização do template. Qualquer resumo em outros documentos
+aponta de volta para estas instruções.
+
 Repositórios derivados podem reaplicar suas customizações sobre a versão mais recente do template usando
 `scripts/update_from_template.sh`. O fluxo sugerido é:
 
