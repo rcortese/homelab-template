@@ -21,7 +21,11 @@ class DockerStub:
     def _read_raw_records(self) -> list[object]:
         if not self._log_path.exists():
             return []
-        lines = [line.strip() for line in self._log_path.read_text().splitlines() if line.strip()]
+        lines = [
+            line.strip()
+            for line in self._log_path.read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        ]
         return [json.loads(line) for line in lines]
 
     def read_calls(self) -> list[list[str]]:

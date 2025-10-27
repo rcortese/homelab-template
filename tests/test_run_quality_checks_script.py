@@ -36,7 +36,7 @@ def _create_executable(path: Path, *, log_file: Path, exit_code: int = 0) -> Non
     else:
         lines.append("exit 0")
     content = "\n".join(lines) + "\n"
-    path.write_text(content)
+    path.write_text(content, encoding="utf-8")
     path.chmod(0o755)
 
 
@@ -66,8 +66,14 @@ def _prepare_repo(
     _create_executable(shellcheck_stub, log_file=log_file, exit_code=shellcheck_exit)
 
     # Create dummy shell scripts so the wrapper has something to lint.
-    (scripts_dir / "check_all.sh").write_text("#!/usr/bin/env bash\nexit 0\n")
-    (lib_dir / "helpers.sh").write_text("#!/usr/bin/env bash\nexit 0\n")
+    (scripts_dir / "check_all.sh").write_text(
+        "#!/usr/bin/env bash\nexit 0\n",
+        encoding="utf-8",
+    )
+    (lib_dir / "helpers.sh").write_text(
+        "#!/usr/bin/env bash\nexit 0\n",
+        encoding="utf-8",
+    )
 
     return script_path, log_file, repo_dir
 
@@ -108,7 +114,7 @@ def test_run_quality_checks_invokes_commands(tmp_path: Path) -> None:
     result = _run_script(script, repo_dir, env)
 
     assert result.returncode == 0, result.stderr
-    assert log_file.read_text().splitlines() == [
+    assert log_file.read_text(encoding="utf-8").splitlines() == [
         "python",
         "-m",
         "pytest",
@@ -128,7 +134,7 @@ def test_run_quality_checks_stops_after_failed_pytest(tmp_path: Path) -> None:
     result = _run_script(script, repo_dir, env)
 
     assert result.returncode != 0
-    assert log_file.read_text().splitlines() == [
+    assert log_file.read_text(encoding="utf-8").splitlines() == [
         "python",
         "-m",
         "pytest",
@@ -144,7 +150,7 @@ def test_run_quality_checks_fails_when_shellcheck_fails(tmp_path: Path) -> None:
     result = _run_script(script, repo_dir, env)
 
     assert result.returncode == 1
-    assert log_file.read_text().splitlines() == [
+    assert log_file.read_text(encoding="utf-8").splitlines() == [
         "python",
         "-m",
         "pytest",
