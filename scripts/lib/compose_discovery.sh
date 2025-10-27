@@ -129,6 +129,23 @@ load_compose_discovery() {
     fi
   done
 
+  shopt -s nullglob
+  local -a top_level_candidates=("$repo_root/$compose_dir_rel"/*.yml "$repo_root/$compose_dir_rel"/*.yaml)
+  shopt -u nullglob
+
+  local instance_file candidate_name candidate_instance
+  for instance_file in "${top_level_candidates[@]}"; do
+    [[ -f "$instance_file" ]] || continue
+    candidate_name="${instance_file##*/}"
+    candidate_instance="${candidate_name%.*}"
+    if [[ "$candidate_instance" == "base" ]]; then
+      continue
+    fi
+
+    seen_instances[$candidate_instance]=1
+    compose_discovery__append_instance_file "$candidate_instance" "$compose_dir_rel/$candidate_name"
+  done
+
   declare -A known_instances=()
   for instance in "${!seen_instances[@]}"; do
     known_instances[$instance]=1
