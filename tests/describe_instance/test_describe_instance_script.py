@@ -68,6 +68,27 @@ def _run_script(repo_copy: Path, *args: str, env: dict[str, str]) -> subprocess.
     return result
 
 
+def _find_config_json_call(entries: list[list[str]]) -> list[str]:
+    for entry in entries:
+        if len(entry) >= 3 and entry[-3:] == ["config", "--format", "json"]:
+            return entry
+    raise AssertionError("esperado chamada 'docker compose config --format json'")
+
+
+def _extract_flag_arguments(args: list[str], flag: str) -> list[str]:
+    values: list[str] = []
+    index = 0
+    while index < len(args):
+        token = args[index]
+        if token == flag:
+            assert index + 1 < len(args), f"flag {flag} sem valor em {args!r}"
+            values.append(args[index + 1])
+            index += 2
+            continue
+        index += 1
+    return values
+
+
 def test_table_summary_highlights_overlays(repo_copy: Path, tmp_path: Path) -> None:
     compose_payload = {
         "services": {
@@ -152,7 +173,30 @@ def test_table_summary_highlights_overlays(repo_copy: Path, tmp_path: Path) -> N
     log_lines = [line for line in log_path.read_text(encoding="utf-8").splitlines() if line.strip()]
     assert log_lines, "esperado ao menos uma chamada ao stub do docker compose"
     parsed = [json.loads(line)["argv"] for line in log_lines]
-    assert any(entry[-3:] == ["config", "--format", "json"] for entry in parsed)
+    config_call = _find_config_json_call(parsed)
+
+    compose_args = _extract_flag_arguments(config_call, "-f")
+    expected_compose_files = [
+        repo_copy / "compose/base.yml",
+        repo_copy / "compose/apps/app/base.yml",
+        repo_copy / "compose/apps/app/core.yml",
+        repo_copy / "compose/apps/monitoring/base.yml",
+        repo_copy / "compose/apps/monitoring/core.yml",
+        repo_copy / "compose/apps/overrideonly/core.yml",
+        repo_copy / "compose/apps/worker/base.yml",
+        repo_copy / "compose/apps/worker/core.yml",
+        repo_copy / "compose/apps/baseonly/base.yml",
+        repo_copy / "compose/overlays/metrics.yml",
+        repo_copy / "compose/overlays/logging.yml",
+    ]
+    assert compose_args == [str(path.resolve(strict=False)) for path in expected_compose_files]
+
+    env_files = _extract_flag_arguments(config_call, "--env-file")
+    expected_env_files = [
+        repo_copy / "env/local/common.env",
+        repo_copy / "env/local/core.env",
+    ]
+    assert env_files == [str(path.resolve(strict=False)) for path in expected_env_files]
 
 
 def test_json_summary_structure(repo_copy: Path, tmp_path: Path) -> None:
@@ -238,7 +282,29 @@ def test_json_summary_structure(repo_copy: Path, tmp_path: Path) -> None:
     log_lines = [line for line in log_path.read_text(encoding="utf-8").splitlines() if line.strip()]
     assert log_lines, "esperado ao menos uma chamada ao stub do docker compose"
     parsed = [json.loads(line)["argv"] for line in log_lines]
-    assert any(entry[-3:] == ["config", "--format", "json"] for entry in parsed)
+    config_call = _find_config_json_call(parsed)
+
+    compose_args = _extract_flag_arguments(config_call, "-f")
+    expected_compose_files = [
+        repo_copy / "compose/base.yml",
+        repo_copy / "compose/apps/app/base.yml",
+        repo_copy / "compose/apps/app/core.yml",
+        repo_copy / "compose/apps/monitoring/base.yml",
+        repo_copy / "compose/apps/monitoring/core.yml",
+        repo_copy / "compose/apps/overrideonly/core.yml",
+        repo_copy / "compose/apps/worker/base.yml",
+        repo_copy / "compose/apps/worker/core.yml",
+        repo_copy / "compose/apps/baseonly/base.yml",
+        repo_copy / "compose/overlays/metrics.yml",
+    ]
+    assert compose_args == [str(path.resolve(strict=False)) for path in expected_compose_files]
+
+    env_files = _extract_flag_arguments(config_call, "--env-file")
+    expected_env_files = [
+        repo_copy / "env/local/common.env",
+        repo_copy / "env/local/core.env",
+    ]
+    assert env_files == [str(path.resolve(strict=False)) for path in expected_env_files]
 
     monitoring_service = next(service for service in services if service["name"] == "monitoring")
     assert monitoring_service["ports"] == []
