@@ -164,9 +164,17 @@ build_deploy_context() {
     previous_app_data_dir="$APP_DATA_DIR"
   fi
 
+  local app_data_dir_mount_was_set=0
+  local previous_app_data_dir_mount=""
+  if [[ -v APP_DATA_DIR_MOUNT ]]; then
+    app_data_dir_mount_was_set=1
+    previous_app_data_dir_mount="$APP_DATA_DIR_MOUNT"
+  fi
+
   local -A loaded_env_values=()
   local -a requested_env_keys=(
     APP_DATA_DIR
+    APP_DATA_DIR_MOUNT
     COMPOSE_EXTRA_FILES
     APP_DATA_UID
     APP_DATA_GID
@@ -177,8 +185,11 @@ build_deploy_context() {
     local env_output=""
     if env_output="$("${_DEPLOY_CONTEXT_DIR}/env_loader.sh" "$env_file_abs" "${requested_env_keys[@]}" 2>/dev/null)"; then
       local line key value
-      while IFS='=' read -r line; do
+      while IFS= read -r line; do
         [[ -z "$line" ]] && continue
+        if [[ "$line" != *=* ]]; then
+          continue
+        fi
         key="${line%%=*}"
         value="${line#*=}"
         loaded_env_values[$key]="$value"
@@ -212,19 +223,29 @@ build_deploy_context() {
 
   local primary_app="${instance_app_names[0]}"
   local app_data_dir_value="${APP_DATA_DIR:-}"
-  local app_data_dir_mount_value=""
+  local app_data_dir_mount_value="${APP_DATA_DIR_MOUNT:-}"
   if [[ -z "$app_data_dir_value" ]]; then
     app_data_dir_value="data/${primary_app}-${instance}"
   fi
 
-  if [[ -n "$app_data_dir_value" ]]; then
+  if [[ -n "$app_data_dir_mount_value" ]]; then
+    app_data_dir_mount_value="$(resolve_app_data_dir_mount "$app_data_dir_mount_value")"
+  elif [[ -n "$app_data_dir_value" ]]; then
     app_data_dir_mount_value="$(resolve_app_data_dir_mount "$app_data_dir_value")"
+  else
+    app_data_dir_mount_value=""
   fi
 
   if ((app_data_dir_was_set == 1)); then
     APP_DATA_DIR="$previous_app_data_dir"
   else
     unset APP_DATA_DIR
+  fi
+
+  if ((app_data_dir_mount_was_set == 1)); then
+    APP_DATA_DIR_MOUNT="$previous_app_data_dir_mount"
+  else
+    unset APP_DATA_DIR_MOUNT
   fi
 
   local -a extra_compose_files=()

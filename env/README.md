@@ -41,7 +41,7 @@ Monte uma tabela semelhante à abaixo para cada arquivo `env/<alvo>.example.env`
 
 > Substitua a tabela pelos campos reais da sua stack. Utilize a coluna **Referência** para apontar onde a variável é consumida (manifests, scripts, infraestrutura externa, etc.).
 
-> **Nota:** o diretório persistente principal segue a convenção `data/<app>-<instância>`, considerando a aplicação principal (primeira da lista em `COMPOSE_INSTANCE_APP_NAMES`). Os arquivos `*.example.env` mantêm a entrada `APP_DATA_DIR` comentada com esse valor padrão (ex.: `data/app-core`); sobrescreva-o somente quando o armazenamento viver fora do repositório. Ajuste apenas `APP_DATA_UID` e `APP_DATA_GID` para alinhar permissões.
+> **Nota:** o diretório persistente principal segue a convenção `data/<app>-<instância>`, considerando a aplicação principal (primeira da lista em `COMPOSE_INSTANCE_APP_NAMES`). Os arquivos `*.example.env` mantêm a entrada `APP_DATA_DIR` comentada com esse valor padrão (ex.: `data/app-core`); deixe-a comentada ou em branco para herdar automaticamente o caminho padrão e sobrescreva-a somente quando o armazenamento viver fora do repositório. Ajuste apenas `APP_DATA_UID` e `APP_DATA_GID` para alinhar permissões.
 
 ## Boas práticas
 
