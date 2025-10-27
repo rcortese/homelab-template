@@ -12,7 +12,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, Iterable, List, Mapping, Sequence, Set
 
-VAR_PATTERN = re.compile(r"\$\{([A-Za-z_][A-Za-z0-9_]*)[^}]*\}")
 PAIR_PATTERN = re.compile(
     r"\[([^\]]+)\]="
     r"("  # opening group for value alternatives
@@ -149,6 +148,83 @@ def load_compose_metadata(repo_root: Path) -> ComposeMetadata:
     )
 
 
+def _collect_substitution_variables(text: str) -> Set[str]:
+    """Collect variable names from Docker Compose substitution expressions."""
+
+    variables: Set[str] = set()
+    length = len(text)
+    index = 0
+
+    while index < length:
+        char = text[index]
+        if char == "$":
+            next_index = index + 1
+            if next_index < length and text[next_index] == "{":
+                brace_depth = 1
+                inner_start = next_index + 1
+                cursor = inner_start
+                while cursor < length and brace_depth:
+                    current = text[cursor]
+                    if current == "{":
+                        brace_depth += 1
+                    elif current == "}":
+                        brace_depth -= 1
+                    cursor += 1
+                if brace_depth == 0:
+                    inner_expression = text[inner_start : cursor - 1]
+                    variables.update(_parse_parameter_expression(inner_expression))
+                    index = cursor
+                    continue
+            else:
+                if next_index < length and (
+                    text[next_index].isalpha() or text[next_index] == "_"
+                ):
+                    cursor = next_index + 1
+                    while cursor < length and (
+                        text[cursor].isalnum() or text[cursor] == "_"
+                    ):
+                        cursor += 1
+                    variables.add(text[next_index:cursor])
+                    index = cursor
+                    continue
+        index += 1
+
+    return variables
+
+
+def _parse_parameter_expression(expression: str) -> Set[str]:
+    expression = expression.strip()
+    if not expression:
+        return set()
+
+    variables: Set[str] = set()
+
+    index = 0
+    length = len(expression)
+
+    while index < length and expression[index] == "!":
+        index += 1
+
+    start = index
+    if index < length and (
+        expression[index].isalpha() or expression[index] == "_"
+    ):
+        index += 1
+        while index < length and (
+            expression[index].isalnum() or expression[index] == "_"
+        ):
+            index += 1
+        variable_name = expression[start:index]
+        if variable_name:
+            variables.add(variable_name)
+
+    remainder = expression[index:]
+    if remainder:
+        variables.update(_collect_substitution_variables(remainder))
+
+    return variables
+
+
 def extract_compose_variables(paths: Iterable[Path]) -> Set[str]:
     variables: Set[str] = set()
     for path in paths:
@@ -156,8 +232,7 @@ def extract_compose_variables(paths: Iterable[Path]) -> Set[str]:
             content = path.read_text(encoding="utf-8")
         except FileNotFoundError as exc:
             raise ComposeMetadataError(f"Arquivo Compose ausente: {path}") from exc
-        for match in VAR_PATTERN.finditer(content):
-            variables.add(match.group(1))
+        variables.update(_collect_substitution_variables(content))
     return variables
 
 
