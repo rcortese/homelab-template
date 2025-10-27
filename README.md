@@ -50,11 +50,11 @@ O índice principal está dividido por etapas do ciclo de vida da stack: primeir
 ## Customização local
 
 Repositórios derivados devem concentrar contexto específico em `docs/local/`. O arquivo [`docs/local/README.md`](docs/local/README.md)
-atua como índice para runbooks, decisões e dependências particulares da sua stack. Ao manter este conteúdo isolado:
+atua como índice para runbooks, decisões e dependências particulares da sua stack. Ao manter este conteúdo isolado tem-se:
 
-- minimizamos conflitos durante rebases ou merges a partir do template;
-- fica claro para novas pessoas contribuidoras onde encontrar detalhes exclusivos do repositório;
-- evitamos edições frequentes neste `README.md`, que permanece alinhado às instruções gerais do template.
+- menos conflitos durante rebases ou merges a partir do template;
+- local dedicado onde encontrar detalhes exclusivos do repositório;
+- menos edições neste `README.md`, que permanece alinhado às instruções gerais do template.
 
 Ao personalizar o projeto, priorize as alterações em `docs/local/` e complemente os demais arquivos apenas quando necessário.
 
