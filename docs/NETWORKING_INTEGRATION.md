@@ -13,7 +13,7 @@
 
 | Componente | Responsável | Responsabilidades | Entradas/Saídas |
 | --- | --- | --- | --- |
-| Proxy reverso | Equipe de plataforma | Terminação TLS, roteamento de hostnames, headers de segurança. | Recebe tráfego público → encaminha para os manifests `compose/base.yml` + `compose/apps/<app>/<instância>.yml`. |
+| Proxy reverso | Equipe de plataforma | Terminação TLS, roteamento de hostnames, headers de segurança. | Recebe tráfego público → encaminha para os manifests `compose/base.yml` + [`compose/<instância>.yml`](../compose/core.yml) + `compose/apps/<app>/<instância>.yml`. |
 | DNS interno | Time de rede | Publica registros para ambientes internos/externos. | Atualizar registros `A`/`CNAME` após mudanças de host. |
 | Observabilidade | SRE | Coleta métricas e logs, gera alertas. | Dashboards e alertas que monitoram health-checks documentados no runbook. |
 

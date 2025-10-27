@@ -44,14 +44,31 @@ class InstanceMetadata:
                 seen.add(candidate)
 
         append_unique(root / BASE_COMPOSE_REL)
+
+        override_paths = [root / entry for entry in self.override_files]
+        overrides_by_app: dict[str, list[Path]] = {}
+        instance_level_overrides: list[Path] = []
+
+        for entry, resolved in zip(self.override_files, override_paths):
+            parts = entry.parts
+            if len(parts) >= 3 and parts[0] == "compose" and parts[1] == "apps":
+                app_name = parts[2]
+                overrides_by_app.setdefault(app_name, []).append(resolved)
+            else:
+                instance_level_overrides.append(resolved)
+
+        for override in instance_level_overrides:
+            append_unique(override)
+
         for app_name in self.app_names:
             base_candidate = root / "compose" / "apps" / app_name / "base.yml"
             if base_candidate.exists():
                 append_unique(base_candidate)
-            for override in self.override_files:
-                parts = override.parts
-                if len(parts) >= 3 and parts[0] == "compose" and parts[1] == "apps" and parts[2] == app_name:
-                    append_unique(root / override)
+            for override in overrides_by_app.get(app_name, []):
+                append_unique(override)
+
+        for override in override_paths:
+            append_unique(override)
 
         return files
 
@@ -129,6 +146,20 @@ def _discover_instance_metadata(repo_root: Path) -> tuple[InstanceMetadata, ...]
 
         if not found_override and has_base:
             apps_without_overrides.append(app_dir.name)
+
+    top_level_candidates = list(sorted(compose_dir.glob("*.yml"))) + list(
+        sorted(compose_dir.glob("*.yaml"))
+    )
+    for candidate in top_level_candidates:
+        if candidate.stem == "base":
+            continue
+
+        instance_name = candidate.stem
+        rel_path = candidate.relative_to(repo_root)
+
+        instance_files.setdefault(instance_name, [])
+        if rel_path not in instance_files[instance_name]:
+            instance_files[instance_name].append(rel_path)
 
     known_instances: set[str] = set(instance_files)
     env_dir = repo_root / "env"

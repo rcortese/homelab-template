@@ -17,9 +17,14 @@ executar `docker compose`.
 | Tipo de arquivo | Localização | Papel |
 | --------------- | ----------- | ----- |
 | **Base** | `compose/base.yml` | Mantém apenas anchors e volumes compartilhados reutilizados pelas aplicações. Deve ser carregado **sempre** como primeiro manifesto. |
-| **Instância (global)** | `compose/<instância>.yml` | Reúne ajustes compartilhados por todas as aplicações daquela instância (ex.: redes extras, volumes padrão ou labels globais). É aplicado imediatamente após o arquivo base para que os recursos sejam sobrescritos antes dos manifests das aplicações. |
+| **Instância (global)** | `compose/<instância>.yml` (ex.: [`compose/core.yml`](../compose/core.yml), [`compose/media.yml`](../compose/media.yml)) | Reúne ajustes compartilhados por todas as aplicações daquela instância (ex.: redes extras, volumes padrão ou labels globais). É aplicado imediatamente após o arquivo base para que os recursos sejam sobrescritos antes dos manifests das aplicações. |
 | **Aplicação** | `compose/apps/<app>/base.yml` | Declara os serviços adicionais que compõem uma aplicação (ex.: `app`). Usa os anchors definidos em `compose/base.yml`. Substitua `<app>` pelo diretório da sua aplicação principal (ex.: `compose/apps/<sua-app>/base.yml`). É incluído automaticamente para todas as instâncias **quando o arquivo existir**. |
 | **Overrides da aplicação** | `compose/apps/<app>/<instância>.yml` | Especializa os serviços da aplicação para cada ambiente (nome do container, portas, variáveis específicas como `APP_PUBLIC_URL` ou `MEDIA_ROOT`). Cada instância possui um arquivo por aplicação (ex.: `compose/apps/<sua-app>/core.yml`). |
+
+### Exemplos incluídos no template
+
+- [`compose/core.yml`](../compose/core.yml) documenta como adicionar labels para um proxy reverso, conectar os serviços da instância a uma rede externa (`core_proxy`) e declarar volumes nomeados (`core_logs`).
+- [`compose/media.yml`](../compose/media.yml) mostra como compartilhar montagens de mídia (`MEDIA_HOST_PATH`) entre serviços e como definir um volume comum para caches de transcodificação (`media_cache`).
 
 ### Aplicações compostas apenas por overrides
 
@@ -64,7 +69,7 @@ Ao combinar diversas aplicações, carregue os manifests em blocos (`base.yml`, 
 | Ordem | Arquivo | Função |
 | ----- | ------- | ------ |
 | 1 | `compose/base.yml` | Estrutura fundacional com anchors compartilhados. |
-| 2 | `compose/<instância>.yml` | Ajustes globais da instância (labels, redes extras, políticas padrões). |
+| 2 | `compose/<instância>.yml` (ex.: `compose/core.yml`, `compose/media.yml`) | Ajustes globais da instância (labels, redes extras, políticas padrões). |
 | 3 | `compose/apps/<app-principal>/base.yml` (ex.: `compose/apps/app/base.yml`) | Define serviços da aplicação principal. |
 | 4 | `compose/apps/<app-principal>/<instância>.yml` (ex.: `compose/apps/app/core.yml`) | Ajusta a aplicação principal para a instância alvo. |
 | 5 | `compose/apps/<app-auxiliar>/base.yml` (ex.: `compose/apps/monitoring/base.yml`) | Declara serviços auxiliares (ex.: observabilidade). |
@@ -95,7 +100,7 @@ docker compose \
   --env-file env/local/common.env \
   --env-file env/local/<instância>.env \
   -f compose/base.yml \
-  -f compose/<instância>.yml \
+  -f compose/<instância>.yml \ # ex.: compose/core.yml ou compose/media.yml
   -f compose/apps/<app-principal>/base.yml \
   -f compose/apps/<app-principal>/<instância>.yml \
   # Opcional: adicione pares base/instância para cada aplicação auxiliar habilitada

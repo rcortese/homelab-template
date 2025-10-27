@@ -24,7 +24,7 @@ Este documento apresenta um ponto de partida para descrever processos operaciona
 ## Antes de começar
 
 - Garanta que os arquivos `.env` locais foram gerados a partir dos modelos descritos em [`env/README.md`](../env/README.md).
-- Revise as combinações de manifests (`compose/base.yml` + overrides) que serão utilizadas pelos scripts.
+- Revise as combinações de manifests (`compose/base.yml` + overrides) que serão utilizadas pelos scripts. Os modelos [`compose/core.yml`](../compose/core.yml) e [`compose/media.yml`](../compose/media.yml) documentam como aplicar ajustes globais por instância antes dos manifests das aplicações.
 - Execute `scripts/check_all.sh` para validar estrutura, sincronização de variáveis e manifests Compose antes de abrir PRs ou publicar mudanças locais.
 - Execute `scripts/check_env_sync.py` isoladamente sempre que editar manifests ou templates `.env` para garantir que as variáveis continuam sincronizadas.
 - Documente dependências extras (CLI, credenciais, acesso a registries) em seções adicionais.
@@ -57,7 +57,7 @@ Este documento apresenta um ponto de partida para descrever processos operaciona
 ### Configurando a rede interna compartilhada
 
 - Utilize os placeholders definidos em `env/common.example.env` para nome, driver, sub-rede e gateway da rede (`APP_NETWORK_NAME`, `APP_NETWORK_DRIVER`, `APP_NETWORK_SUBNET`, `APP_NETWORK_GATEWAY`). Ajuste-os conforme a topologia do seu ambiente antes de gerar os arquivos reais em `env/local/`.
-- Cada instância deve reservar endereços IPv4 exclusivos para os serviços. Os modelos `env/core.example.env` e `env/media.example.env` ilustram como separar os IPs do serviço `app` (`APP_NETWORK_IPV4`), do serviço `monitoring` (`MONITORING_NETWORK_IPV4`) e do serviço `worker` (`WORKER_CORE_NETWORK_IPV4` e `WORKER_MEDIA_NETWORK_IPV4`).
+- Cada instância deve reservar endereços IPv4 exclusivos para os serviços. Os modelos `env/core.example.env` e `env/media.example.env` ilustram como separar os IPs do serviço `app` (`APP_NETWORK_IPV4`), do serviço `monitoring` (`MONITORING_NETWORK_IPV4`) e do serviço `worker` (`WORKER_CORE_NETWORK_IPV4` e `WORKER_MEDIA_NETWORK_IPV4`). O arquivo [`compose/core.yml`](../compose/core.yml) mostra como conectar o serviço `app` a uma rede externa (`core_proxy`) usando `CORE_PROXY_NETWORK_NAME` e `CORE_PROXY_IPV4` como placeholders.
 - Ao criar novas instâncias ou serviços adicionais, replique o padrão: declare variáveis `*_NETWORK_IPV4` específicas no template `.env` correspondente e conecte o serviço à rede `homelab_internal` (ou ao nome definido em `APP_NETWORK_NAME`) dentro do manifest Compose.
 - Depois de ajustar os IPs, execute `scripts/validate_compose.sh` ou `docker compose config -q` para validar se não há sobreposições ou lacunas na configuração.
 
@@ -222,7 +222,7 @@ entrem em conflito com o guia principal.
 - **Novo serviço:** utilize `scripts/bootstrap_instance.sh <app> <instância>` como ponto de partida; em seguida personalize compose, `.env` e documentação antes de prosseguir com validações.
 - **Diretórios persistentes:** o caminho `data/<app>-<instância>` é calculado automaticamente; utilize `APP_DATA_DIR` (relativo) **ou** `APP_DATA_DIR_MOUNT` (absoluto) quando precisar personalizar o destino e ajuste `APP_DATA_UID`/`APP_DATA_GID` no `.env` para alinhar permissões.
 - **Serviços monitorados:** defina `HEALTH_SERVICES` nos arquivos `.env` para que `scripts/check_health.sh` use os alvos corretos de log.
-- **Volumes extras:** utilize overrides específicos (`compose/apps/<app>/<instância>.yml`) para montar diretórios adicionais ou expor portas distintas por ambiente.
+- **Volumes extras:** utilize overrides específicos (`compose/apps/<app>/<instância>.yml`) para montar diretórios adicionais ou expor portas distintas por ambiente. Veja também [`compose/media.yml`](../compose/media.yml) para um exemplo de volume nomeado compartilhado (`media_cache`) entre serviços da instância.
 - **Overlays por configuração:** registre overlays opcionais em `compose/overlays/*.yml` e habilite-os por ambiente via `COMPOSE_EXTRA_FILES`. Isso mantém diffs de templates restritos a arquivos de configuração, sem editar scripts.
 
 ## Fluxos operacionais sugeridos
