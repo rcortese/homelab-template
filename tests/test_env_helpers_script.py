@@ -49,6 +49,25 @@ fi
     )
 
 
+def _run_normalize_absolute(*, repo_root: Path, value: str) -> subprocess.CompletedProcess[str]:
+    script = f"""
+set -euo pipefail
+source '{SCRIPT_PATH}'
+env_helpers__normalize_absolute_path "$REPO_ROOT" "$VALUE"
+"""
+
+    env = os.environ.copy()
+    env.update({"REPO_ROOT": str(repo_root), "VALUE": value})
+
+    return subprocess.run(
+        ["bash", "-c", script],
+        check=False,
+        capture_output=True,
+        text=True,
+        env=env,
+    )
+
+
 def test_derive_from_relative_app_dir() -> None:
     result = _run_derive(
         repo_root=REPO_ROOT,
@@ -130,3 +149,26 @@ def test_derive_rejects_conflicting_inputs() -> None:
     )
 
     assert result.returncode == 42
+    assert "APP_DATA_DIR e APP_DATA_DIR_MOUNT" in result.stderr
+
+
+def test_normalize_absolute_path_from_relative() -> None:
+    result = _run_normalize_absolute(
+        repo_root=REPO_ROOT,
+        value="data/app-core",
+    )
+
+    assert result.returncode == 0, result.stderr
+    expected = (REPO_ROOT / "data" / "app-core").as_posix()
+    assert result.stdout.strip() == expected
+
+
+def test_normalize_absolute_path_preserves_absolute_value() -> None:
+    input_path = "/srv/external/storage"
+    result = _run_normalize_absolute(
+        repo_root=REPO_ROOT,
+        value=input_path,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.strip() == input_path
