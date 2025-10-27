@@ -57,6 +57,50 @@ def setup_template_remote(tmp_path):
     return template_remote, clone_worktree
 
 
+def test_require_interactive_input_fallback_without_error_helper(tmp_path):
+    script = tmp_path / "check_require.sh"
+    script.write_text(
+        """#!/usr/bin/env bash
+source \"{lib_path}\"
+require_interactive_input \"interação obrigatória não disponível\"
+exit $?
+""".format(lib_path=REPO_ROOT / "scripts" / "lib" / "template_prompts.sh"),
+        encoding="utf-8",
+    )
+    os.chmod(script, 0o755)
+
+    result = subprocess.run(
+        [str(script)], capture_output=True, text=True, check=False
+    )
+
+    assert result.returncode != 0
+    assert "interação obrigatória não disponível" in result.stderr
+
+
+def test_require_interactive_input_returns_error_when_helper_does_not_exit(tmp_path):
+    script = tmp_path / "check_require_with_error.sh"
+    script.write_text(
+        f"""#!/usr/bin/env bash
+error() {{
+  echo "[error] $1" >&2
+  return 0
+}}
+source "{REPO_ROOT / "scripts" / "lib" / "template_prompts.sh"}"
+require_interactive_input "entrada interativa necessária"
+exit $?
+""",
+        encoding="utf-8",
+    )
+    os.chmod(script, 0o755)
+
+    result = subprocess.run(
+        [str(script)], capture_output=True, text=True, check=False
+    )
+
+    assert result.returncode != 0
+    assert "[error] entrada interativa necessária" in result.stderr
+
+
 def test_script_requires_remote_argument(tmp_path):
     consumer = create_consumer_repo(tmp_path)
     script = consumer / "scripts" / "update_from_template.sh"
