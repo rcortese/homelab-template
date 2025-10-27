@@ -73,3 +73,28 @@ def test_env_loader_requires_variables(tmp_path: Path) -> None:
 
     assert result.returncode == 2
     assert "Uso:" in result.stderr
+
+
+def test_env_loader_supports_hash_values(tmp_path: Path) -> None:
+    env_file = tmp_path / "hash.env"
+    env_file.write_text(
+        "\n".join(
+            [
+                "PASSWORD=#SuperSecret",
+                "COMMENT=value    # inline comment",
+                "COMMENT_TAB=value\t# another comment",
+                "LITERAL=\\#escaped hash",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    result = run_env_loader(env_file=env_file, keys=["PASSWORD", "COMMENT", "COMMENT_TAB", "LITERAL"])
+
+    assert result.returncode == 0
+    assert set(result.stdout.splitlines()) == {
+        "PASSWORD=#SuperSecret",
+        "COMMENT=value",
+        "COMMENT_TAB=value",
+        "LITERAL=#escaped hash",
+    }
