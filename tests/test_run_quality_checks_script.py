@@ -78,11 +78,16 @@ def _prepare_repo(
     return script_path, log_file, repo_dir
 
 
-def _run_script(script: Path, cwd: Path, env: dict[str, str]) -> subprocess.CompletedProcess[str]:
+def _run_script(
+    script: Path,
+    cwd: Path,
+    env: dict[str, str],
+    *args: str,
+) -> subprocess.CompletedProcess[str]:
     """Execute the copied helper script with a custom environment."""
 
     return subprocess.run(
-        [str(script)],
+        [str(script), *args],
         cwd=cwd,
         env=env,
         check=False,
@@ -158,4 +163,20 @@ def test_run_quality_checks_fails_when_shellcheck_fails(tmp_path: Path) -> None:
         str(repo_dir / "scripts" / "check_all.sh"),
         str(repo_dir / "scripts" / "run_quality_checks.sh"),
         str(repo_dir / "scripts" / "lib" / "helpers.sh"),
+    ]
+
+
+def test_run_quality_checks_skips_shellcheck_when_disabled(tmp_path: Path) -> None:
+    """Passing ``--no-lint`` should prevent shellcheck from running."""
+
+    script, log_file, repo_dir = _prepare_repo(tmp_path)
+    env = _build_env(repo_dir)
+
+    result = _run_script(script, repo_dir, env, "--no-lint")
+
+    assert result.returncode == 0, result.stderr
+    assert log_file.read_text(encoding="utf-8").splitlines() == [
+        "python",
+        "-m",
+        "pytest",
     ]
