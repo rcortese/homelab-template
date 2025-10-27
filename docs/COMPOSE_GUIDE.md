@@ -85,7 +85,10 @@ Ao combinar diversas aplicações, carregue os manifests em blocos (`base.yml`, 
 ### Snippet base para combinar manifests
 
 Use o esqueleto abaixo em qualquer instância, preenchendo o placeholder
-`<instância>` e adicionando apenas as aplicações desejadas.
+`<instância>` e adicionando apenas as aplicações desejadas. Quando precisar de
+overlays extras (ex.: `compose/overlays/metrics.yml`), liste-os na variável
+`COMPOSE_EXTRA_FILES` separados por espaço antes de executar o comando. O
+snippet converte automaticamente cada entrada em um novo `-f`.
 
 ```bash
 docker compose \
@@ -98,7 +101,7 @@ docker compose \
   # Opcional: adicione pares base/instância para cada aplicação auxiliar habilitada
   -f compose/apps/<aplicação-opcional>/base.yml \
   -f compose/apps/<aplicação-opcional>/<instância>.yml \
-  ${COMPOSE_EXTRA_FLAGS:-} \
+  $(for file in ${COMPOSE_EXTRA_FILES:-}; do printf ' -f %s' "$file"; done) \
   up -d
 ```
 
@@ -106,8 +109,10 @@ docker compose \
 > (como `compose/apps/app/`). Sincronize nomes e caminhos conforme o passo 3 de
 > [Como iniciar um projeto derivado](../README.md#como-iniciar-um-projeto-derivado).
 
-> `COMPOSE_EXTRA_FLAGS` pode incluir `-f` adicionais (ex.: overlays) ou outras
-> opções globais necessárias para a instância.
+> `COMPOSE_EXTRA_FILES` deve conter overlays adicionais (ex.: arquivos em
+> `compose/overlays/`) listados em ordem. Defina a variável com `export` ou
+> inline (`COMPOSE_EXTRA_FILES="compose/overlays/metrics.yml" docker compose ...`)
+> para anexar os manifests extras à pilha.
 
 #### Como habilitar ou desativar aplicações auxiliares
 
@@ -132,7 +137,7 @@ carregados e nas variáveis apontadas pelo comando acima:
 | Cenário | `--env-file` (ordem) | Overrides obrigatórios (`-f`) | Overlays adicionais | Observações |
 | ------- | -------------------- | ----------------------------- | ------------------- | ----------- |
 | **core** | `env/local/common.env` → `env/local/core.env` | `compose/core.yml`, `compose/apps/<app-principal>/core.yml` (ex.: `compose/apps/app/core.yml`) | — | Sem overlays obrigatórios. Utilize apenas quando a stack demandar arquivos extras. |
-| **media** | `env/local/common.env` → `env/local/media.env` | `compose/media.yml`, `compose/apps/<app-principal>/media.yml` (ex.: `compose/apps/app/media.yml`) | Opcional: `compose/overlays/<overlay>.yml` (ex.: armazenamento de mídia) | Adicione overlays específicos da instância ao definir `COMPOSE_EXTRA_FLAGS` ou `COMPOSE_EXTRA_FILES`. |
+| **media** | `env/local/common.env` → `env/local/media.env` | `compose/media.yml`, `compose/apps/<app-principal>/media.yml` (ex.: `compose/apps/app/media.yml`) | Opcional: `compose/overlays/<overlay>.yml` (ex.: armazenamento de mídia) | Adicione overlays específicos da instância listando-os em `COMPOSE_EXTRA_FILES` antes de executar o comando. |
 
 ### Combinação ad-hoc com `COMPOSE_FILES`
 
