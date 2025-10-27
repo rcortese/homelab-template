@@ -10,6 +10,85 @@ from tests.helpers.compose_instances import ComposeInstancesData
 SCRIPT_RELATIVE = Path("scripts") / "describe_instance.sh"
 
 
+def _format_port(port: object) -> str:
+    if isinstance(port, str):
+        return port
+    if not isinstance(port, dict):
+        return str(port)
+
+    target = port.get("target")
+    published = port.get("published")
+    protocol = port.get("protocol") or "tcp"
+    mode = port.get("mode")
+    host_ip = port.get("host_ip")
+
+    left_parts: list[str] = []
+    if host_ip:
+        left_parts.append(str(host_ip))
+    if published is not None:
+        left_parts.append(str(published))
+
+    left = ":".join(left_parts) if left_parts else ""
+    right = str(target) if target is not None else ""
+
+    pieces: list[str] = []
+    if left:
+        pieces.append(left)
+    if right:
+        if pieces:
+            pieces.append("->")
+        pieces.append(right)
+
+    result = " ".join(pieces) if pieces else (right or left or "")
+    if result:
+        result = f"{result}/{protocol}"
+    else:
+        result = f"{target}/{protocol}" if target is not None else f"{protocol}"
+
+    if mode and mode not in {"ingress"}:
+        result = f"{result} ({mode})"
+
+    return result
+
+
+def _format_volume(volume: object) -> str:
+    if isinstance(volume, str):
+        return volume
+    if not isinstance(volume, dict):
+        return str(volume)
+
+    source = volume.get("source")
+    target = volume.get("target")
+
+    if source and target:
+        base = f"{source} -> {target}"
+    elif target:
+        base = str(target)
+    elif source:
+        base = str(source)
+    else:
+        base = ""
+
+    details = {k: v for k, v in volume.items() if k not in {"source", "target"}}
+    if not details:
+        return base or json.dumps(volume, ensure_ascii=False, sort_keys=True)
+
+    detail_items = []
+    for key in sorted(details):
+        value = details[key]
+        if isinstance(value, dict):
+            detail_items.append(
+                f"{key}={json.dumps(value, ensure_ascii=False, sort_keys=True)}"
+            )
+        else:
+            detail_items.append(f"{key}={value}")
+
+    detail_str = ", ".join(detail_items)
+    if base:
+        return f"{base} ({detail_str})"
+    return detail_str
+
+
 def _build_compose_stub(tmp_path: Path, config_payload: dict[str, object]) -> tuple[Path, Path]:
     script_path = tmp_path / "compose_stub.py"
     log_path = tmp_path / "compose_stub.log"
@@ -96,9 +175,15 @@ def test_table_summary_highlights_overlays(
     tmp_path: Path,
     compose_instances_data: ComposeInstancesData,
 ) -> None:
+    service_with_ports = "primary"
+    service_with_volume = "metrics"
+    service_stateless = "batch"
+    service_extra = "analytics"
+    service_overlay_only = "delta"
+
     compose_payload = {
         "services": {
-            "app": {
+            service_with_ports: {
                 "ports": [
                     {"target": 80, "published": 8080, "protocol": "tcp"},
                     {
@@ -111,32 +196,32 @@ def test_table_summary_highlights_overlays(
                 "volumes": [
                     {
                         "type": "bind",
-                        "source": "/srv/app/data",
-                        "target": "/data/app",
+                        "source": "/srv/primary/data",
+                        "target": "/data/primary",
                         "read_only": False,
                     },
-                    "app-data:/var/lib/app",
+                    "primary-data:/var/lib/primary",
                 ],
             },
-            "monitoring": {
+            service_with_volume: {
                 "ports": [],
                 "volumes": [
                     {
                         "type": "volume",
-                        "source": "monitoring-config",
-                        "target": "/etc/monitoring",
+                        "source": "metrics-config",
+                        "target": "/etc/metrics",
                     }
                 ],
             },
-            "worker": {
+            service_stateless: {
                 "ports": [],
                 "volumes": [],
             },
-            "baseonly": {
+            service_extra: {
                 "ports": [],
                 "volumes": [],
             },
-            "overrideonly": {
+            service_overlay_only: {
                 "ports": [],
                 "volumes": [],
             },
@@ -146,12 +231,16 @@ def test_table_summary_highlights_overlays(
     stub_path, log_path = _build_compose_stub(tmp_path, compose_payload)
 
     env = os.environ.copy()
+    extra_overlays = [
+        "compose/overlays/metrics.yml",
+        "compose/overlays/logging.yml",
+    ]
     env.update(
         {
             "DOCKER_COMPOSE_BIN": str(stub_path),
             "DESCRIBE_INSTANCE_CONFIG_JSON": str((tmp_path / "config.json").resolve()),
             "DESCRIBE_INSTANCE_COMPOSE_LOG": str(log_path),
-            "COMPOSE_EXTRA_FILES": "compose/overlays/metrics.yml compose/overlays/logging.yml",
+            "COMPOSE_EXTRA_FILES": " ".join(extra_overlays),
         }
     )
 
@@ -163,15 +252,28 @@ def test_table_summary_highlights_overlays(
     expected_plan = compose_instances_data.compose_plan("core")
     for relative_path in expected_plan:
         assert relative_path in stdout
-    assert "compose/overlays/metrics.yml (overlay extra)" in stdout
+    expected_with_overlays = compose_instances_data.compose_plan(
+        "core", extra_overlays
+    )
+    for overlay in extra_overlays:
+        assert overlay in stdout
+        assert f"{overlay} (overlay extra)" in stdout
     assert "Overlays extras aplicados:" in stdout
-    assert "compose/overlays/logging.yml" in stdout
+    for overlay in extra_overlays:
+        assert overlay in stdout
     assert "Portas publicadas:" in stdout
-    assert "8080 -> 80/tcp" in stdout
-    assert "127.0.0.1:8443 -> 443/tcp" in stdout
+    for port in compose_payload["services"][service_with_ports]["ports"]:
+        formatted = _format_port(port)
+        assert formatted in stdout
     assert "Volumes montados:" in stdout
-    assert "/srv/app/data -> /data/app (read_only=False, type=bind)" in stdout
-    assert "monitoring-config -> /etc/monitoring (type=volume)" in stdout
+    primary_volumes = compose_payload["services"][service_with_ports]["volumes"]
+    for volume in primary_volumes:
+        formatted = _format_volume(volume)
+        assert formatted in stdout
+    metrics_volumes = compose_payload["services"][service_with_volume]["volumes"]
+    for volume in metrics_volumes:
+        formatted = _format_volume(volume)
+        assert formatted in stdout
 
     log_lines = [line for line in log_path.read_text(encoding="utf-8").splitlines() if line.strip()]
     assert log_lines, "esperado ao menos uma chamada ao stub do docker compose"
@@ -179,10 +281,6 @@ def test_table_summary_highlights_overlays(
     config_call = _find_config_json_call(parsed)
 
     compose_args = _extract_flag_arguments(config_call, "-f")
-    expected_with_overlays = compose_instances_data.compose_plan(
-        "core",
-        ["compose/overlays/metrics.yml", "compose/overlays/logging.yml"],
-    )
     expected_compose_files = [
         repo_copy / relative_path
         for relative_path in expected_with_overlays
@@ -202,34 +300,48 @@ def test_table_summary_highlights_overlays(
     ]
 
 
-def test_json_summary_structure(repo_copy: Path, tmp_path: Path) -> None:
+def test_json_summary_structure(
+    repo_copy: Path, tmp_path: Path, compose_instances_data: ComposeInstancesData
+) -> None:
+    service_with_ports = "primary"
+    service_with_volume = "metrics"
+    service_stateless = "batch"
+    service_extra = "analytics"
+    service_overlay_only = "delta"
+
     compose_payload = {
         "services": {
-            "app": {
+            service_with_ports: {
                 "ports": [
                     {"target": 80, "published": 8080, "protocol": "tcp"},
                 ],
                 "volumes": [
                     {
                         "type": "bind",
-                        "source": "/srv/app/data",
-                        "target": "/data/app",
+                        "source": "/srv/primary/data",
+                        "target": "/data/primary",
                     }
                 ],
             },
-            "monitoring": {
+            service_with_volume: {
+                "ports": [],
+                "volumes": [
+                    {
+                        "type": "volume",
+                        "source": "metrics-config",
+                        "target": "/etc/metrics",
+                    }
+                ],
+            },
+            service_stateless: {
                 "ports": [],
                 "volumes": [],
             },
-            "worker": {
+            service_extra: {
                 "ports": [],
                 "volumes": [],
             },
-            "baseonly": {
-                "ports": [],
-                "volumes": [],
-            },
-            "overrideonly": {
+            service_overlay_only: {
                 "ports": [],
                 "volumes": [],
             },
@@ -239,12 +351,13 @@ def test_json_summary_structure(repo_copy: Path, tmp_path: Path) -> None:
     stub_path, log_path = _build_compose_stub(tmp_path, compose_payload)
 
     env = os.environ.copy()
+    extra_overlays = ["compose/overlays/metrics.yml"]
     env.update(
         {
             "DOCKER_COMPOSE_BIN": str(stub_path),
             "DESCRIBE_INSTANCE_CONFIG_JSON": str((tmp_path / "config.json").resolve()),
             "DESCRIBE_INSTANCE_COMPOSE_LOG": str(log_path),
-            "COMPOSE_EXTRA_FILES": "compose/overlays/metrics.yml",
+            "COMPOSE_EXTRA_FILES": " ".join(extra_overlays),
         }
     )
 
@@ -255,32 +368,32 @@ def test_json_summary_structure(repo_copy: Path, tmp_path: Path) -> None:
     assert payload["instance"] == "core"
 
     compose_files = [entry["path"] for entry in payload["compose_files"]]
-    assert compose_files == [
-        "compose/base.yml",
-        "compose/apps/app/base.yml",
-        "compose/apps/app/core.yml",
-        "compose/apps/monitoring/base.yml",
-        "compose/apps/monitoring/core.yml",
-        "compose/apps/overrideonly/core.yml",
-        "compose/apps/worker/base.yml",
-        "compose/apps/worker/core.yml",
-        "compose/apps/baseonly/base.yml",
-        "compose/overlays/metrics.yml",
-    ]
+    expected_with_overlays = compose_instances_data.compose_plan(
+        "core", extra_overlays
+    )
+    assert compose_files == expected_with_overlays
 
     extra_flags = [entry["is_extra"] for entry in payload["compose_files"]]
-    assert extra_flags[-1] is True
-    assert any(flag is False for flag in extra_flags[:-1])
+    overlay_count = len(extra_overlays)
+    assert all(extra_flags[-overlay_count:]) if overlay_count else True
+    assert any(flag is False for flag in extra_flags[:-overlay_count or None])
 
-    assert payload["extra_overlays"] == ["compose/overlays/metrics.yml"]
+    assert payload["extra_overlays"] == extra_overlays
 
     services = payload["services"]
     names = [service["name"] for service in services]
-    assert sorted(names) == ["app", "baseonly", "monitoring", "overrideonly", "worker"]
+    assert sorted(names) == sorted(compose_payload["services"].keys())
 
-    app_service = next(service for service in services if service["name"] == "app")
-    assert app_service["ports"] == ["8080 -> 80/tcp"]
-    assert app_service["volumes"] == ["/srv/app/data -> /data/app (type=bind)"]
+    service_lookup = {service["name"]: service for service in services}
+    primary_service = service_lookup[service_with_ports]
+    assert primary_service["ports"] == [
+        _format_port(port)
+        for port in compose_payload["services"][service_with_ports]["ports"]
+    ]
+    assert primary_service["volumes"] == [
+        _format_volume(volume)
+        for volume in compose_payload["services"][service_with_ports]["volumes"]
+    ]
 
     log_lines = [line for line in log_path.read_text(encoding="utf-8").splitlines() if line.strip()]
     assert log_lines, "esperado ao menos uma chamada ao stub do docker compose"
@@ -289,30 +402,22 @@ def test_json_summary_structure(repo_copy: Path, tmp_path: Path) -> None:
 
     compose_args = _extract_flag_arguments(config_call, "-f")
     expected_compose_files = [
-        repo_copy / "compose/base.yml",
-        repo_copy / "compose/apps/app/base.yml",
-        repo_copy / "compose/apps/app/core.yml",
-        repo_copy / "compose/apps/monitoring/base.yml",
-        repo_copy / "compose/apps/monitoring/core.yml",
-        repo_copy / "compose/apps/overrideonly/core.yml",
-        repo_copy / "compose/apps/worker/base.yml",
-        repo_copy / "compose/apps/worker/core.yml",
-        repo_copy / "compose/apps/baseonly/base.yml",
-        repo_copy / "compose/overlays/metrics.yml",
+        repo_copy / relative_path
+        for relative_path in expected_with_overlays
     ]
     assert compose_args == [str(path.resolve(strict=False)) for path in expected_compose_files]
 
     env_files = _extract_flag_arguments(config_call, "--env-file")
     expected_env_files = [
-        repo_copy / "env/local/common.env",
-        repo_copy / "env/local/core.env",
+        repo_copy / relative_path
+        for relative_path in compose_instances_data.env_files_map.get("core", [])
+        if relative_path
     ]
     assert env_files == [str(path.resolve(strict=False)) for path in expected_env_files]
 
-    monitoring_service = next(service for service in services if service["name"] == "monitoring")
-    assert monitoring_service["ports"] == []
-    assert monitoring_service["volumes"] == []
-
-    worker_service = next(service for service in services if service["name"] == "worker")
-    assert worker_service["ports"] == []
-    assert worker_service["volumes"] == []
+    for name, definition in compose_payload["services"].items():
+        current = service_lookup[name]
+        assert current["ports"] == [_format_port(port) for port in definition.get("ports", [])]
+        assert current["volumes"] == [
+            _format_volume(volume) for volume in definition.get("volumes", [])
+        ]

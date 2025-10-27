@@ -1,5 +1,7 @@
 from pathlib import Path
 
+from tests.helpers.compose_instances import ComposeInstancesData
+
 from .utils import _extract_compose_files, run_deploy
 
 
@@ -25,20 +27,13 @@ def test_unknown_instance_shows_available_options(repo_copy: Path) -> None:
     assert after_dirs == before_dirs
 
 
-def test_dry_run_reports_all_application_bases(repo_copy: Path) -> None:
+def test_dry_run_reports_all_application_bases(
+    repo_copy: Path, compose_instances_data: ComposeInstancesData
+) -> None:
     result = run_deploy(repo_copy, "core", "--dry-run")
 
     assert result.returncode == 0, result.stderr
     compose_files = _extract_compose_files(result.stdout)
-    assert compose_files[:9] == [
-        "compose/base.yml",
-        "compose/apps/app/base.yml",
-        "compose/apps/app/core.yml",
-        "compose/apps/monitoring/base.yml",
-        "compose/apps/monitoring/core.yml",
-        "compose/apps/overrideonly/core.yml",
-        "compose/apps/worker/base.yml",
-        "compose/apps/worker/core.yml",
-        "compose/apps/baseonly/base.yml",
-    ]
+    expected_plan = compose_instances_data.compose_plan("core")
+    assert compose_files == expected_plan
 
