@@ -45,7 +45,9 @@ class InstanceMetadata:
 
         append_unique(root / BASE_COMPOSE_REL)
         for app_name in self.app_names:
-            append_unique(root / "compose" / "apps" / app_name / "base.yml")
+            base_candidate = root / "compose" / "apps" / app_name / "base.yml"
+            if base_candidate.exists():
+                append_unique(base_candidate)
             for override in self.override_files:
                 parts = override.parts
                 if len(parts) >= 3 and parts[0] == "compose" and parts[1] == "apps" and parts[2] == app_name:
@@ -104,10 +106,7 @@ def _discover_instance_metadata(repo_root: Path) -> tuple[InstanceMetadata, ...]
 
     for app_dir in sorted(path for path in apps_dir.iterdir() if path.is_dir()):
         base_override = app_dir / "base.yml"
-        if not base_override.exists():
-            raise FileNotFoundError(
-                f"Arquivo base da aplicação '{app_dir.name}' não encontrado: {base_override}"
-            )
+        has_base = base_override.exists()
 
         app_files = list(sorted(app_dir.glob("*.yml"))) + list(sorted(app_dir.glob("*.yaml")))
         found_override = False
@@ -128,7 +127,7 @@ def _discover_instance_metadata(repo_root: Path) -> tuple[InstanceMetadata, ...]
             if app_dir.name not in instance_app_names[instance_name]:
                 instance_app_names[instance_name].append(app_dir.name)
 
-        if not found_override:
+        if not found_override and has_base:
             apps_without_overrides.append(app_dir.name)
 
     known_instances: set[str] = set(instance_files)
