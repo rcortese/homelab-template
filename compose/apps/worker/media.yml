@@ -4,4 +4,4 @@ services:
       WORKER_CONCURRENCY: ${WORKER_MEDIA_CONCURRENCY:-1}
     networks:
       homelab_internal:
-        ipv4_address: ${WORKER_NETWORK_IPV4}
+        ipv4_address: ${WORKER_MEDIA_NETWORK_IPV4}

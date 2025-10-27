@@ -57,7 +57,7 @@ Este documento apresenta um ponto de partida para descrever processos operaciona
 ### Configurando a rede interna compartilhada
 
 - Utilize os placeholders definidos em `env/common.example.env` para nome, driver, sub-rede e gateway da rede (`APP_NETWORK_NAME`, `APP_NETWORK_DRIVER`, `APP_NETWORK_SUBNET`, `APP_NETWORK_GATEWAY`). Ajuste-os conforme a topologia do seu ambiente antes de gerar os arquivos reais em `env/local/`.
-- Cada instância deve reservar endereços IPv4 exclusivos para os serviços. Os modelos `env/core.example.env` e `env/media.example.env` ilustram como separar os IPs do serviço `app` (`APP_NETWORK_IPV4`), do serviço `monitoring` (`MONITORING_NETWORK_IPV4`) e do serviço `worker` (`WORKER_NETWORK_IPV4`).
+- Cada instância deve reservar endereços IPv4 exclusivos para os serviços. Os modelos `env/core.example.env` e `env/media.example.env` ilustram como separar os IPs do serviço `app` (`APP_NETWORK_IPV4`), do serviço `monitoring` (`MONITORING_NETWORK_IPV4`) e do serviço `worker` (`WORKER_CORE_NETWORK_IPV4` e `WORKER_MEDIA_NETWORK_IPV4`).
 - Ao criar novas instâncias ou serviços adicionais, replique o padrão: declare variáveis `*_NETWORK_IPV4` específicas no template `.env` correspondente e conecte o serviço à rede `homelab_internal` (ou ao nome definido em `APP_NETWORK_NAME`) dentro do manifest Compose.
 - Depois de ajustar os IPs, execute `scripts/validate_compose.sh` ou `docker compose config -q` para validar se não há sobreposições ou lacunas na configuração.
 
