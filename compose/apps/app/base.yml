@@ -1,6 +1,14 @@
 services:
   app:
-    # A configuração base é herdada de compose/base.yml.
+    image: example/app:latest
+    restart: unless-stopped
+    environment:
+      TZ: ${TZ}
+      APP_SECRET: ${APP_SECRET}
+      APP_RETENTION_HOURS: ${APP_RETENTION_HOURS:-168}
+    volumes:
+      - ${APP_DATA_DIR_MOUNT}:/var/lib/app
+      - ../backups:/var/backups
     networks:
       homelab_internal:
         ipv4_address: ${APP_NETWORK_IPV4}
