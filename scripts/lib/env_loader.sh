@@ -35,9 +35,14 @@ def normalize(value: str) -> str:
     value = value.strip()
     if not value:
         return ""
-    if value[0] in {'"', "'"} and value[-1] == value[0] and len(value) >= 2:
+    was_quoted = (
+        value[0] in {'"', "'"}
+        and value[-1] == value[0]
+        and len(value) >= 2
+    )
+    if was_quoted:
         value = value[1:-1]
-    if value and value[0] not in {'"', "'"}:
+    if value and not was_quoted:
         match = COMMENT_PATTERN.search(value)
         if match:
             value = value[: match.start()].rstrip()
