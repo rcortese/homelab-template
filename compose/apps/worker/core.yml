@@ -1,0 +1,8 @@
+services:
+  worker:
+    container_name: worker-core
+    environment:
+      WORKER_CONCURRENCY: ${WORKER_CORE_CONCURRENCY:-2}
+    networks:
+      homelab_internal:
+        ipv4_address: ${WORKER_NETWORK_IPV4}

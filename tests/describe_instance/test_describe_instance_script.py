@@ -101,6 +101,10 @@ def test_table_summary_highlights_overlays(repo_copy: Path, tmp_path: Path) -> N
                     }
                 ],
             },
+            "worker": {
+                "ports": [],
+                "volumes": [],
+            },
             "baseonly": {
                 "ports": [],
                 "volumes": [],
@@ -129,6 +133,7 @@ def test_table_summary_highlights_overlays(repo_copy: Path, tmp_path: Path) -> N
     assert "compose/apps/app/base.yml" in stdout
     assert "compose/apps/monitoring/base.yml" in stdout
     assert "compose/apps/baseonly/base.yml" in stdout
+    assert "compose/apps/worker/base.yml" in stdout
     assert "compose/overlays/metrics.yml (overlay extra)" in stdout
     assert "Overlays extras aplicados:" in stdout
     assert "compose/overlays/logging.yml" in stdout
@@ -164,6 +169,10 @@ def test_json_summary_structure(repo_copy: Path, tmp_path: Path) -> None:
                 "ports": [],
                 "volumes": [],
             },
+            "worker": {
+                "ports": [],
+                "volumes": [],
+            },
             "baseonly": {
                 "ports": [],
                 "volumes": [],
@@ -196,6 +205,8 @@ def test_json_summary_structure(repo_copy: Path, tmp_path: Path) -> None:
         "compose/apps/app/core.yml",
         "compose/apps/monitoring/base.yml",
         "compose/apps/monitoring/core.yml",
+        "compose/apps/worker/base.yml",
+        "compose/apps/worker/core.yml",
         "compose/apps/baseonly/base.yml",
         "compose/overlays/metrics.yml",
     ]
@@ -208,7 +219,7 @@ def test_json_summary_structure(repo_copy: Path, tmp_path: Path) -> None:
 
     services = payload["services"]
     names = [service["name"] for service in services]
-    assert sorted(names) == ["app", "baseonly", "monitoring"]
+    assert sorted(names) == ["app", "baseonly", "monitoring", "worker"]
 
     app_service = next(service for service in services if service["name"] == "app")
     assert app_service["ports"] == ["8080 -> 80/tcp"]
@@ -222,3 +233,7 @@ def test_json_summary_structure(repo_copy: Path, tmp_path: Path) -> None:
     monitoring_service = next(service for service in services if service["name"] == "monitoring")
     assert monitoring_service["ports"] == []
     assert monitoring_service["volumes"] == []
+
+    worker_service = next(service for service in services if service["name"] == "worker")
+    assert worker_service["ports"] == []
+    assert worker_service["volumes"] == []
