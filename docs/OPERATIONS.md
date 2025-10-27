@@ -101,7 +101,14 @@ Consulte o resumo na tabela acima. Inclua `scripts/check_env_sync.py` nas execu�
 
 ## scripts/bootstrap_instance.sh
 
-Use `--base-dir` para executar fora da raiz e `--with-docs` para gerar documentação inicial. Após o bootstrap, ajuste overrides (`compose/apps/<app>/<instancia>.yml`), preencha `env/<instancia>.example.env` e complemente `docs/apps/<app>.md`.
+Use `--base-dir`, `--with-docs` e `--override-only` para declarar explicitamente diretórios alternativos, gerar documentação inicial e limitar o bootstrap a arquivos de override. Após o bootstrap, ajuste overrides (`compose/apps/<app>/<instancia>.yml`), preencha `env/<instancia>.example.env` e complemente `docs/apps/<app>.md`.
+
+- **Quando usar `--override-only`:** aplicações sem `compose/apps/<app>/base.yml` podem utilizar somente overrides (`compose/apps/<app>/<instancia>.yml`). O script detecta automaticamente a ausência do `base.yml`, mas a flag garante o comportamento em execuções não interativas ou quando quiser enfatizar o cenário.
+- **Exemplo rápido:**
+  ```bash
+  scripts/bootstrap_instance.sh minha-app prod --override-only --with-docs
+  ```
+  Para mais detalhes sobre stacks formadas apenas por overrides, consulte [`docs/COMPOSE_GUIDE.md#aplicações-compostas-apenas-por-overrides`](./COMPOSE_GUIDE.md#aplicações-compostas-apenas-por-overrides).
 
 <a id="scriptsvalidate_compose.sh"></a>
 ## scripts/validate_compose.sh
