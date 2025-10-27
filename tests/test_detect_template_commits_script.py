@@ -7,26 +7,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 SCRIPT_PATH = REPO_ROOT / "scripts" / "detect_template_commits.sh"
 
 
-def prepare_script_tree(tmp_path):
-    repo_root = tmp_path / "workspace"
-    scripts_dir = repo_root / "scripts"
-    scripts_dir.mkdir(parents=True)
-    shutil.copy2(SCRIPT_PATH, scripts_dir / "detect_template_commits.sh")
-    shutil.copytree(
-        REPO_ROOT / "scripts" / "lib",
-        scripts_dir / "lib",
-        dirs_exist_ok=True,
-    )
-    script_path = scripts_dir / "detect_template_commits.sh"
-    os.chmod(script_path, 0o755)
-    return repo_root, script_path
-
-
-def run(cmd, cwd):
-    subprocess.run(cmd, cwd=cwd, check=True)
-
-
-def test_detect_template_commits_generates_file(tmp_path):
+def bootstrap_consumer_repository(tmp_path):
     template_remote = tmp_path / "template.git"
     run(["git", "init", "--bare", str(template_remote)], cwd=tmp_path)
     subprocess.run(
@@ -105,6 +86,31 @@ def test_detect_template_commits_generates_file(tmp_path):
     script = scripts_dir / "detect_template_commits.sh"
     os.chmod(script, 0o755)
 
+    return consumer, script, remote_name, original_commit, first_commit
+
+
+def prepare_script_tree(tmp_path):
+    repo_root = tmp_path / "workspace"
+    scripts_dir = repo_root / "scripts"
+    scripts_dir.mkdir(parents=True)
+    shutil.copy2(SCRIPT_PATH, scripts_dir / "detect_template_commits.sh")
+    shutil.copytree(
+        REPO_ROOT / "scripts" / "lib",
+        scripts_dir / "lib",
+        dirs_exist_ok=True,
+    )
+    script_path = scripts_dir / "detect_template_commits.sh"
+    os.chmod(script_path, 0o755)
+    return repo_root, script_path
+
+
+def run(cmd, cwd):
+    subprocess.run(cmd, cwd=cwd, check=True)
+
+
+def test_detect_template_commits_generates_file(tmp_path):
+    consumer, script, remote_name, original_commit, first_commit = bootstrap_consumer_repository(tmp_path)
+
     result = subprocess.run(
         [str(script)],
         cwd=consumer,
@@ -123,6 +129,85 @@ def test_detect_template_commits_generates_file(tmp_path):
     content = output_file.read_text(encoding="utf-8")
     assert f"ORIGINAL_COMMIT_ID={original_commit}" in content
     assert f"FIRST_COMMIT_ID={first_commit}" in content
+
+
+def test_detect_template_commits_respects_custom_output(tmp_path):
+    consumer, script, _, original_commit, first_commit = bootstrap_consumer_repository(tmp_path)
+    custom_output = consumer / "custom" / "template_commits.env"
+
+    result = subprocess.run(
+        [str(script), "--output", str(custom_output)],
+        cwd=consumer,
+        text=True,
+        capture_output=True,
+        check=False,
+        env=os.environ,
+    )
+
+    assert result.returncode == 0
+    assert f"ORIGINAL_COMMIT_ID={original_commit}" in result.stdout
+    assert f"FIRST_COMMIT_ID={first_commit}" in result.stdout
+    assert f"Valores salvos em: {custom_output}" in result.stdout
+
+    assert custom_output.exists()
+    content = custom_output.read_text(encoding="utf-8")
+    assert f"ORIGINAL_COMMIT_ID={original_commit}" in content
+    assert f"FIRST_COMMIT_ID={first_commit}" in content
+
+
+def test_detect_template_commits_no_fetch_skips_fetch_invocation(tmp_path):
+    consumer, script, remote_name, original_commit, first_commit = bootstrap_consumer_repository(tmp_path)
+    stub_dir = tmp_path / "git-stub"
+    stub_dir.mkdir()
+    log_file = tmp_path / "git-stub.log"
+    real_git = shutil.which("git")
+
+    stub_script = stub_dir / "git"
+    stub_script.write_text(
+        "#!/usr/bin/env bash\n"
+        "set -euo pipefail\n"
+        "printf '%s\\n' \"$*\" >>\"$GIT_STUB_LOG\"\n"
+        "exec \"$REAL_GIT\" \"$@\"\n",
+        encoding="utf-8",
+    )
+    os.chmod(stub_script, 0o755)
+
+    env = os.environ.copy()
+    env.update(
+        {
+            "PATH": f"{stub_dir}:{env['PATH']}",
+            "REAL_GIT": real_git,
+            "GIT_STUB_LOG": str(log_file),
+        }
+    )
+
+    # PATH prioritizes our stub so the test can observe which git subcommands are
+    # executed, while REAL_GIT keeps merge-base, rev-list e afins funcionando
+    # ao delegar para o binário real.
+    result = subprocess.run(
+        [
+            str(script),
+            "--remote",
+            remote_name,
+            "--target-branch",
+            "main",
+            "--no-fetch",
+        ],
+        cwd=consumer,
+        text=True,
+        capture_output=True,
+        check=False,
+        env=env,
+    )
+
+    assert result.returncode == 0
+    assert f"ORIGINAL_COMMIT_ID={original_commit}" in result.stdout
+    assert f"FIRST_COMMIT_ID={first_commit}" in result.stdout
+
+    assert log_file.exists()
+    log_lines = [line.strip() for line in log_file.read_text(encoding="utf-8").splitlines() if line.strip()]
+    assert log_lines, "expected git stub to record executed subcommands"
+    assert all(line.split()[0] != "fetch" for line in log_lines)
 
 
 def test_detect_template_commits_fails_outside_git_repo(tmp_path):
