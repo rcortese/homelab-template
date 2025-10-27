@@ -159,6 +159,7 @@ O script depende de `scripts/lib/deploy_context.sh` para calcular `APP_DATA_DIR`
 
 ## scripts/describe_instance.sh
 
+- **Descobrir instâncias disponíveis:** execute `scripts/describe_instance.sh --list` para validar quais combinações o template expõe antes de solicitar um resumo específico.
 - **Formatações disponíveis:**
   - `table` (padrão) — ideal para revisões rápidas em terminais ou runbooks.
   - `json` — voltado para integrações automatizadas e geração de documentação.
