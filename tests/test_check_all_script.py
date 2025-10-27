@@ -50,7 +50,12 @@ def _create_python_stub(path: Path, log_file: Path, message: str, exit_code: int
     path.chmod(0o755)
 
 
-def _prepare_repo(tmp_path: Path, *, failing_env_sync: bool = False) -> tuple[Path, Path]:
+def _prepare_repo(
+    tmp_path: Path,
+    *,
+    failing_env_sync: bool = False,
+    failing_validate_compose: bool = False,
+) -> tuple[Path, Path]:
     """Set up a temporary repository layout with stubbed scripts."""
 
     repo_dir = tmp_path / "repo"
@@ -79,6 +84,7 @@ def _prepare_repo(tmp_path: Path, *, failing_env_sync: bool = False) -> tuple[Pa
         scripts_dir / "validate_compose.sh",
         log_file,
         "validate_compose",
+        exit_code=1 if failing_validate_compose else 0,
     )
 
     return check_all_path, log_file
@@ -123,4 +129,23 @@ def test_check_all_stops_on_first_failure(tmp_path: Path) -> None:
     assert log_file.read_text().splitlines() == [
         "check_structure",
         "check_env_sync",
+    ]
+
+
+def test_check_all_fails_when_validate_compose_fails(tmp_path: Path) -> None:
+    """If ``validate_compose`` fails the wrapper should report failure."""
+
+    check_all, log_file = _prepare_repo(
+        tmp_path,
+        failing_validate_compose=True,
+    )
+    repo_dir = check_all.parent.parent
+    result = _run_check_all(check_all, repo_dir)
+
+    assert result.returncode != 0
+    assert log_file.exists()
+    assert log_file.read_text().splitlines() == [
+        "check_structure",
+        "check_env_sync",
+        "validate_compose",
     ]
