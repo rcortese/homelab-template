@@ -2,10 +2,9 @@
 
 Este repositório serve como **template reutilizável** para stacks autocontidas. Ele reúne infraestrutura como código, scripts de operação e documentação sob uma mesma convenção para facilitar forks ou projetos derivados.
 
-Se você acabou de derivar o template, comece pelo [guia de onboarding](docs/ONBOARDING.md) para seguir o fluxo inicial recomendado. Para uma visão completa da documentação utilize o [índice em `docs/README.md`](docs/README.md).
+Se você acabou de derivar o template, comece pelo [guia de onboarding](docs/ONBOARDING.md) para seguir o fluxo inicial recomendado. Em seguida, utilize a seção [Documentação e customização local](#documentacao-e-customizacao-local) deste arquivo para se orientar na organização dos materiais.
 
-Mantemos este arquivo genérico para facilitar a sincronização com novas versões do template. Informações específicas da sua
-stack devem ser descritas nos apontamentos locais indicados em [Customização local](#customização-local).
+Mantemos este arquivo genérico para facilitar a sincronização com novas versões do template. Informações específicas da sua stack devem ser descritas nos apontamentos locais indicados em [Documentação e customização local](#documentacao-e-customizacao-local).
 
 ## Pré-requisitos
 
@@ -29,8 +28,7 @@ Pipelines de CI/CD, testes e scripts adicionais podem ser adicionados, mas os di
 1. Clique em **Use this template** (ou faça um fork) para gerar um novo repositório.
 2. Atualize o nome do projeto e os metadados no `README.md` recém-criado com o contexto da sua stack.
 3. Revise os arquivos de `compose/` e `env/` para alinhar serviços, portas e variáveis às suas necessidades.
-4. Ajuste a documentação em `docs/` seguindo as orientações de personalização descritas neste template (com foco em
-   [`docs/local/`](docs/local/README.md) para registrar detalhes específicos da sua stack).
+4. Ajuste a documentação em `docs/` seguindo as orientações descritas na seção [Documentação e customização local](#documentacao-e-customizacao-local) deste template.
 5. Execute o fluxo de validação (`scripts/check_all.sh`) antes do primeiro commit.
 
 ## Fluxo sugerido para novos repositórios
@@ -41,22 +39,17 @@ Pipelines de CI/CD, testes e scripts adicionais podem ser adicionados, mas os di
 4. **Runbooks** – personalize os guias operacionais (`docs/core.md`, `docs/media.md`, etc.) para refletir ambientes reais.
 5. **Qualidade** – configure testes e validações adicionais em `.github/workflows/` conforme necessário.
 
-## Documentação
+<a id="documentacao-e-customizacao-local"></a>
+## Documentação e customização local
 
-Comece pelo [índice em `docs/README.md`](docs/README.md) para entender o panorama geral e escolher o próximo passo. Em seguida, personalize os runbooks específicos da sua stack em [`docs/local/`](docs/local/README.md) mantendo o restante como referência de template.
+Centralize sua navegação pelo [índice em `docs/README.md`](docs/README.md), que organiza o ciclo de vida da stack e indica quando aprofundar cada tópico. Quando precisar registrar runbooks, decisões ou dependências específicas, utilize o diretório [`docs/local/`](docs/local/README.md) como ponto de entrada para os materiais particulares da sua stack.
 
-O índice principal está dividido por etapas do ciclo de vida da stack: primeiro orienta o onboarding e a modelagem inicial, depois organiza referências de infraestrutura, automação e operações, e por fim aponta os materiais para customizações locais. Dessa forma você encontra rapidamente o tipo de conteúdo desejado sem precisar percorrer cada arquivo individualmente.
-
-## Customização local
-
-Repositórios derivados devem concentrar contexto específico em `docs/local/`. O arquivo [`docs/local/README.md`](docs/local/README.md)
-atua como índice para runbooks, decisões e dependências particulares da sua stack. Ao manter este conteúdo isolado tem-se:
-
+Ao concentrar as personalizações nesses materiais você obtém:
 - menos conflitos durante rebases ou merges a partir do template;
-- local dedicado onde encontrar detalhes exclusivos do repositório;
+- um local dedicado onde encontrar detalhes exclusivos do repositório;
 - menos edições neste `README.md`, que permanece alinhado às instruções gerais do template.
 
-Ao personalizar o projeto, priorize as alterações em `docs/local/` e complemente os demais arquivos apenas quando necessário.
+Assim, o restante do template continua servindo como referência e só exige ajustes pontuais quando necessário.
 
 ## Atualizando a partir do template original
 
