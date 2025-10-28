@@ -13,6 +13,7 @@ from scripts.check_env_sync import (
     build_sync_report,
     decode_bash_string,
     load_compose_metadata,
+    load_env_variables,
     main,
     parse_declare_array,
     parse_declare_mapping,
@@ -21,6 +22,36 @@ from tests.helpers.compose_instances import ComposeInstancesData
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SCRIPT_PATH = REPO_ROOT / "scripts" / "check_env_sync.py"
+
+
+def test_load_env_variables_classifies_defined_and_documented_entries(
+    tmp_path: Path,
+) -> None:
+    env_file = tmp_path / ".env"
+    env_file.write_text(
+        "\n".join(
+            [
+                "APP_NAME=value",
+                "export API_KEY=secret",
+                "   export _VALID_UNDERSCORE=1",
+                "# API_URL=documented only",
+                "# export COMMENTED_SECRET=doc",
+                "INVALID-NAME=should-be-ignored",
+                "123INVALID=ignored",
+                "# 1INVALID_COMMENT=also ignored",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    env_data = load_env_variables(env_file)
+
+    assert env_data.defined == {"APP_NAME", "API_KEY", "_VALID_UNDERSCORE"}
+    assert env_data.documented == {"API_URL", "COMMENTED_SECRET"}
+    for invalid_name in {"INVALID-NAME", "123INVALID", "1INVALID_COMMENT"}:
+        assert invalid_name not in env_data.defined
+        assert invalid_name not in env_data.documented
 
 
 def _select_instance(compose_instances_data: ComposeInstancesData) -> str:
