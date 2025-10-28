@@ -126,6 +126,26 @@ def test_check_env_sync_ignores_escaped_dollar_variables(
     assert "SHOULD_NOT_APPEAR_NESTED" not in result.stdout
 
 
+def test_check_env_sync_ignores_variables_in_comments(
+    repo_copy: Path, compose_instances_data: ComposeInstancesData
+) -> None:
+    instance_name = _select_instance(compose_instances_data)
+    compose_file = _resolve_compose_manifest(repo_copy, compose_instances_data, instance_name)
+    content = compose_file.read_text(encoding="utf-8")
+    content += (
+        "\n    environment:\n"
+        "      # ${ONLY_IN_COMMENT}\n"
+        "      COMMENTED_ENV: ${MISSING_FROM_ENV}"
+    )
+    compose_file.write_text(content + "\n", encoding="utf-8")
+
+    result = run_check(repo_copy)
+
+    assert result.returncode == 1
+    assert "MISSING_FROM_ENV" in result.stdout
+    assert "ONLY_IN_COMMENT" not in result.stdout
+
+
 def test_check_env_sync_accepts_local_common_variables(repo_copy: Path) -> None:
     common_example_path = repo_copy / "env" / "common.example.env"
     content = common_example_path.read_text(encoding="utf-8")

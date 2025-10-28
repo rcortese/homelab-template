@@ -8,9 +8,14 @@ import ast
 import re
 import subprocess
 import sys
+from collections.abc import Mapping as MappingCollection
+from collections.abc import Sequence as SequenceCollection
+from collections.abc import Set as SetCollection
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, Iterable, List, Mapping, Sequence, Set
+
+import yaml
 
 RUNTIME_PROVIDED_VARIABLES: Set[str] = {"PWD"}
 # Additional variables implicitly accepted by the project without being listed in
@@ -240,6 +245,23 @@ def _parse_parameter_expression(expression: str) -> Set[str]:
     return variables
 
 
+def _iter_yaml_strings(node: object) -> Iterable[str]:
+    if isinstance(node, str):
+        yield node
+        return
+    if isinstance(node, MappingCollection):
+        for value in node.values():
+            yield from _iter_yaml_strings(value)
+        return
+    if isinstance(node, SequenceCollection) and not isinstance(node, (str, bytes, bytearray)):
+        for item in node:
+            yield from _iter_yaml_strings(item)
+        return
+    if isinstance(node, SetCollection):
+        for item in node:
+            yield from _iter_yaml_strings(item)
+
+
 def extract_compose_variables(paths: Iterable[Path]) -> Set[str]:
     variables: Set[str] = set()
     for path in paths:
@@ -247,7 +269,12 @@ def extract_compose_variables(paths: Iterable[Path]) -> Set[str]:
             content = path.read_text(encoding="utf-8")
         except FileNotFoundError as exc:
             raise ComposeMetadataError(f"Arquivo Compose ausente: {path}") from exc
-        variables.update(_collect_substitution_variables(content))
+        try:
+            for document in yaml.safe_load_all(content):
+                for value in _iter_yaml_strings(document):
+                    variables.update(_collect_substitution_variables(value))
+        except yaml.YAMLError as exc:  # pragma: no cover - defensive parsing fallback
+            raise ComposeMetadataError(f"Falha ao analisar YAML em {path}: {exc}") from exc
     return variables
 
 
