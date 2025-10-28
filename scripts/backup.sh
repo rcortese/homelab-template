@@ -41,6 +41,7 @@ export APP_DATA_DIR_MOUNT="${DEPLOY_CONTEXT[APP_DATA_DIR_MOUNT]}"
 compose_cmd=("$REPO_ROOT/scripts/compose.sh" "$INSTANCE")
 
 stack_was_stopped=0
+restart_failed=0
 declare -a ACTIVE_APP_SERVICES=()
 declare -a KNOWN_APP_NAMES=()
 
@@ -78,18 +79,22 @@ if ((${#KNOWN_APP_NAMES[@]} > 0)) && ((${#ACTIVE_APP_SERVICES[@]} > 0)); then
 fi
 
 restart_stack() {
+  local restart_status=0
   if [[ $stack_was_stopped -eq 1 ]]; then
     if ((${#ACTIVE_APP_SERVICES[@]} > 0)); then
       if "${compose_cmd[@]}" up -d "${ACTIVE_APP_SERVICES[@]}"; then
         echo "[*] Aplicações '${ACTIVE_APP_SERVICES[*]}' reativadas."
       else
         echo "[!] Falha ao religar as aplicações '${ACTIVE_APP_SERVICES[*]}' da instância '$INSTANCE'. Verifique manualmente." >&2
+        restart_failed=1
+        restart_status=1
       fi
     else
       echo "[*] Nenhum serviço será religado; nenhum estava ativo no início do backup."
     fi
     stack_was_stopped=0
   fi
+  return $restart_status
 }
 trap restart_stack EXIT
 
@@ -138,7 +143,11 @@ fi
 echo "[*] Backup da instância '$INSTANCE' concluído em '$backup_dir'."
 
 # religar stack (trap cuida em caso de erro anterior)
-restart_stack
+restart_stack || true
 trap - EXIT
+
+if [[ $restart_failed -eq 1 ]]; then
+  exit 1
+fi
 
 echo "[*] Processo finalizado com sucesso."
