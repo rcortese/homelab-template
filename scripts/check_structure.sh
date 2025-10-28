@@ -40,20 +40,20 @@ require_path() {
   local expected_type="$2"
 
   case "$expected_type" in
-    dir)
-      if [[ ! -d "$path" ]]; then
-        missing+=("$path")
-      fi
-      ;;
-    file)
-      if [[ ! -f "$path" ]]; then
-        missing+=("$path")
-      fi
-      ;;
-    *)
-      printf 'Tipo desconhecido %s para %s\n' "$expected_type" "$path" >&2
-      exit 1
-      ;;
+  dir)
+    if [[ ! -d "$path" ]]; then
+      missing+=("$path")
+    fi
+    ;;
+  file)
+    if [[ ! -f "$path" ]]; then
+      missing+=("$path")
+    fi
+    ;;
+  *)
+    printf 'Tipo desconhecido %s para %s\n' "$expected_type" "$path" >&2
+    exit 1
+    ;;
   esac
 }
 
