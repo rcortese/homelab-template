@@ -13,6 +13,9 @@ source "$VALIDATE_EXECUTOR_DIR/env_helpers.sh"
 # shellcheck source=scripts/lib/compose_plan.sh
 source "$VALIDATE_EXECUTOR_DIR/compose_plan.sh"
 
+# shellcheck source=scripts/lib/compose_file_utils.sh
+source "$VALIDATE_EXECUTOR_DIR/compose_file_utils.sh"
+
 validate_executor_prepare_plan() {
   local instance="$1"
   local repo_root="$2"
