@@ -74,12 +74,15 @@ cd "${REPO_ROOT}"
 
 if ((RUN_LINT)); then
   # Prepara a lista de scripts shell para lint.
-  shopt -s nullglob
-  shell_scripts=("${SCRIPT_DIR}"/*.sh)
-  lib_scripts=("${SCRIPT_DIR}/lib"/*.sh)
-  shopt -u nullglob
+  mapfile -d '' -t raw_shellcheck_targets < <(
+    find "${SCRIPT_DIR}" -type f -name '*.sh' -printf '%d\t%p\0' |
+      sort -z -t $'\t' -k1,1n -k2,2
+  )
 
-  shellcheck_targets=("${shell_scripts[@]}" "${lib_scripts[@]}")
+  shellcheck_targets=()
+  for entry in "${raw_shellcheck_targets[@]}"; do
+    shellcheck_targets+=("${entry#*$'\t'}")
+  done
 
   if ((${#shellcheck_targets[@]} > 0)); then
     "${SHFMT_BIN}" -d "${shellcheck_targets[@]}"
