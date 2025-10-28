@@ -21,6 +21,23 @@ executar `docker compose`.
 | **Aplicação** | `compose/apps/<app>/base.yml` | Declara os serviços adicionais que compõem uma aplicação (ex.: `app`). Usa os anchors definidos em `compose/base.yml`. Substitua `<app>` pelo diretório da sua aplicação principal (ex.: `compose/apps/<sua-app>/base.yml`). É incluído automaticamente para todas as instâncias **quando o arquivo existir**. |
 | **Overrides da aplicação** | `compose/apps/<app>/<instância>.yml` | Especializa os serviços da aplicação para cada ambiente (nome do container, portas, variáveis específicas como `APP_PUBLIC_URL` ou `MEDIA_ROOT`). Cada instância possui um arquivo por aplicação (ex.: `compose/apps/<sua-app>/core.yml`). |
 
+> **Observação:** aplicações que têm apenas `base.yml` são carregadas automaticamente em **todas** as instâncias. Para restringir a execução a um subconjunto específico, crie um override por instância (mesmo que o conteúdo seja apenas `profiles` ou `deploy.replicas: 0`) ou mova os manifests para um diretório override-only.
+
+Exemplo de stub para desativar uma aplicação na instância `media`:
+
+1. Crie o arquivo `compose/apps/<app>/media.yml` (substitua `<app>` pelo diretório real da aplicação).
+2. Insira apenas os campos necessários para ajustar o serviço alvo, como no exemplo abaixo, definindo `deploy.replicas: 0`:
+
+```yaml
+# compose/apps/<app>/media.yml
+services:
+  <serviço-principal>:
+    deploy:
+      replicas: 0
+```
+
+> Ajuste `<serviço-principal>` para o nome do serviço declarado em `compose/apps/<app>/base.yml`. Esse stub mantém o serviço ativo nas demais instâncias (com override próprio) e o desativa apenas em `media`.
+
 ### Exemplos incluídos no template
 
 - [`compose/core.yml`](../compose/core.yml) documenta como adicionar labels para um proxy reverso, conectar os serviços da instância a uma rede externa (`core_proxy`) e declarar volumes nomeados (`core_logs`).
@@ -124,9 +141,13 @@ docker compose \
 - **Manter ativa**: preserve o par `base.yml`/`<instância>.yml` correspondente no
   snippet (ex.: `monitoring` → `-f compose/apps/monitoring/base.yml` +
   `-f compose/apps/monitoring/<instância>.yml`).
-- **Desativar**: remova ambos os arquivos da aplicação desejada. Caso ela não
-  possua `base.yml`, mantenha apenas o override específico da instância conforme
-  anotado no próprio snippet.
+- **Desativar seletivamente**: mantenha um override explícito para cada instância
+  onde o serviço deve ser desligado (ex.: `compose/apps/monitoring/media.yml`
+  com `deploy.replicas: 0` ou `profiles` específicos). Essa abordagem garante
+  que os scripts continuem carregando a aplicação apenas onde ela estiver
+  habilitada e evita a ativação acidental em novas instâncias.
+- **Remover globalmente**: exclua o par de linhas quando a aplicação deixar de
+  fazer parte da stack em **todas** as instâncias.
 - **Adicionar outra aplicação**: replique as duas linhas substituindo
   `<aplicação-opcional>` pelo diretório em `compose/apps/<app>/`.
 
