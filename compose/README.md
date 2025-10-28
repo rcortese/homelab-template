@@ -37,11 +37,12 @@ qualquer combinação.
 | Variável | Onde definir | Finalidade | Referência |
 | --- | --- | --- | --- |
 | `TZ` | `env/common.example.env` | Garante timezone consistente para logs e agendamentos. | [env/README.md](../env/README.md#envcommonexampleenv) |
-| `APP_SECRET` | `env/common.example.env` | Chave compartilhada para criptografia e assinaturas da aplicação principal. | [env/README.md](../env/README.md#envcommonexampleenv) |
 | `APP_DATA_DIR` / `APP_DATA_DIR_MOUNT` | `env/common.example.env` | Define o caminho persistente (relativo ou absoluto) utilizado pelos manifests. | [env/README.md](../env/README.md#envcommonexampleenv) |
+| `APP_SHARED_DATA_VOLUME_NAME` | `env/common.example.env` | Padroniza o volume compartilhado entre múltiplas aplicações. | [env/README.md](../env/README.md#envcommonexampleenv) |
 | `COMPOSE_EXTRA_FILES` | `env/<instância>.example.env` | Lista overlays adicionais aplicados após os manifests padrão. | [env/README.md](../env/README.md#como-gerar-arquivos-locais) |
 
 > Use o [guia completo de variáveis de ambiente](../env/README.md) para revisar a lista atualizada e documentar novos campos.
+> Placeholders do app e do worker de exemplo (como `APP_SECRET`, `APP_RETENTION_HOURS` e `WORKER_QUEUE_URL`) estão detalhados na seção correspondente do [README de `env/`](../env/README.md#placeholders-app-worker).
 
 ## Ferramenta de inspeção
 
