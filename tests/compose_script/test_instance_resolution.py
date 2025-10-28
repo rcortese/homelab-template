@@ -67,6 +67,8 @@ def test_instance_uses_expected_env_and_compose_files(
     app_data_dir = env_records[0].get("APP_DATA_DIR")
     assert app_data_dir == "data/app-core"
 
+    assert env_records[0].get("LOCAL_INSTANCE") == "core"
+
     expected_base = (repo_copy / app_data_dir).resolve()
     mount_value = env_records[0].get("APP_DATA_DIR_MOUNT")
     assert mount_value is not None
@@ -93,6 +95,29 @@ def test_instance_uses_expected_env_and_compose_files(
 
     compose_files = _extract_flag_values(command, "-f")
     assert compose_files == expected_compose_files
+
+
+def test_media_instance_exports_local_instance_and_defaults(
+    repo_copy: Path, docker_stub: DockerStub
+) -> None:
+    result = run_compose_in_repo(repo_copy, args=["media"])
+
+    assert result.returncode == 0
+
+    env_records = docker_stub.read_call_env()
+    assert len(env_records) == 1
+
+    record = env_records[0]
+    assert record.get("LOCAL_INSTANCE") == "media"
+    assert record.get("APP_DATA_DIR") == "data/app-media"
+
+    mount_value = record.get("APP_DATA_DIR_MOUNT")
+    assert mount_value is not None
+    mount_path = Path(mount_value)
+    assert mount_path.is_absolute()
+
+    expected_base = (repo_copy / "data" / "app-media").resolve()
+    assert mount_path.parent == expected_base
 
 
 def test_instance_resolves_manifests_when_invoked_from_scripts_dir(
@@ -135,6 +160,7 @@ def test_instance_with_absolute_app_data_dir(repo_copy: Path, docker_stub: Docke
 
     env_records = docker_stub.read_call_env()
     assert len(env_records) == 1
+    assert env_records[0].get("LOCAL_INSTANCE") == "core"
     expected_relative = absolute_data_dir.relative_to(repo_copy.resolve()).as_posix()
     assert env_records[0].get("APP_DATA_DIR") == expected_relative
     assert env_records[0].get("APP_DATA_DIR_MOUNT") == f"{absolute_data_dir}/app-core"
@@ -156,6 +182,7 @@ def test_instance_with_empty_app_data_dir_falls_back_to_default(
 
     env_records = docker_stub.read_call_env()
     assert len(env_records) == 1
+    assert env_records[0].get("LOCAL_INSTANCE") == "core"
     assert env_records[0].get("APP_DATA_DIR") == "data/app-core"
     expected_mount = (repo_copy / "data" / "app-core" / "app-core").resolve()
     assert env_records[0].get("APP_DATA_DIR_MOUNT") == str(expected_mount)
@@ -175,6 +202,7 @@ def test_instance_with_only_mount_defined(repo_copy: Path, docker_stub: DockerSt
 
     env_records = docker_stub.read_call_env()
     assert len(env_records) == 1
+    assert env_records[0].get("LOCAL_INSTANCE") == "core"
     assert env_records[0].get("APP_DATA_DIR") == "data/app-core"
     mount_path = Path(env_records[0]["APP_DATA_DIR_MOUNT"])
     assert mount_path.is_absolute()

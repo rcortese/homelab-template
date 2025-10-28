@@ -96,6 +96,7 @@ record = {
         \"APP_DATA_DIR\": os.environ.get(\"APP_DATA_DIR\"),
         \"APP_DATA_DIR_MOUNT\": os.environ.get(\"APP_DATA_DIR_MOUNT\"),
         \"APP_DATA_DIR_MOUNT_ABS\": absolute_mount,
+        \"LOCAL_INSTANCE\": os.environ.get(\"LOCAL_INSTANCE\"),
     },
 }
 with log_path.open(\"a\", encoding=\"utf-8\") as handle:

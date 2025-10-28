@@ -278,6 +278,35 @@ else
   derived_app_data_dir_mount="$app_data_dir_mount_value"
 fi
 
+local_instance=""
+if [[ -n "$INSTANCE_NAME" ]]; then
+  local_instance="$INSTANCE_NAME"
+elif ((${#COMPOSE_ENV_FILES_LIST[@]} > 0)); then
+  for ((index = ${#COMPOSE_ENV_FILES_LIST[@]} - 1; index >= 0; index -= 1)); do
+    candidate="${COMPOSE_ENV_FILES_LIST[$index]}"
+    [[ -z "$candidate" ]] && continue
+
+    filename="${candidate##*/}"
+
+    case "$filename" in
+    common.env | common.example.env)
+      continue
+      ;;
+    esac
+
+    if [[ "$filename" == *.example.env ]]; then
+      filename="${filename%.example.env}"
+    elif [[ "$filename" == *.env ]]; then
+      filename="${filename%.env}"
+    fi
+
+    if [[ -n "$filename" ]]; then
+      local_instance="$filename"
+      break
+    fi
+  done
+fi
+
 if ! cd "$REPO_ROOT"; then
   echo "Error: não foi possível acessar o diretório do repositório: $REPO_ROOT" >&2
   exit 1
@@ -313,6 +342,9 @@ if [[ -n "$derived_app_data_dir" ]]; then
 fi
 if [[ -n "$derived_app_data_dir_mount" ]]; then
   env_prefix+=("APP_DATA_DIR_MOUNT=$derived_app_data_dir_mount")
+fi
+if [[ -n "$local_instance" ]]; then
+  env_prefix+=("LOCAL_INSTANCE=$local_instance")
 fi
 
 if ((${#env_prefix[@]} > 0)); then
