@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 import subprocess
-import textwrap
-
 import pytest
 
 from .utils import REPO_ROOT, SCRIPT_PATH
@@ -18,24 +16,28 @@ def test_help_option_displays_usage_and_exits_successfully(flag: str) -> None:
         cwd=REPO_ROOT,
     )
 
-    expected_help = textwrap.dedent(
-        """\
-        Uso: scripts/validate_compose.sh
-
-        Valida as instâncias definidas para o repositório garantindo que `docker compose config`
-        execute com sucesso para cada combinação de arquivos base + instância.
-
-        Argumentos posicionais:
-          (nenhum)
-
-        Variáveis de ambiente relevantes:
-          DOCKER_COMPOSE_BIN  Sobrescreve o comando docker compose (ex.: docker-compose).
-          COMPOSE_INSTANCES   Lista de instâncias a validar (separadas por espaço ou vírgula). Default: todas.
-
-        Exemplos:
-          scripts/validate_compose.sh
-          COMPOSE_INSTANCES="media" scripts/validate_compose.sh
-        """
+    expected_help = "\n".join(
+        [
+            "Uso: scripts/validate_compose.sh",
+            "",
+            "Valida as instâncias definidas para o repositório garantindo que `docker compose config`",
+            "execute com sucesso para cada combinação de arquivos base + instância.",
+            "",
+            "Argumentos posicionais:",
+            "  (nenhum)",
+            "",
+            "Variáveis de ambiente relevantes:",
+            "  DOCKER_COMPOSE_BIN  Sobrescreve o comando docker compose (ex.: docker-compose).",
+            "  COMPOSE_INSTANCES   Lista de instâncias a validar (separadas por espaço ou vírgula). Default: todas.",
+            "  COMPOSE_EXTRA_FILES Lista opcional de overlays extras aplicados após o override padrão (aceita espaços ou vírgulas).",
+            "",
+            "Exemplos:",
+            "  scripts/validate_compose.sh",
+            "  COMPOSE_INSTANCES=\"media\" scripts/validate_compose.sh",
+            "  COMPOSE_EXTRA_FILES=\"compose/overlays/metrics.yml compose/overlays/auditing.yml\" \\",
+            "    scripts/validate_compose.sh",
+            "",
+        ]
     )
 
     assert result.returncode == 0
