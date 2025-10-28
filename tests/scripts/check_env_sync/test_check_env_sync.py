@@ -398,6 +398,72 @@ def test_main_filters_instances_before_build(monkeypatch, tmp_path: Path) -> Non
     assert set(filtered_metadata.app_base_by_name.keys()) == {"app_beta"}
 
 
+def test_build_sync_report_handles_shared_base(tmp_path: Path) -> None:
+    repo_root = tmp_path
+    base_file = repo_root / "compose" / "base.yml"
+    base_file.parent.mkdir(parents=True, exist_ok=True)
+    base_file.write_text(
+        """
+services:
+  shared:
+    environment:
+      SHARED_VAR: ${SHARED_VAR}
+""".strip(),
+        encoding="utf-8",
+    )
+
+    overrides_dir = repo_root / "compose" / "overrides"
+    overrides_dir.mkdir(parents=True, exist_ok=True)
+    core_override = overrides_dir / "core.yml"
+    core_override.write_text(
+        """
+services:
+  core:
+    environment:
+      CORE_ONLY_VAR: ${CORE_ONLY_VAR}
+""".strip(),
+        encoding="utf-8",
+    )
+    media_override = overrides_dir / "media.yml"
+    media_override.write_text(
+        """
+services:
+  media:
+    environment:
+      MEDIA_ONLY_VAR: ${MEDIA_ONLY_VAR}
+""".strip(),
+        encoding="utf-8",
+    )
+
+    env_dir = repo_root / "env"
+    env_dir.mkdir(parents=True, exist_ok=True)
+    core_env = env_dir / "core.example.env"
+    core_env.write_text("SHARED_VAR=\nCORE_ONLY_VAR=\n", encoding="utf-8")
+    media_env = env_dir / "media.example.env"
+    media_env.write_text("SHARED_VAR=\nMEDIA_ONLY_VAR=\n", encoding="utf-8")
+
+    metadata = ComposeMetadata(
+        base_file=base_file.resolve(),
+        instances=["core", "media"],
+        files_by_instance={
+            "core": [core_override.resolve()],
+            "media": [media_override.resolve()],
+        },
+        app_names_by_instance={"core": [], "media": []},
+        env_template_by_instance={
+            "core": core_env.resolve(),
+            "media": media_env.resolve(),
+        },
+        app_base_by_name={},
+    )
+
+    report = build_sync_report(repo_root, metadata)
+
+    assert report.missing_by_instance == {"core": set(), "media": set()}
+    assert report.unused_by_file == {}
+    assert report.missing_templates == []
+
+
 def test_decode_bash_string_handles_dollar_single_quotes() -> None:
     token = "$'multi\\nline\\tvalue'"
 
