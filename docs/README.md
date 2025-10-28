@@ -19,6 +19,7 @@ utilize [`docs/local/`](./local/README.md) e apenas referencie esses materiais q
 ## Operação
 
 - [Operações e scripts padrão](./OPERATIONS.md) — Adapte os utilitários fornecidos para o seu projeto.
+- [Entrypoints de automação](../scripts/README.md) — Resumo dos entrypoints de automação disponíveis no diretório `scripts/`.
 - [Combinações de manifests Compose](./COMPOSE_GUIDE.md) — Organize sobreposições e perfis para cenários distintos.
 - [Backup & restauração genéricos](./BACKUP_RESTORE.md) — Estratégias de export/import aplicáveis a qualquer stack.
 
