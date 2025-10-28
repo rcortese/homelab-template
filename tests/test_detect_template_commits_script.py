@@ -198,10 +198,9 @@ def test_detect_template_commits_respects_custom_output(tmp_path):
     assert f"FIRST_COMMIT_ID={first_commit}" in content
 
 
-def test_detect_template_commits_no_fetch_skips_fetch_invocation(tmp_path):
-    consumer, script, remote_name, original_commit, first_commit = bootstrap_consumer_repository(tmp_path)
+def create_git_stub(tmp_path):
     stub_dir = tmp_path / "git-stub"
-    stub_dir.mkdir()
+    stub_dir.mkdir(exist_ok=True)
     log_file = tmp_path / "git-stub.log"
     real_git = shutil.which("git")
 
@@ -223,6 +222,13 @@ def test_detect_template_commits_no_fetch_skips_fetch_invocation(tmp_path):
             "GIT_STUB_LOG": str(log_file),
         }
     )
+
+    return env, log_file
+
+
+def test_detect_template_commits_no_fetch_skips_fetch_invocation(tmp_path):
+    consumer, script, remote_name, original_commit, first_commit = bootstrap_consumer_repository(tmp_path)
+    env, log_file = create_git_stub(tmp_path)
 
     # PATH prioritizes our stub so the test can observe which git subcommands are
     # executed, while REAL_GIT keeps merge-base, rev-list e afins funcionando
@@ -251,6 +257,35 @@ def test_detect_template_commits_no_fetch_skips_fetch_invocation(tmp_path):
     log_lines = [line.strip() for line in log_file.read_text(encoding="utf-8").splitlines() if line.strip()]
     assert log_lines, "expected git stub to record executed subcommands"
     assert all(line.split()[0] != "fetch" for line in log_lines)
+
+
+def test_detect_template_commits_runs_fetch_by_default(tmp_path):
+    consumer, script, remote_name, original_commit, first_commit = bootstrap_consumer_repository(tmp_path)
+    env, log_file = create_git_stub(tmp_path)
+
+    result = subprocess.run(
+        [
+            str(script),
+            "--remote",
+            remote_name,
+            "--target-branch",
+            "main",
+        ],
+        cwd=consumer,
+        text=True,
+        capture_output=True,
+        check=False,
+        env=env,
+    )
+
+    assert result.returncode == 0
+    assert f"ORIGINAL_COMMIT_ID={original_commit}" in result.stdout
+    assert f"FIRST_COMMIT_ID={first_commit}" in result.stdout
+
+    assert log_file.exists()
+    log_lines = [line.strip() for line in log_file.read_text(encoding="utf-8").splitlines() if line.strip()]
+    assert log_lines, "expected git stub to record executed subcommands"
+    assert any(line.split()[0] == "fetch" for line in log_lines), "expected git fetch to be invoked"
 
 
 def test_detect_template_commits_fails_outside_git_repo(tmp_path):
