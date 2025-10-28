@@ -18,10 +18,15 @@ Argumentos posicionais:
 Variáveis de ambiente relevantes:
   DOCKER_COMPOSE_BIN  Sobrescreve o comando docker compose (ex.: docker-compose).
   COMPOSE_INSTANCES   Lista de instâncias a validar (separadas por espaço ou vírgula). Default: todas.
+  COMPOSE_EXTRA_FILES Overlays extras aplicados após o override padrão (aceita espaços ou vírgulas).
 
 Exemplos:
   scripts/validate_compose.sh
   COMPOSE_INSTANCES="media" scripts/validate_compose.sh
+  COMPOSE_EXTRA_FILES="compose/overlays/metrics.yml" scripts/validate_compose.sh
+  COMPOSE_INSTANCES="media" \
+    COMPOSE_EXTRA_FILES="compose/overlays/logging.yml compose/overlays/metrics.yml" \
+    scripts/validate_compose.sh
 HELP
 }
 
