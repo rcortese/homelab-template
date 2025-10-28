@@ -251,6 +251,86 @@ def test_build_sync_report_uses_runtime_provided_variables(
     assert "PWD" in missing_without_runtime
 
 
+def test_build_sync_report_handles_shared_base_with_cache(tmp_path: Path) -> None:
+    repo_root = tmp_path
+    base_file = repo_root / "compose" / "base.yml"
+    shared_app_base = repo_root / "compose" / "apps" / "shared" / "base.yml"
+    alpha_override = repo_root / "compose" / "alpha.yml"
+    beta_override = repo_root / "compose" / "beta.yml"
+
+    shared_app_base.parent.mkdir(parents=True, exist_ok=True)
+    base_file.parent.mkdir(parents=True, exist_ok=True)
+
+    base_file.write_text(
+        """
+services:
+  base:
+    environment:
+      BASE_VAR: ${BASE_VAR}
+""".strip()
+        + "\n",
+        encoding="utf-8",
+    )
+    shared_app_base.write_text(
+        """
+services:
+  shared:
+    environment:
+      SHARED_APP_VAR: ${SHARED_APP_VAR}
+""".strip()
+        + "\n",
+        encoding="utf-8",
+    )
+    alpha_override.write_text(
+        """
+services:
+  alpha:
+    environment:
+      ALPHA_ONLY: ${ALPHA_ONLY}
+""".strip()
+        + "\n",
+        encoding="utf-8",
+    )
+    beta_override.write_text(
+        """
+services:
+  beta:
+    environment:
+      BETA_ONLY: ${BETA_ONLY}
+""".strip()
+        + "\n",
+        encoding="utf-8",
+    )
+
+    env_dir = repo_root / "env"
+    env_dir.mkdir(parents=True, exist_ok=True)
+    alpha_env = env_dir / "alpha.example.env"
+    beta_env = env_dir / "beta.example.env"
+    alpha_env.write_text("BASE_VAR=1\nSHARED_APP_VAR=1\n", encoding="utf-8")
+    beta_env.write_text("BASE_VAR=1\nSHARED_APP_VAR=1\n", encoding="utf-8")
+
+    metadata = ComposeMetadata(
+        base_file=base_file,
+        instances=["alpha", "beta"],
+        files_by_instance={"alpha": [alpha_override], "beta": [beta_override]},
+        app_names_by_instance={"alpha": ["shared"], "beta": ["shared"]},
+        env_template_by_instance={"alpha": alpha_env, "beta": beta_env},
+        app_base_by_name={"shared": shared_app_base},
+    )
+
+    first_report = build_sync_report(repo_root, metadata)
+    second_report = build_sync_report(repo_root, metadata)
+
+    assert first_report.missing_by_instance["alpha"] == {"ALPHA_ONLY"}
+    assert first_report.missing_by_instance["beta"] == {"BETA_ONLY"}
+    assert not first_report.unused_by_file
+    assert not first_report.missing_templates
+
+    assert second_report.missing_by_instance == first_report.missing_by_instance
+    assert second_report.unused_by_file == first_report.unused_by_file
+    assert second_report.missing_templates == first_report.missing_templates
+
+
 def test_check_env_sync_reports_unknown_instance(repo_copy: Path) -> None:
     result = run_check(repo_copy, ["--instance", "unknown-instance"])
 
