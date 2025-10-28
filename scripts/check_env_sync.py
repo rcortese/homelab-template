@@ -419,7 +419,54 @@ def parse_args(argv: Sequence[str]) -> argparse.Namespace:
         default=None,
         help="Diretório raiz do repositório (padrão: diretório pai de scripts/).",
     )
+    parser.add_argument(
+        "--instance",
+        dest="instances",
+        metavar="NOME",
+        action="append",
+        default=None,
+        help="Restringe a validação às instâncias informadas (pode ser repetido).",
+    )
     return parser.parse_args(argv)
+
+
+def _filter_metadata_by_instances(metadata: ComposeMetadata, selected: Sequence[str]) -> ComposeMetadata:
+    if not selected:
+        return metadata
+
+    normalized: List[str] = []
+    seen: Set[str] = set()
+    for entry in selected:
+        if entry in seen:
+            continue
+        normalized.append(entry)
+        seen.add(entry)
+
+    available = set(metadata.instances)
+    missing = [name for name in normalized if name not in available]
+    if missing:
+        missing_list = ", ".join(sorted(missing))
+        raise ComposeMetadataError(f"Instâncias desconhecidas: {missing_list}")
+
+    allowed = set(normalized)
+    filtered_instances = [name for name in metadata.instances if name in allowed]
+
+    files_by_instance = {name: metadata.files_by_instance[name] for name in filtered_instances}
+    app_names_by_instance = {
+        name: metadata.app_names_by_instance.get(name, []) for name in filtered_instances
+    }
+    env_template_by_instance = {
+        name: metadata.env_template_by_instance.get(name) for name in filtered_instances
+    }
+
+    return ComposeMetadata(
+        base_file=metadata.base_file,
+        instances=filtered_instances,
+        files_by_instance=files_by_instance,
+        app_names_by_instance=app_names_by_instance,
+        env_template_by_instance=env_template_by_instance,
+        app_base_by_name=metadata.app_base_by_name,
+    )
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -428,6 +475,7 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     try:
         metadata = load_compose_metadata(repo_root)
+        metadata = _filter_metadata_by_instances(metadata, args.instances or [])
         report = build_sync_report(repo_root, metadata)
     except ComposeMetadataError as exc:
         print(f"[!] {exc}", file=sys.stderr)

@@ -2,6 +2,9 @@ from __future__ import annotations
 
 import subprocess
 from pathlib import Path
+from typing import Sequence
+
+import pytest
 
 from scripts.check_env_sync import (
     build_sync_report,
@@ -49,9 +52,15 @@ def _resolve_env_template(
     return repo_root / "env" / f"{instance_name}.example.env"
 
 
-def run_check(repo_root: Path) -> subprocess.CompletedProcess[str]:
+def run_check(
+    repo_root: Path, extra_args: Sequence[str] | None = None
+) -> subprocess.CompletedProcess[str]:
+    command = [str(SCRIPT_PATH), "--repo-root", str(repo_root)]
+    if extra_args:
+        command.extend(extra_args)
+
     return subprocess.run(
-        [str(SCRIPT_PATH), "--repo-root", str(repo_root)],
+        command,
         capture_output=True,
         text=True,
         check=False,
@@ -229,6 +238,45 @@ EOF
     assert "[!]" in result.stderr
     assert "Arquivo Compose ausente" in result.stderr
     assert str(missing_path) in result.stderr
+
+
+def test_check_env_sync_filters_selected_instances(
+    repo_copy: Path, compose_instances_data: ComposeInstancesData
+) -> None:
+    metadata = load_compose_metadata(repo_copy)
+    if len(metadata.instances) < 2:
+        pytest.skip("Requer pelo menos duas instâncias Compose para validar o filtro.")
+
+    target = metadata.instances[0]
+    affected = metadata.instances[1]
+
+    compose_file = _resolve_compose_manifest(repo_copy, compose_instances_data, affected)
+    content = compose_file.read_text(encoding="utf-8")
+    content += "\n      FILTER_ONLY_MISSING: ${FILTER_ONLY_MISSING}"
+    compose_file.write_text(content, encoding="utf-8")
+
+    failing = run_check(repo_copy)
+    assert failing.returncode == 1
+    assert affected in failing.stdout
+    assert "FILTER_ONLY_MISSING" in failing.stdout
+
+    filtered = run_check(repo_copy, ["--instance", target])
+    assert filtered.returncode == 0, filtered.stderr
+    assert affected not in filtered.stdout
+    assert "FILTER_ONLY_MISSING" not in filtered.stdout
+    assert "Todas as variáveis de ambiente estão sincronizadas." in filtered.stdout
+
+    combined = run_check(repo_copy, ["--instance", target, "--instance", affected])
+    assert combined.returncode == 1
+    assert "FILTER_ONLY_MISSING" in combined.stdout
+
+
+def test_check_env_sync_rejects_unknown_instance(repo_copy: Path) -> None:
+    result = run_check(repo_copy, ["--instance", "instancia-inexistente"])
+
+    assert result.returncode == 1
+    assert "Instâncias desconhecidas" in result.stderr
+    assert "instancia-inexistente" in result.stderr
 
 
 def test_decode_bash_string_handles_dollar_single_quotes() -> None:
