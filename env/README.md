@@ -44,6 +44,8 @@ Monte uma tabela semelhante à abaixo para cada arquivo `env/<alvo>.example.env`
 
 > **Nota:** o diretório persistente principal segue a convenção `data/<app>-<instância>`, considerando a aplicação principal (primeira da lista em `COMPOSE_INSTANCE_APP_NAMES`). Deixe `APP_DATA_DIR` e `APP_DATA_DIR_MOUNT` em branco para usar automaticamente esse fallback relativo. Informe **apenas um** deles quando precisar personalizar o caminho (relativo ou absoluto, respectivamente); os scripts retornam erro se ambos estiverem definidos ao mesmo tempo. Ajuste `APP_DATA_UID` e `APP_DATA_GID` para alinhar permissões.
 
+> **Novo fluxo (`LOCAL_INSTANCE`)**: os wrappers (`scripts/compose.sh`, `scripts/deploy_instance.sh`, etc.) exportam automaticamente `LOCAL_INSTANCE` com base no arquivo `.env` da instância ativa (ex.: `core`, `media`). Essa variável substitui o sufixo de `data/app-<instância>` nos manifests. Ao executar `docker compose` diretamente, exporte `LOCAL_INSTANCE=<instância>` antes do comando ou reutilize os scripts para evitar divergências de diretórios.
+
 ## Boas práticas
 
 - **Padronize nomes**: utilize prefixos (`APP_`, `DB_`, `CACHE_`) para agrupar responsabilidades.

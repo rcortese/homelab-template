@@ -155,7 +155,10 @@ docker compose \
 > arquivos `.env` usada pelos scripts (`env/local/common.env` seguido de
 > `env/local/<instância>.env`). Consulte o passo a passo em
 > [`env/README.md#como-gerar-arquivos-locais`](../env/README.md#como-gerar-arquivos-locais)
-> para garantir que variáveis globais obrigatórias não sejam omitidas.
+> para garantir que variáveis globais obrigatórias não sejam omitidas. Além
+> disso, exporte `LOCAL_INSTANCE=<instância>` (o wrapper faz isso automaticamente)
+> antes de chamar `docker compose` para preservar o sufixo `data/app-<instância>`
+> nos volumes.
 
 As diferenças entre as instâncias principais ficam concentradas nos arquivos
 carregados e nas variáveis apontadas pelo comando acima:
