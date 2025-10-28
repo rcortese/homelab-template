@@ -419,6 +419,15 @@ def parse_args(argv: Sequence[str]) -> argparse.Namespace:
         default=None,
         help="Diretório raiz do repositório (padrão: diretório pai de scripts/).",
     )
+    parser.add_argument(
+        "--instance",
+        dest="instances",
+        action="append",
+        default=None,
+        help=(
+            "Restringe a validação às instâncias informadas. Pode ser repetido ou receber uma lista separada por vírgulas."
+        ),
+    )
     return parser.parse_args(argv)
 
 
@@ -428,6 +437,62 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     try:
         metadata = load_compose_metadata(repo_root)
+        if args.instances:
+            requested_instances: List[str] = []
+            seen: Set[str] = set()
+            for raw_value in args.instances:
+                parts = [part.strip() for part in raw_value.split(",") if part.strip()]
+                if not parts:
+                    continue
+                for candidate in parts:
+                    if candidate not in seen:
+                        requested_instances.append(candidate)
+                        seen.add(candidate)
+
+            if not requested_instances:
+                print("[!] Nenhuma instância válida foi informada.", file=sys.stderr)
+                return 1
+
+            known_instances = set(metadata.instances)
+            missing_instances = sorted(set(requested_instances) - known_instances)
+            if missing_instances:
+                formatted = ", ".join(missing_instances)
+                print(f"[!] Instâncias desconhecidas: {formatted}.", file=sys.stderr)
+                return 1
+
+            filtered_instances = [
+                instance for instance in metadata.instances if instance in seen
+            ]
+            files_by_instance = {
+                instance: metadata.files_by_instance[instance]
+                for instance in filtered_instances
+            }
+            app_names_by_instance = {
+                instance: metadata.app_names_by_instance.get(instance, [])
+                for instance in filtered_instances
+            }
+            env_template_by_instance = {
+                instance: metadata.env_template_by_instance.get(instance)
+                for instance in filtered_instances
+            }
+            relevant_apps: Set[str] = set()
+            for names in app_names_by_instance.values():
+                relevant_apps.update(names)
+            app_base_by_name = {
+                app: path
+                for app, path in metadata.app_base_by_name.items()
+                if app in relevant_apps
+            }
+
+            metadata = ComposeMetadata(
+                base_file=metadata.base_file,
+                instances=filtered_instances,
+                files_by_instance=files_by_instance,
+                app_names_by_instance=app_names_by_instance,
+                env_template_by_instance=env_template_by_instance,
+                app_base_by_name=app_base_by_name,
+            )
+
         report = build_sync_report(repo_root, metadata)
     except ComposeMetadataError as exc:
         print(f"[!] {exc}", file=sys.stderr)
