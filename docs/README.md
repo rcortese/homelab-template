@@ -36,6 +36,10 @@ utilize [`docs/local/`](./local/README.md) e apenas referencie esses materiais q
 - [Modelo de runbook primário](./core.md) — Estruture o runbook do ambiente principal do seu serviço.
 - [Modelo de runbook auxiliar](./media.md) — Como documentar ambientes de suporte ou workloads especializados.
 
+## Aplicações
+
+- [Runbooks de aplicações](./apps/README.md) — Concentre aqui os runbooks específicos de cada serviço e garanta que forks mantenham o índice de apps sempre atualizado.
+
 ## Decisões arquiteturais
 
 - [Registro de decisões](./ADR/0001-multi-environment-structure.md) — Exemplo de ADR adaptável para documentar cenários multiambiente.

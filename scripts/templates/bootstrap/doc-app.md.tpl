@@ -1,6 +1,6 @@
 # {{APP_TITLE}} ({{APP}})
 
-> Substitua os blocos abaixo com detalhes reais da aplicação assim que o bootstrap for concluído.
+> Substitua os blocos abaixo com detalhes reais da aplicação assim que o bootstrap for concluído. Consulte `docs/apps/README.md` para orientações gerais sobre como manter os runbooks de aplicações organizados.
 
 ## Visão geral
 
