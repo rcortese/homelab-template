@@ -82,8 +82,32 @@ if ((RUN_LINT)); then
   shellcheck_targets=("${shell_scripts[@]}" "${lib_scripts[@]}")
 
   if ((${#shellcheck_targets[@]} > 0)); then
-    "${SHFMT_BIN}" -d "${shellcheck_targets[@]}"
+    shfmt_diff_found=0
+    shfmt_output=""
+
+    set +e
+    shfmt_output="$("${SHFMT_BIN}" -d "${shellcheck_targets[@]}")"
+    shfmt_status=$?
+    set -e
+
+    if ((shfmt_status != 0)); then
+      if [[ -n "${shfmt_output}" ]]; then
+        printf '%s\n' "${shfmt_output}"
+      fi
+      exit "${shfmt_status}"
+    fi
+
+    if [[ -n "${shfmt_output}" ]]; then
+      printf '%s\n' "${shfmt_output}"
+      shfmt_diff_found=1
+    fi
+
     "${SHELLCHECK_BIN}" "${shellcheck_targets[@]}"
     "${CHECKBASHISMS_BIN}" "${shellcheck_targets[@]}"
+
+    if ((shfmt_diff_found)); then
+      echo "Erro: shfmt encontrou diferenças de formatação." >&2
+      exit 1
+    fi
   fi
 fi

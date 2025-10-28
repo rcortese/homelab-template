@@ -21,7 +21,13 @@ def _copy_script(tmp_dir: Path) -> Path:
     return dest
 
 
-def _create_executable(path: Path, *, log_file: Path, exit_code: int = 0) -> None:
+def _create_executable(
+    path: Path,
+    *,
+    log_file: Path,
+    exit_code: int = 0,
+    stdout: str = "",
+) -> None:
     """Create a generic executable that logs its invocation."""
 
     log_target = str(log_file)
@@ -31,6 +37,14 @@ def _create_executable(path: Path, *, log_file: Path, exit_code: int = 0) -> Non
         f"echo {path.name!r} >> {log_target!r}",
         f"for arg in \"$@\"; do echo \"$arg\" >> {log_target!r}; done",
     ]
+    if stdout:
+        lines.extend(
+            [
+                "cat <<'__STDOUT__'",
+                stdout,
+                "__STDOUT__",
+            ]
+        )
     if exit_code:
         lines.append(f"exit {exit_code}")
     else:
@@ -46,6 +60,7 @@ def _prepare_repo(
     python_exit: int = 0,
     shellcheck_exit: int = 0,
     shfmt_exit: int = 0,
+    shfmt_stdout: str = "",
     checkbashisms_exit: int = 0,
 ) -> tuple[Path, Path, Path]:
     """Set up a temporary repository with stubbed executables."""
@@ -68,7 +83,12 @@ def _prepare_repo(
 
     _create_executable(python_stub, log_file=log_file, exit_code=python_exit)
     _create_executable(shellcheck_stub, log_file=log_file, exit_code=shellcheck_exit)
-    _create_executable(shfmt_stub, log_file=log_file, exit_code=shfmt_exit)
+    _create_executable(
+        shfmt_stub,
+        log_file=log_file,
+        exit_code=shfmt_exit,
+        stdout=shfmt_stdout,
+    )
     _create_executable(
         checkbashisms_stub,
         log_file=log_file,
@@ -208,6 +228,38 @@ def test_run_quality_checks_fails_when_shfmt_fails(tmp_path: Path) -> None:
         "pytest",
         "shfmt",
         "-d",
+        str(repo_dir / "scripts" / "check_all.sh"),
+        str(repo_dir / "scripts" / "run_quality_checks.sh"),
+        str(repo_dir / "scripts" / "lib" / "helpers.sh"),
+    ]
+
+
+def test_run_quality_checks_fails_when_shfmt_outputs_diff(tmp_path: Path) -> None:
+    """If shfmt prints a diff, the wrapper should fail after other linters."""
+
+    diff_output = "fake-diff"
+    script, log_file, repo_dir = _prepare_repo(tmp_path, shfmt_stdout=diff_output)
+    env = _build_env(repo_dir)
+
+    result = _run_script(script, repo_dir, env)
+
+    assert result.returncode == 1
+    assert result.stdout.strip() == diff_output
+    assert "Erro: shfmt encontrou diferenças de formatação." in result.stderr
+    assert log_file.read_text(encoding="utf-8").splitlines() == [
+        "python",
+        "-m",
+        "pytest",
+        "shfmt",
+        "-d",
+        str(repo_dir / "scripts" / "check_all.sh"),
+        str(repo_dir / "scripts" / "run_quality_checks.sh"),
+        str(repo_dir / "scripts" / "lib" / "helpers.sh"),
+        "shellcheck",
+        str(repo_dir / "scripts" / "check_all.sh"),
+        str(repo_dir / "scripts" / "run_quality_checks.sh"),
+        str(repo_dir / "scripts" / "lib" / "helpers.sh"),
+        "checkbashisms",
         str(repo_dir / "scripts" / "check_all.sh"),
         str(repo_dir / "scripts" / "run_quality_checks.sh"),
         str(repo_dir / "scripts" / "lib" / "helpers.sh"),
