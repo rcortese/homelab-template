@@ -135,6 +135,10 @@ compose_app_dir="$BASE_DIR/compose/apps/$APP_NAME"
 compose_base_file="$compose_app_dir/base.yml"
 compose_instance_file="$compose_app_dir/$INSTANCE_NAME.yml"
 env_example_file="$BASE_DIR/env/${INSTANCE_NAME}.example.env"
+create_env_example=1
+if [[ -e $env_example_file ]]; then
+  create_env_example=0
+fi
 docs_apps_dir="$BASE_DIR/docs/apps"
 app_doc_file="$docs_apps_dir/$APP_NAME.md"
 docs_readme_file="$BASE_DIR/docs/README.md"
@@ -148,9 +152,9 @@ fi
 
 conflicts=()
 if [[ $SKIP_BASE -eq 0 ]]; then
-  targets=("$compose_base_file" "$compose_instance_file" "$env_example_file")
+  targets=("$compose_base_file" "$compose_instance_file")
 else
-  targets=("$compose_instance_file" "$env_example_file")
+  targets=("$compose_instance_file")
 fi
 
 for target in "${targets[@]}"; do
@@ -205,7 +209,11 @@ if [[ $SKIP_BASE -eq 0 ]]; then
   render_template "compose-base.yml.tpl" "$compose_base_file"
 fi
 render_template "compose-instance.yml.tpl" "$compose_instance_file"
-render_template "env-example.tpl" "$env_example_file"
+if [[ $create_env_example -eq 1 ]]; then
+  render_template "env-example.tpl" "$env_example_file"
+else
+  echo "[*] Arquivo de variáveis env/${INSTANCE_NAME}.example.env já existe; mantendo inalterado."
+fi
 
 if [[ $SKIP_BASE -eq 1 ]]; then
   if [[ $OVERRIDE_ONLY -eq 1 ]]; then
@@ -241,7 +249,9 @@ if [[ $SKIP_BASE -eq 0 ]]; then
   printf '  - %s\n' "${compose_base_file#"$BASE_DIR"/}"
 fi
 printf '  - %s\n' "${compose_instance_file#"$BASE_DIR"/}"
-printf '  - %s\n' "${env_example_file#"$BASE_DIR"/}"
+if [[ $create_env_example -eq 1 ]]; then
+  printf '  - %s\n' "${env_example_file#"$BASE_DIR"/}"
+fi
 if [[ $WITH_DOCS -eq 1 ]]; then
   printf '  - %s\n' "${app_doc_file#"$BASE_DIR"/}"
 fi
