@@ -4,7 +4,8 @@
 
 Este guia documenta como montar o manifesto do Docker Compose usando apenas o
 arquivo base, o override global da instância e os manifests específicos de
-cada aplicação. Siga estas instruções antes de
+cada aplicação. Para uma visão resumida da ordem de carregamento, consulte o
+[README de `compose/`](../compose/README.md). Siga estas instruções antes de
 executar `docker compose`.
 
 > **Atenção para forks:** todos os caminhos `compose/...` mostrados aqui são
