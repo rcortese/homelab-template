@@ -449,6 +449,64 @@ def test_recovers_corrupted_database(
     assert compose_log.read_text(encoding="utf-8").count("unpause") == 1
 
 
+def test_json_output_reports_corrupted_database_alerts(
+    repo_copy: Path,
+    compose_stub: tuple[Path, Path],
+    sqlite_stub: tuple[Path, Path, Path],
+) -> None:
+    compose_stub_path, compose_log = compose_stub
+    sqlite_stub_path, sqlite_config, sqlite_log = sqlite_stub
+
+    data_dir = repo_copy / "data"
+    data_dir.mkdir()
+    db_path = data_dir / "app.db"
+    db_path.write_text("original", encoding="utf-8")
+
+    config = {
+        str(db_path): {
+            "integrity": {"stdout": "malformed", "returncode": 0},
+            "recover": {"stderr": "simulated recover failure", "returncode": 1},
+        }
+    }
+    sqlite_config.write_text(json.dumps(config), encoding="utf-8")
+
+    result = _run_script(
+        repo_copy,
+        compose_stub_path,
+        compose_log,
+        sqlite_stub_path,
+        sqlite_config,
+        sqlite_log,
+        "core",
+        "--format",
+        "json",
+        env={"COMPOSE_STUB_SERVICES": "app"},
+    )
+
+    assert result.returncode == 2
+    assert "Falha ao recuperar" in result.stderr
+
+    payload = json.loads(result.stdout)
+    assert payload["format"] == "json"
+    assert payload["overall_status"] == 2
+
+    expected_alerts = [
+        f"Falha de integridade: malformed em {db_path}",
+        f"Banco '{db_path}' permanece corrompido: sqlite3 .recover falhou: simulated recover failure",
+    ]
+    assert payload["alerts"] == expected_alerts
+
+    databases = {entry["path"]: entry for entry in payload["databases"]}
+    assert str(db_path) in databases
+    entry = databases[str(db_path)]
+    assert entry["status"] == "failed"
+    assert entry["message"] == "Falha de integridade: malformed"
+    assert (
+        entry["action"]
+        == "Recuperação automática falhou: sqlite3 .recover falhou: simulated recover failure"
+    )
+
+
 def test_writes_text_report_to_output_file(
     repo_copy: Path,
     compose_stub: tuple[Path, Path],
