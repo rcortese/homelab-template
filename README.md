@@ -31,6 +31,16 @@ Pipelines de CI/CD, testes e scripts adicionais podem ser adicionados, mas os di
 4. Ajuste a documentação em `docs/` seguindo as orientações descritas na seção [Documentação e customização local](#documentacao-e-customizacao-local) deste template.
 5. Execute o fluxo de validação (`scripts/check_all.sh`) antes do primeiro commit.
 
+Após o bootstrap, você já pode validar a stack localmente para garantir que os serviços iniciais sobem conforme o esperado.
+
+```bash
+scripts/bootstrap_instance.sh app core
+scripts/compose.sh core up -d
+scripts/check_health.sh core
+```
+
+Lembre-se de ajustar os valores `<app>`/`core` para refletir os perfis do seu fork e consulte [`docs/OPERATIONS.md`](docs/OPERATIONS.md) para instruções detalhadas.
+
 ## Fluxo sugerido para novos repositórios
 
 1. **Modelagem** – registre objetivos, requisitos e decisões iniciais nos ADRs (`docs/ADR/`).
