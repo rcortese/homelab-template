@@ -106,7 +106,7 @@ def _run_script(
     )
 
 
-def _build_env(repo_dir: Path) -> dict[str, str]:
+def _build_env(repo_dir: Path, **overrides: str) -> dict[str, str]:
     """Return an environment that exposes the stub executables."""
 
     env = os.environ.copy()
@@ -119,6 +119,7 @@ def _build_env(repo_dir: Path) -> dict[str, str]:
             "PATH": f"{repo_dir}:{env['PATH']}",
         }
     )
+    env.update(overrides)
     return env
 
 
@@ -242,10 +243,28 @@ def test_run_quality_checks_fails_when_checkbashisms_fails(tmp_path: Path) -> No
     ]
 
 
-def test_run_quality_checks_skips_shellcheck_when_disabled(tmp_path: Path) -> None:
-    """Passing ``--no-lint`` should prevent shfmt, shellcheck and checkbashisms from running."""
+def test_run_quality_checks_reports_missing_linter(tmp_path: Path) -> None:
+    """If a configured linter is missing, the wrapper should fail with a clear error."""
 
     script, log_file, repo_dir = _prepare_repo(tmp_path)
+    env = _build_env(repo_dir, SHFMT_BIN=str(repo_dir / "missing-shfmt"))
+
+    result = _run_script(script, repo_dir, env)
+
+    assert result.returncode == 1
+    assert "Erro: dependência 'shfmt' não encontrada" in result.stderr
+    assert not log_file.exists()
+
+
+def test_run_quality_checks_skips_shell_linters_when_disabled(tmp_path: Path) -> None:
+    """``--no-lint`` should run pytest even if shell linters are unavailable."""
+
+    script, log_file, repo_dir = _prepare_repo(tmp_path)
+
+    # Remove the fake linter binaries to mimic an environment without them.
+    for missing in ("shellcheck", "shfmt", "checkbashisms"):
+        (repo_dir / missing).unlink()
+
     env = _build_env(repo_dir)
 
     result = _run_script(script, repo_dir, env, "--no-lint")

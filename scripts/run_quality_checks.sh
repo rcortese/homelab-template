@@ -49,6 +49,25 @@ SHELLCHECK_BIN="${SHELLCHECK_BIN:-shellcheck}"
 SHFMT_BIN="${SHFMT_BIN:-shfmt}"
 CHECKBASHISMS_BIN="${CHECKBASHISMS_BIN:-checkbashisms}"
 
+require_command() {
+  local tool="$1"
+  local bin="$2"
+  local env_var="$3"
+
+  if ! command -v "$bin" >/dev/null 2>&1; then
+    echo "Erro: dependência '${tool}' não encontrada (tentou usar '${bin}'). Instale o binário ou defina ${env_var}." >&2
+    exit 1
+  fi
+}
+
+require_command "python" "${PYTHON_BIN}" "PYTHON_BIN"
+
+if ((RUN_LINT)); then
+  require_command "shfmt" "${SHFMT_BIN}" "SHFMT_BIN"
+  require_command "shellcheck" "${SHELLCHECK_BIN}" "SHELLCHECK_BIN"
+  require_command "checkbashisms" "${CHECKBASHISMS_BIN}" "CHECKBASHISMS_BIN"
+fi
+
 # Executa a suíte de testes Python do template.
 cd "${REPO_ROOT}"
 "${PYTHON_BIN}" -m pytest
