@@ -27,7 +27,7 @@ Pipelines de CI/CD, testes e scripts adicionais podem ser adicionados, mas os di
 
 1. Clique em **Use this template** (ou faça um fork) para gerar um novo repositório.
 2. Atualize o nome do projeto e os metadados no `README.md` recém-criado com o contexto da sua stack.
-3. Revise os arquivos de `compose/` e `env/` para alinhar serviços, portas e variáveis às suas necessidades.
+3. Revise os arquivos de [`compose/`](docs/COMPOSE_GUIDE.md) e [`env/`](env/README.md) para alinhar serviços, portas e variáveis às suas necessidades.
 4. Ajuste a documentação em `docs/` seguindo as orientações descritas na seção [Documentação e customização local](#documentacao-e-customizacao-local) deste template.
 5. Execute o fluxo de validação (`scripts/check_all.sh`) antes do primeiro commit.
 
