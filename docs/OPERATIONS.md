@@ -4,6 +4,8 @@
 
 Este documento apresenta um ponto de partida para descrever processos operacionais e o uso dos scripts fornecidos pelo template. Ao derivar um repositório, adapte os exemplos abaixo com comandos concretos do seu serviço.
 
+> Procurando apenas um mapa rápido dos scripts disponíveis? Consulte [`scripts/README.md`](../scripts/README.md) para ver o catálogo agrupado por categoria e localizar rapidamente o helper desejado.
+
 | Script | Objetivo | Comando básico | Gatilhos recomendados |
 | --- | --- | --- | --- |
 | [`scripts/check_all.sh`](#scriptscheck_allsh) | Agregar validações de estrutura, `.env` e Compose em um único comando. | `scripts/check_all.sh` | Antes de abrir PRs ou rodar pipelines locais completos. |
