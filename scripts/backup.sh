@@ -130,6 +130,7 @@ mkdir -p "$backup_dir"
 
 echo "[*] Copiando dados de '$data_src' para '$backup_dir'..."
 if ! cp -a "$data_src/." "$backup_dir/"; then
+  rm -rf "$backup_dir"
   echo "[!] Falha ao copiar os dados para '$backup_dir'." >&2
   exit 1
 fi

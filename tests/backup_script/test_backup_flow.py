@@ -184,8 +184,7 @@ def test_copy_failure_still_attempts_restart(
     assert "Falha ao copiar os dados" in result.stderr
 
     backup_dir = repo_copy / "backups" / "core-20240101-030405"
-    assert backup_dir.is_dir()
-    assert list(backup_dir.iterdir()) == []
+    assert not backup_dir.exists()
 
     _assert_compose_restart_calls(compose_log, expected_core_apps)
     assert cp_log.read_text(encoding="utf-8").splitlines() == [
