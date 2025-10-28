@@ -227,6 +227,37 @@ def test_check_env_sync_instance_option_limits_validation(
     assert missing_variable in result_other.stdout
 
 
+def test_check_env_sync_deduplicates_instance_arguments(
+    repo_copy: Path, compose_instances_data: ComposeInstancesData
+) -> None:
+    if len(compose_instances_data.instance_names) < 2:
+        pytest.skip("É necessário ao menos duas instâncias para validar o filtro por instância.")
+
+    target_instance = compose_instances_data.instance_names[0]
+    error_instance = compose_instances_data.instance_names[1]
+
+    compose_file = _resolve_compose_manifest(repo_copy, compose_instances_data, error_instance)
+    missing_variable = "ONLY_FOR_DEDUP_TEST"
+    content = compose_file.read_text(encoding="utf-8")
+    content += f"\n      DEDUP_TEST_VAR: ${{{missing_variable}}}"
+    compose_file.write_text(content, encoding="utf-8")
+
+    result = run_check(
+        repo_copy,
+        [
+            "--instance",
+            f"{target_instance}, {error_instance}",
+            "--instance",
+            target_instance,
+        ],
+    )
+
+    assert result.returncode == 1
+    assert missing_variable in result.stdout
+    assert result.stdout.count(f"Instância '{error_instance}'") == 1
+    assert f"Instância '{target_instance}'" not in result.stdout
+
+
 def test_build_sync_report_uses_runtime_provided_variables(
     repo_copy: Path, monkeypatch
 ) -> None:
