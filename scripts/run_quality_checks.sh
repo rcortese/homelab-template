@@ -85,7 +85,11 @@ if ((RUN_LINT)); then
   done
 
   if ((${#shellcheck_targets[@]} > 0)); then
-    "${SHFMT_BIN}" -d "${shellcheck_targets[@]}"
+    shfmt_diff="$("${SHFMT_BIN}" -d "${shellcheck_targets[@]}")"
+    if [[ -n "${shfmt_diff}" ]]; then
+      printf '%s\n' "${shfmt_diff}"
+      exit 1
+    fi
     "${SHELLCHECK_BIN}" "${shellcheck_targets[@]}"
     "${CHECKBASHISMS_BIN}" "${shellcheck_targets[@]}"
   fi
