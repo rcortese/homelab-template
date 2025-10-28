@@ -32,11 +32,16 @@ def _assert_restart_apps(stdout: str, expected_apps: list[str]) -> None:
 
 
 def _install_compose_stub(
-    repo_copy: Path, running_services: dict[str, list[str]] | None = None
+    repo_copy: Path,
+    running_services: dict[str, list[str]] | None = None,
+    up_fail_instances: set[str] | None = None,
 ) -> Path:
     compose_log = repo_copy / "compose_calls.log"
     compose_stub = repo_copy / "scripts" / "compose.sh"
     running_services = running_services or {}
+    up_fail_instances = up_fail_instances or set()
+    fail_file = repo_copy / "compose_up_failures"
+    fail_file.write_text("\n".join(sorted(up_fail_instances)), encoding="utf-8")
     case_entries: list[str] = []
     for instance, services in running_services.items():
         case_entries.append(f"    {instance})")
@@ -53,10 +58,18 @@ def _install_compose_stub(
                 f"printf '%s\\n' \"$*\" >> {compose_log!s}",
                 "instance=\"$1\"",
                 "shift || true",
+                "command=\"${1:-}\"",
+                f"fail_file=\"{fail_file!s}\"",
                 "if [[ \"${1:-}\" == 'ps' && \"${2:-}\" == '--status' && \"${3:-}\" == 'running' && \"${4:-}\" == '--services' ]]; then",
                 "  case \"$instance\" in",
                 case_block,
                 "  esac",
+                "fi",
+                "if [[ \"$command\" == 'up' ]]; then",
+                "  if [[ -n \"$fail_file\" && -f \"$fail_file\" ]] && grep -Fxq \"$instance\" \"$fail_file\"; then",
+                "    echo 'stub compose up failure' >&2",
+                "    exit 1",
+                "  fi",
                 "fi",
             ]
         )
@@ -198,6 +211,48 @@ def test_copy_failure_still_attempts_restart(
     for stub in fake_bin.iterdir():
         stub.unlink()
     fake_bin.rmdir()
+
+
+def test_restart_failure_propagates_exit_code(
+    repo_copy: Path,
+    monkeypatch,
+    compose_instances_data: ComposeInstancesData,
+) -> None:
+    expected_core_apps = compose_instances_data.instance_app_names.get("core", [])
+    compose_log = _install_compose_stub(
+        repo_copy,
+        {"core": expected_core_apps},
+        up_fail_instances={"core"},
+    )
+    _prepend_fake_bin(
+        repo_copy,
+        monkeypatch,
+        (
+            "date",
+            "#!/usr/bin/env bash\nset -euo pipefail\nprintf '20240101-030405\\n'\n",
+        ),
+    )
+
+    env_file = repo_copy / "env" / "local" / "core.env"
+    env_file.write_text(
+        env_file.read_text(encoding="utf-8") + "APP_DATA_DIR=data/core-root\n",
+        encoding="utf-8",
+    )
+
+    data_mount = repo_copy / "data" / "core-root" / "app-core"
+    data_mount.mkdir(parents=True)
+    (data_mount / "db.sqlite").write_text("payload", encoding="utf-8")
+
+    result = run_backup(repo_copy, "core")
+
+    assert result.returncode == 1
+    assert (
+        "Falha ao religar as aplicações" in result.stderr
+        and "instância 'core'" in result.stderr
+    )
+    assert "Processo finalizado com sucesso" not in result.stdout
+
+    _assert_compose_restart_calls(compose_log, expected_core_apps)
 
 
 def test_detected_apps_prioritize_known_order(
