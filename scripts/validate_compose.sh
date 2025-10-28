@@ -5,8 +5,9 @@
 # Arguments:
 #   (nenhum) — o script valida as instâncias conhecidas usando somente base + override da instância.
 # Environment:
-#   DOCKER_COMPOSE_BIN  Sobrescreve o binário usado (ex.: docker-compose).
-#   COMPOSE_INSTANCES   Lista de instâncias a validar (separadas por espaço ou vírgula). Default: todas.
+#   DOCKER_COMPOSE_BIN   Sobrescreve o binário usado (ex.: docker-compose).
+#   COMPOSE_INSTANCES    Lista de instâncias a validar (separadas por espaço ou vírgula). Default: todas.
+#   COMPOSE_EXTRA_FILES  Overlays extras aplicados após o arquivo override padrão (aceita espaços ou vírgulas).
 # Examples:
 #   scripts/validate_compose.sh
 #   COMPOSE_INSTANCES="media" scripts/validate_compose.sh
