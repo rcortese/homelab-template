@@ -37,9 +37,24 @@ missing=()
 
 require_path() {
   local path="$1"
-  if [[ ! -e "$path" ]]; then
-    missing+=("$path")
-  fi
+  local expected_type="$2"
+
+  case "$expected_type" in
+    dir)
+      if [[ ! -d "$path" ]]; then
+        missing+=("$path")
+      fi
+      ;;
+    file)
+      if [[ ! -f "$path" ]]; then
+        missing+=("$path")
+      fi
+      ;;
+    *)
+      printf 'Tipo desconhecido %s para %s\n' "$expected_type" "$path" >&2
+      exit 1
+      ;;
+  esac
 }
 
 for dir in \
@@ -49,7 +64,7 @@ for dir in \
   "docs" \
   "tests" \
   ".github/workflows"; do
-  require_path "$dir"
+  require_path "$dir" dir
 done
 
 for file in \
@@ -58,7 +73,7 @@ for file in \
   "scripts/check_structure.sh" \
   "scripts/validate_compose.sh" \
   ".github/workflows/template-quality.yml"; do
-  require_path "$file"
+  require_path "$file" file
 done
 
 if [[ ${#missing[@]} -gt 0 ]]; then
