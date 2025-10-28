@@ -207,7 +207,9 @@ HEALTH_SERVICES="api worker" scripts/check_health.sh --format json media | jq '.
 
 - **Parâmetros úteis:**
   - `--data-dir` — diretório raiz onde os arquivos `.db` serão buscados.
+  - `--format` — alterna entre saídas `text` (padrão) e `json` para integrações automatizadas.
   - `--no-resume` — evita retomar automaticamente os serviços ao final da verificação (útil em investigações manuais).
+  - `--output` — grava o resumo final (em texto ou JSON, conforme o formato escolhido) no caminho indicado.
   - `SQLITE3_MODE` — define o backend (`container`, `binary` ou `auto`; padrão `container`).
   - `SQLITE3_CONTAINER_RUNTIME` — runtime utilizado para executar o contêiner (padrão `docker`).
   - `SQLITE3_CONTAINER_IMAGE` — imagem utilizada para o comando `sqlite3` (padrão `keinos/sqlite3:latest`).

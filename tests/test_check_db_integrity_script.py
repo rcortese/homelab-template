@@ -300,6 +300,45 @@ def test_pauses_and_checks_integrity(
     assert any(" unpause " in call or call.rstrip().endswith(" unpause") for call in calls)
 
 
+def test_json_output_contains_results(
+    repo_copy: Path,
+    compose_stub: tuple[Path, Path],
+    sqlite_stub: tuple[Path, Path, Path],
+) -> None:
+    compose_stub_path, compose_log = compose_stub
+    sqlite_stub_path, sqlite_config, sqlite_log = sqlite_stub
+
+    data_dir = repo_copy / "data"
+    data_dir.mkdir()
+    db_path = data_dir / "app.db"
+    db_path.write_text("dummy", encoding="utf-8")
+
+    result = _run_script(
+        repo_copy,
+        compose_stub_path,
+        compose_log,
+        sqlite_stub_path,
+        sqlite_config,
+        sqlite_log,
+        "core",
+        "--format",
+        "json",
+        env={"COMPOSE_STUB_SERVICES": "app"},
+    )
+
+    assert result.returncode == 0, result.stderr
+    payload = json.loads(result.stdout)
+    assert payload["format"] == "json"
+    assert payload["overall_status"] == 0
+    assert payload["alerts"] == []
+    databases = {entry["path"]: entry for entry in payload["databases"]}
+    assert str(db_path) in databases
+    entry = databases[str(db_path)]
+    assert entry["status"] == "ok"
+    assert entry["message"] == "Integridade OK"
+    assert entry["action"] == "Nenhuma ação necessária"
+
+
 def test_handles_compose_ps_failure(
     repo_copy: Path,
     compose_stub: tuple[Path, Path],
@@ -408,6 +447,43 @@ def test_recovers_corrupted_database(
     backups = list(db_path.parent.glob(f"{db_path.name}.*.bak"))
     assert backups, "Backup file should be created during recovery"
     assert compose_log.read_text(encoding="utf-8").count("unpause") == 1
+
+
+def test_writes_text_report_to_output_file(
+    repo_copy: Path,
+    compose_stub: tuple[Path, Path],
+    sqlite_stub: tuple[Path, Path, Path],
+) -> None:
+    compose_stub_path, compose_log = compose_stub
+    sqlite_stub_path, sqlite_config, sqlite_log = sqlite_stub
+
+    data_dir = repo_copy / "data"
+    data_dir.mkdir()
+    db_path = data_dir / "app.db"
+    db_path.write_text("dummy", encoding="utf-8")
+
+    output_path = repo_copy / "report.txt"
+
+    result = _run_script(
+        repo_copy,
+        compose_stub_path,
+        compose_log,
+        sqlite_stub_path,
+        sqlite_config,
+        sqlite_log,
+        "core",
+        "--output",
+        str(output_path),
+        env={"COMPOSE_STUB_SERVICES": "app"},
+    )
+
+    assert result.returncode == 0, result.stderr
+    report_content = output_path.read_text(encoding="utf-8")
+    assert "Resumo da verificação de bancos SQLite" in report_content
+    assert f"Banco: {db_path}" in report_content
+    assert "status: ok" in report_content
+    assert "mensagem: Integridade OK" in report_content
+    assert "acao: Nenhuma ação necessária" in report_content
 
 
 def test_reports_failure_when_recovery_cannot_run(

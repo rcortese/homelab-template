@@ -22,6 +22,9 @@ SQLITE3_BIN="${SQLITE3_BIN:-sqlite3}"
 SQLITE3_MODE="${SQLITE3_MODE:-container}"
 SQLITE3_CONTAINER_RUNTIME="${SQLITE3_CONTAINER_RUNTIME:-docker}"
 SQLITE3_CONTAINER_IMAGE="${SQLITE3_CONTAINER_IMAGE:-keinos/sqlite3:latest}"
+OUTPUT_FORMAT="text"
+OUTPUT_FILE=""
+JSON_STDOUT_REDIRECTED=0
 
 SQLITE3_BACKEND=""
 SQLITE3_BIN_PATH=""
@@ -33,6 +36,75 @@ PAUSED_STACK=0
 ALERTS=()
 RECOVERY_BACKUP_PATH=""
 RECOVERY_DETAILS=""
+FIELD_SEPARATOR=$'\x1f'
+declare -a DB_RESULTS=()
+
+record_result() {
+  local path="$1"
+  local status="$2"
+  local message="$3"
+  local action="$4"
+  DB_RESULTS+=("${path}${FIELD_SEPARATOR}${status}${FIELD_SEPARATOR}${message}${FIELD_SEPARATOR}${action}")
+}
+
+json_escape() {
+  local raw="$1"
+  raw="${raw//\\/\\\\}"
+  raw="${raw//\"/\\\"}"
+  raw="${raw//$'\n'/\\n}"
+  raw="${raw//$'\r'/\\r}"
+  raw="${raw//$'\t'/\\t}"
+  printf '%s' "$raw"
+}
+
+generate_json_report() {
+  local first=1
+  printf '{"format":"json","overall_status":%d,"databases":[' "$overall_status"
+  for entry in "${DB_RESULTS[@]}"; do
+    IFS="$FIELD_SEPARATOR" read -r path status message action <<<"$entry"
+    if ((first)); then
+      first=0
+    else
+      printf ','
+    fi
+    printf '{"path":"%s","status":"%s","message":"%s","action":"%s"}' \
+      "$(json_escape "$path")" \
+      "$(json_escape "$status")" \
+      "$(json_escape "$message")" \
+      "$(json_escape "$action")"
+  done
+  printf ']'
+  printf ',"alerts":['
+  first=1
+  for alert in "${ALERTS[@]}"; do
+    if ((first)); then
+      first=0
+    else
+      printf ','
+    fi
+    printf '"%s"' "$(json_escape "$alert")"
+  done
+  printf ']}'
+}
+
+generate_text_report() {
+  local lines=()
+  lines+=("Resumo da verificação de bancos SQLite:")
+  for entry in "${DB_RESULTS[@]}"; do
+    IFS="$FIELD_SEPARATOR" read -r path status message action <<<"$entry"
+    lines+=("Banco: $path")
+    lines+=("  status: $status")
+    lines+=("  mensagem: $message")
+    lines+=("  acao: $action")
+  done
+  if ((${#ALERTS[@]} > 0)); then
+    lines+=("Alertas:")
+    for alert in "${ALERTS[@]}"; do
+      lines+=("- $alert")
+    done
+  fi
+  printf '%s\n' "${lines[@]}"
+}
 
 print_help() {
   cat <<'USAGE'
@@ -47,7 +119,9 @@ Argumentos posicionais:
 
 Opções:
   --data-dir <dir>       Diretório base contendo os arquivos .db (padrão: data/).
+  --format {text,json}   Define o formato de saída (padrão: text).
   --no-resume            Não retoma os serviços após a verificação.
+  --output <arquivo>     Caminho para gravar o resumo final.
   -h, --help             Exibe esta ajuda e sai.
 
 Variáveis de ambiente relevantes:
@@ -174,6 +248,33 @@ parse_args() {
       print_help
       exit 0
       ;;
+    --format)
+      shift
+      if [[ $# -eq 0 ]]; then
+        echo "Erro: --format requer um argumento (text|json)." >&2
+        exit 1
+      fi
+      case "$1" in
+      text | json)
+        OUTPUT_FORMAT="$1"
+        ;;
+      *)
+        echo "Erro: valor inválido para --format: $1" >&2
+        exit 1
+        ;;
+      esac
+      ;;
+    --format=*)
+      case "${1#*=}" in
+      text | json)
+        OUTPUT_FORMAT="${1#*=}"
+        ;;
+      *)
+        echo "Erro: valor inválido para --format: ${1#*=}" >&2
+        exit 1
+        ;;
+      esac
+      ;;
     --data-dir)
       shift
       if [[ $# -eq 0 ]]; then
@@ -185,6 +286,17 @@ parse_args() {
     --no-resume)
       # shellcheck disable=SC2034  # Lido pelo trap EXIT.
       RESUME_ON_EXIT=0
+      ;;
+    --output)
+      shift
+      if [[ $# -eq 0 ]]; then
+        echo "Erro: --output requer um caminho." >&2
+        exit 1
+      fi
+      OUTPUT_FILE="$1"
+      ;;
+    --output=*)
+      OUTPUT_FILE="${1#*=}"
       ;;
     --)
       shift
@@ -271,6 +383,12 @@ attempt_recovery() {
 
 parse_args "$@"
 
+if [[ "$OUTPUT_FORMAT" == "json" ]]; then
+  exec 3>&1
+  exec 1>&2
+  JSON_STDOUT_REDIRECTED=1
+fi
+
 DATA_DIR="${REQUESTED_DATA_DIR:-${DATA_DIR:-data}}"
 if [[ "$DATA_DIR" != /* ]]; then
   DATA_DIR="$REPO_ROOT/$DATA_DIR"
@@ -310,7 +428,11 @@ if ! app_detection__list_active_services PAUSED_SERVICES "${COMPOSE_CMD[@]}"; th
 fi
 
 if ((${#PAUSED_SERVICES[@]} > 0)); then
-  echo "[*] Pausando serviços ativos: ${PAUSED_SERVICES[*]}"
+  if [[ "$OUTPUT_FORMAT" == "text" ]]; then
+    echo "[*] Pausando serviços ativos: ${PAUSED_SERVICES[*]}"
+  else
+    echo "[*] Pausando serviços ativos: ${PAUSED_SERVICES[*]}" >&2
+  fi
   if ! "${COMPOSE_CMD[@]}" pause "${PAUSED_SERVICES[@]}"; then
     echo "[!] Falha ao pausar serviços: ${PAUSED_SERVICES[*]}" >&2
   else
@@ -318,7 +440,11 @@ if ((${#PAUSED_SERVICES[@]} > 0)); then
     PAUSED_STACK=1
   fi
 else
-  echo "[*] Nenhum serviço em execução encontrado para pausar."
+  if [[ "$OUTPUT_FORMAT" == "text" ]]; then
+    echo "[*] Nenhum serviço em execução encontrado para pausar."
+  else
+    echo "[*] Nenhum serviço em execução encontrado para pausar." >&2
+  fi
 fi
 
 declare -a DB_FILES=()
@@ -327,14 +453,22 @@ while IFS= read -r -d '' file; do
 done < <(find "$DATA_DIR" -type f -name '*.db' -print0)
 
 if ((${#DB_FILES[@]} == 0)); then
-  echo "[i] Nenhum arquivo .db encontrado em $DATA_DIR."
+  if [[ "$OUTPUT_FORMAT" == "text" ]]; then
+    echo "[i] Nenhum arquivo .db encontrado em $DATA_DIR."
+  else
+    echo "[i] Nenhum arquivo .db encontrado em $DATA_DIR." >&2
+  fi
   exit 0
 fi
 
 overall_status=0
 
 for db_file in "${DB_FILES[@]}"; do
-  echo "[*] Verificando integridade de: $db_file"
+  if [[ "$OUTPUT_FORMAT" == "text" ]]; then
+    echo "[*] Verificando integridade de: $db_file"
+  else
+    echo "[*] Verificando integridade de: $db_file" >&2
+  fi
   check_output=""
   check_status=0
   if ! check_output="$(sqlite3_exec "$db_file" "PRAGMA integrity_check;" 2>&1)"; then
@@ -344,18 +478,31 @@ for db_file in "${DB_FILES[@]}"; do
   if ((check_status != 0)) || [[ "$check_output" != "ok" ]]; then
     local_message="Falha de integridade: ${check_output//$'\n'/; }"
     ALERTS+=("$local_message em $db_file")
-    echo "[!] $local_message" >&2
-
     if attempt_recovery "$db_file"; then
+      action_message="Recuperação automática concluída. Backup salvo em $RECOVERY_BACKUP_PATH (${RECOVERY_DETAILS})."
       ALERTS+=("Banco '$db_file' recuperado. Backup salvo em $RECOVERY_BACKUP_PATH (${RECOVERY_DETAILS}).")
-      echo "[+] Banco recuperado, backup em $RECOVERY_BACKUP_PATH"
+      record_result "$db_file" "recovered" "$local_message" "$action_message"
+      echo "[!] $local_message" >&2
+      if [[ "$OUTPUT_FORMAT" == "text" ]]; then
+        echo "[+] Banco recuperado, backup em $RECOVERY_BACKUP_PATH"
+      else
+        echo "[+] Banco recuperado, backup em $RECOVERY_BACKUP_PATH" >&2
+      fi
     else
+      action_message="Recuperação automática falhou: $RECOVERY_DETAILS"
       ALERTS+=("Banco '$db_file' permanece corrompido: $RECOVERY_DETAILS")
+      record_result "$db_file" "failed" "$local_message" "$action_message"
+      echo "[!] $local_message" >&2
       echo "[!] Falha ao recuperar $db_file: $RECOVERY_DETAILS" >&2
       overall_status=2
     fi
   else
-    echo "[+] Integridade OK"
+    record_result "$db_file" "ok" "Integridade OK" "Nenhuma ação necessária"
+    if [[ "$OUTPUT_FORMAT" == "text" ]]; then
+      echo "[+] Integridade OK"
+    else
+      echo "[+] Integridade OK" >&2
+    fi
   fi
 
 done
@@ -365,6 +512,23 @@ if ((${#ALERTS[@]} > 0)); then
   for alert in "${ALERTS[@]}"; do
     echo "- $alert" >&2
   done
+fi
+
+if [[ "$OUTPUT_FORMAT" == "json" ]]; then
+  json_report="$(generate_json_report)"
+  if ((JSON_STDOUT_REDIRECTED == 1)); then
+    exec 1>&3
+    exec 3>&-
+    JSON_STDOUT_REDIRECTED=0
+  fi
+  if [[ -n "$OUTPUT_FILE" ]]; then
+    printf '%s\n' "$json_report" >"$OUTPUT_FILE"
+  fi
+  printf '%s\n' "$json_report"
+else
+  if [[ -n "$OUTPUT_FILE" ]]; then
+    generate_text_report >"$OUTPUT_FILE"
+  fi
 fi
 
 exit "$overall_status"
