@@ -118,3 +118,30 @@ def test_override_only_mode_skips_base(repo_copy: Path) -> None:
 
     listed_lines = [line.strip() for line in stdout.splitlines() if line.strip().startswith("-")]
     assert all("compose/apps/overrides/base.yml" not in line for line in listed_lines)
+
+
+def test_existing_env_file_is_preserved(repo_copy: Path) -> None:
+    instance_name = "existingenv"
+    env_file = repo_copy / "env" / f"{instance_name}.example.env"
+    env_file.parent.mkdir(parents=True, exist_ok=True)
+    sentinel_content = "SENTINEL_ENV=1\n"
+    env_file.write_text(sentinel_content, encoding="utf-8")
+
+    app_name = "preserve"
+    result = _run_bootstrap(repo_copy, app_name, instance_name, "--override-only")
+
+    assert result.returncode == 0, result.stderr
+    stdout = result.stdout
+    assert "mantendo inalterado" in stdout
+
+    assert env_file.read_text(encoding="utf-8") == sentinel_content
+
+    app_dir = repo_copy / "compose" / "apps" / app_name
+    base_file = app_dir / "base.yml"
+    instance_file = app_dir / f"{instance_name}.yml"
+
+    assert not base_file.exists()
+    assert instance_file.is_file()
+
+    listed_lines = [line.strip() for line in stdout.splitlines() if line.strip().startswith("-")]
+    assert any("compose/apps/preserve/existingenv.yml" in line for line in listed_lines)
