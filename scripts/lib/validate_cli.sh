@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# shellcheck source=SCRIPTDIR/compose_file_utils.sh
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/compose_file_utils.sh"
+
 # CLI helpers for the validate_compose script.
 
 validate_cli_print_help() {
