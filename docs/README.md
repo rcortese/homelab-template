@@ -22,6 +22,12 @@ utilize [`docs/local/`](./local/README.md) e apenas referencie esses materiais q
 - [Combinações de manifests Compose](./COMPOSE_GUIDE.md) — Organize sobreposições e perfis para cenários distintos.
 - [Backup & restauração genéricos](./BACKUP_RESTORE.md) — Estratégias de export/import aplicáveis a qualquer stack.
 
+## Documentação por aplicação
+
+- `docs/apps/<aplicacao>.md` centraliza os requisitos de cada aplicação/instância (manifestos, variáveis, rotinas e alertas) gerados pelo bootstrap.
+- [`scripts/bootstrap_instance.sh`](../scripts/bootstrap_instance.sh) com `--with-docs` cria esses arquivos a partir do template [`doc-app.md.tpl`](../scripts/templates/bootstrap/doc-app.md.tpl) e adiciona o link correspondente na seção `## Aplicações` deste índice.
+- Após rodar o bootstrap, mova o item recém-criado para a posição adequada na lista (por exemplo, mantendo ordem alfabética) e revise o texto sempre que uma nova aplicação for incorporada ou sofrer ajustes relevantes.
+
 ## Automação CI/CD
 
 - [Sobrescritas de workflows](./ci-overrides.md) — Centraliza as diretrizes para adaptar ou estender pipelines sem alterar o workflow base do template.
