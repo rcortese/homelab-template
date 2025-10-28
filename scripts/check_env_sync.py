@@ -212,6 +212,52 @@ def _collect_substitution_variables(text: str) -> Set[str]:
     return variables
 
 
+def _strip_inline_comment(text: str) -> str:
+    """Remove inline comments while keeping quoted "#" characters."""
+
+    result: List[str] = []
+    in_single = False
+    in_double = False
+    escape = False
+
+    for char in text:
+        if escape:
+            result.append(char)
+            escape = False
+            continue
+        if char == "\\":
+            result.append(char)
+            escape = True
+            continue
+        if char == "'" and not in_double:
+            in_single = not in_single
+            result.append(char)
+            continue
+        if char == '"' and not in_single:
+            in_double = not in_double
+            result.append(char)
+            continue
+        if char == "#" and not in_single and not in_double:
+            break
+        result.append(char)
+
+    return "".join(result)
+
+
+def _collect_variables_from_text(text: str) -> Set[str]:
+    """Fallback variable extraction that ignores comment-only lines."""
+
+    variables: Set[str] = set()
+    for raw_line in text.splitlines():
+        stripped = raw_line.lstrip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        cleaned = _strip_inline_comment(stripped)
+        if cleaned:
+            variables.update(_collect_substitution_variables(cleaned))
+    return variables
+
+
 def _parse_parameter_expression(expression: str) -> Set[str]:
     expression = expression.strip()
     if not expression:
@@ -274,7 +320,11 @@ def extract_compose_variables(paths: Iterable[Path]) -> Set[str]:
                 for value in _iter_yaml_strings(document):
                     variables.update(_collect_substitution_variables(value))
         except yaml.YAMLError as exc:  # pragma: no cover - defensive parsing fallback
-            raise ComposeMetadataError(f"Falha ao analisar YAML em {path}: {exc}") from exc
+            print(
+                f"[!] Falha ao analisar YAML em {path}: {exc}. Utilizando fallback heurístico.",
+                file=sys.stderr,
+            )
+            variables.update(_collect_variables_from_text(content))
     return variables
 
 
