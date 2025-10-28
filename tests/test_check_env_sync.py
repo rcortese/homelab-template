@@ -3,11 +3,17 @@ from __future__ import annotations
 import os
 import subprocess
 from pathlib import Path
+from typing import Sequence
+
+import pytest
 
 from scripts.check_env_sync import (
+    ComposeMetadata,
+    SyncReport,
     build_sync_report,
     decode_bash_string,
     load_compose_metadata,
+    main,
     parse_declare_array,
     parse_declare_mapping,
 )
@@ -50,7 +56,7 @@ def _resolve_env_template(
     return repo_root / "env" / f"{instance_name}.example.env"
 
 
-def run_check(repo_root: Path) -> subprocess.CompletedProcess[str]:
+def run_check(repo_root: Path, extra_args: Sequence[str] | None = None) -> subprocess.CompletedProcess[str]:
     env = os.environ.copy()
     python_path = env.get("PYTHONPATH")
     entries = [str(repo_root)]
@@ -58,8 +64,12 @@ def run_check(repo_root: Path) -> subprocess.CompletedProcess[str]:
         entries.append(python_path)
     env["PYTHONPATH"] = os.pathsep.join(entries)
 
+    command = [str(SCRIPT_PATH), "--repo-root", str(repo_root)]
+    if extra_args:
+        command.extend(extra_args)
+
     return subprocess.run(
-        [str(SCRIPT_PATH), "--repo-root", str(repo_root)],
+        command,
         capture_output=True,
         text=True,
         check=False,
@@ -173,6 +183,30 @@ def test_check_env_sync_detects_obsolete_variables(
     assert "UNUSED_ONLY_FOR_TEST" in result.stdout
 
 
+def test_check_env_sync_instance_option_limits_validation(
+    repo_copy: Path, compose_instances_data: ComposeInstancesData
+) -> None:
+    if len(compose_instances_data.instance_names) < 2:
+        pytest.skip("É necessário ao menos duas instâncias para validar o filtro por instância.")
+
+    target_instance = compose_instances_data.instance_names[0]
+    other_instance = compose_instances_data.instance_names[1]
+    compose_file = _resolve_compose_manifest(repo_copy, compose_instances_data, other_instance)
+    missing_variable = "ONLY_FOR_OTHER_INSTANCE"
+    content = compose_file.read_text(encoding="utf-8")
+    content += f"\n      FILTER_TEST_VAR: ${{{missing_variable}}}"
+    compose_file.write_text(content, encoding="utf-8")
+
+    result_target = run_check(repo_copy, ["--instance", target_instance])
+
+    assert result_target.returncode == 0, result_target.stdout
+
+    result_other = run_check(repo_copy, ["--instance", other_instance])
+
+    assert result_other.returncode == 1
+    assert missing_variable in result_other.stdout
+
+
 def test_build_sync_report_uses_runtime_provided_variables(
     repo_copy: Path, monkeypatch
 ) -> None:
@@ -195,6 +229,13 @@ def test_build_sync_report_uses_runtime_provided_variables(
         for variable in variables
     }
     assert "PWD" in missing_without_runtime
+
+
+def test_check_env_sync_reports_unknown_instance(repo_copy: Path) -> None:
+    result = run_check(repo_copy, ["--instance", "unknown-instance"])
+
+    assert result.returncode == 1
+    assert "Instâncias desconhecidas" in result.stderr
 
 
 def test_check_env_sync_detects_missing_template(
@@ -253,6 +294,57 @@ EOF
     assert "[!]" in result.stderr
     assert "Arquivo Compose ausente" in result.stderr
     assert str(missing_path) in result.stderr
+
+
+def test_main_filters_instances_before_build(monkeypatch, tmp_path: Path) -> None:
+    base_file = tmp_path / "compose" / "base.yml"
+    base_file.parent.mkdir(parents=True, exist_ok=True)
+    base_file.write_text("version: '3.9'\n", encoding="utf-8")
+
+    metadata = ComposeMetadata(
+        base_file=base_file,
+        instances=["alpha", "beta"],
+        files_by_instance={
+            "alpha": [tmp_path / "compose" / "alpha.yml"],
+            "beta": [tmp_path / "compose" / "beta.yml"],
+        },
+        app_names_by_instance={"alpha": ["app_alpha"], "beta": ["app_beta"]},
+        env_template_by_instance={
+            "alpha": tmp_path / "env" / "alpha.example.env",
+            "beta": tmp_path / "env" / "beta.example.env",
+        },
+        app_base_by_name={
+            "app_alpha": tmp_path / "compose" / "apps" / "alpha" / "base.yml",
+            "app_beta": tmp_path / "compose" / "apps" / "beta" / "base.yml",
+        },
+    )
+
+    captured_metadata: list[ComposeMetadata] = []
+
+    def fake_load(repo_root: Path) -> ComposeMetadata:
+        return metadata
+
+    def fake_build(repo_root: Path, current_metadata: ComposeMetadata) -> SyncReport:
+        captured_metadata.append(current_metadata)
+        return SyncReport(
+            missing_by_instance={"beta": set()},
+            unused_by_file={},
+            missing_templates=[],
+        )
+
+    monkeypatch.setattr("scripts.check_env_sync.load_compose_metadata", fake_load)
+    monkeypatch.setattr("scripts.check_env_sync.build_sync_report", fake_build)
+
+    exit_code = main(["--repo-root", str(tmp_path), "--instance", "beta"])
+
+    assert exit_code == 0
+    assert captured_metadata, "build_sync_report não foi chamado"
+    filtered_metadata = captured_metadata[0]
+    assert filtered_metadata.instances == ["beta"]
+    assert set(filtered_metadata.files_by_instance.keys()) == {"beta"}
+    assert set(filtered_metadata.app_names_by_instance.keys()) == {"beta"}
+    assert set(filtered_metadata.env_template_by_instance.keys()) == {"beta"}
+    assert set(filtered_metadata.app_base_by_name.keys()) == {"app_beta"}
 
 
 def test_decode_bash_string_handles_dollar_single_quotes() -> None:

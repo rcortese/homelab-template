@@ -83,8 +83,10 @@ Consulte o resumo na tabela acima. Inclua `scripts/check_env_sync.py` nas execu�
   ```bash
   scripts/check_env_sync.py
   scripts/check_env_sync.py --repo-root /caminho/alternativo
+  scripts/check_env_sync.py --instance core --instance media
   ```
 - **Saída:** lista variáveis ausentes, obsoletas ou instâncias sem template, retornando código de saída diferente de zero quando encontrar problemas — ideal para CI.
+- **Filtragem por instância:** utilize a flag repetível `--instance` para focar a validação em um subconjunto específico sem precisar exportar variáveis globais. Combine-a com os demais parâmetros quando quiser comparar apenas um conjunto reduzido durante ajustes iterativos.
 - **Boas práticas:** execute o script após mudanças em Compose ou nos arquivos `.env` de exemplo e inclua-o no pipeline de validação local antes de abrir PRs.
   > **Alerta:** rodar a verificação antes de abrir PRs evita que variáveis órfãs avancem para revisão.
 
