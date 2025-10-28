@@ -89,7 +89,9 @@ def _format_volume(volume: object) -> str:
     return detail_str
 
 
-def _build_compose_stub(tmp_path: Path, config_payload: dict[str, object]) -> tuple[Path, Path]:
+def _build_compose_stub(
+    tmp_path: Path, config_payload: dict[str, object]
+) -> tuple[Path, Path]:
     script_path = tmp_path / "compose_stub.py"
     log_path = tmp_path / "compose_stub.log"
     config_path = tmp_path / "config.json"
@@ -120,6 +122,17 @@ def _build_compose_stub(tmp_path: Path, config_payload: dict[str, object]) -> tu
         "",
         "payload_path = pathlib.Path(os.environ['DESCRIBE_INSTANCE_CONFIG_JSON'])",
         "payload = payload_path.read_text(encoding='utf-8')",
+        "",
+        "exit_override = os.environ.get('DESCRIBE_INSTANCE_COMPOSE_EXIT')",
+        "stderr_message = os.environ.get('DESCRIBE_INSTANCE_COMPOSE_STDERR', '')",
+        "if filtered[:1] == ['config'] and exit_override:",
+        "    try:",
+        "        exit_code = int(exit_override)",
+        "    except ValueError:",
+        "        exit_code = 1",
+        "    if stderr_message:",
+        "        print(stderr_message, file=sys.stderr)",
+        "    sys.exit(exit_code)",
         "",
         "if filtered[:3] == ['config', '--format', 'json']:",
         "    print(payload)",
@@ -168,6 +181,79 @@ def _extract_flag_arguments(args: list[str], flag: str) -> list[str]:
             continue
         index += 1
     return values
+
+
+def test_format_flag_requires_value(repo_copy: Path, tmp_path: Path) -> None:
+    stub_path, log_path = _build_compose_stub(tmp_path, {"services": {}})
+
+    env = os.environ.copy()
+    env.update(
+        {
+            "DOCKER_COMPOSE_BIN": str(stub_path),
+            "DESCRIBE_INSTANCE_CONFIG_JSON": str((tmp_path / "config.json").resolve()),
+            "DESCRIBE_INSTANCE_COMPOSE_LOG": str(log_path),
+        }
+    )
+
+    result = _run_script(repo_copy, "--format", env=env)
+
+    assert result.returncode == 1
+    assert "Error: --format requer um valor" in result.stderr
+
+
+def test_invalid_format_value_errors(repo_copy: Path, tmp_path: Path) -> None:
+    stub_path, log_path = _build_compose_stub(tmp_path, {"services": {}})
+
+    env = os.environ.copy()
+    env.update(
+        {
+            "DOCKER_COMPOSE_BIN": str(stub_path),
+            "DESCRIBE_INSTANCE_CONFIG_JSON": str((tmp_path / "config.json").resolve()),
+            "DESCRIBE_INSTANCE_COMPOSE_LOG": str(log_path),
+        }
+    )
+
+    result = _run_script(repo_copy, "--format", "yaml", "core", env=env)
+
+    assert result.returncode == 1
+    assert "Error: formato inválido 'yaml'. Utilize 'table' ou 'json'." in result.stderr
+
+
+def test_list_flag_cannot_receive_instance(repo_copy: Path, tmp_path: Path) -> None:
+    stub_path, log_path = _build_compose_stub(tmp_path, {"services": {}})
+
+    env = os.environ.copy()
+    env.update(
+        {
+            "DOCKER_COMPOSE_BIN": str(stub_path),
+            "DESCRIBE_INSTANCE_CONFIG_JSON": str((tmp_path / "config.json").resolve()),
+            "DESCRIBE_INSTANCE_COMPOSE_LOG": str(log_path),
+        }
+    )
+
+    result = _run_script(repo_copy, "--list", "core", env=env)
+
+    assert result.returncode == 1
+    assert "Error: --list não pode ser combinado com o nome da instância." in result.stderr
+
+
+def test_instance_name_is_required(repo_copy: Path, tmp_path: Path) -> None:
+    stub_path, log_path = _build_compose_stub(tmp_path, {"services": {}})
+
+    env = os.environ.copy()
+    env.update(
+        {
+            "DOCKER_COMPOSE_BIN": str(stub_path),
+            "DESCRIBE_INSTANCE_CONFIG_JSON": str((tmp_path / "config.json").resolve()),
+            "DESCRIBE_INSTANCE_COMPOSE_LOG": str(log_path),
+        }
+    )
+
+    result = _run_script(repo_copy, env=env)
+
+    assert result.returncode == 1
+    assert "Error: informe o nome da instância." in result.stderr
+    assert "Uso: scripts/describe_instance.sh" in result.stderr
 
 
 def test_list_flag_prints_available_instances(
@@ -438,3 +524,30 @@ def test_json_summary_structure(
         assert current["volumes"] == [
             _format_volume(volume) for volume in definition.get("volumes", [])
         ]
+
+
+def test_compose_config_failure_is_propagated(repo_copy: Path, tmp_path: Path) -> None:
+    compose_payload = {"services": {"sample": {"ports": [], "volumes": []}}}
+
+    stub_path, log_path = _build_compose_stub(tmp_path, compose_payload)
+
+    env = os.environ.copy()
+    env.update(
+        {
+            "DOCKER_COMPOSE_BIN": str(stub_path),
+            "DESCRIBE_INSTANCE_CONFIG_JSON": str((tmp_path / "config.json").resolve()),
+            "DESCRIBE_INSTANCE_COMPOSE_LOG": str(log_path),
+            "DESCRIBE_INSTANCE_COMPOSE_EXIT": "42",
+            "DESCRIBE_INSTANCE_COMPOSE_STDERR": "docker compose config failed",
+        }
+    )
+
+    result = _run_script(repo_copy, "core", env=env)
+
+    assert result.returncode == 42
+    assert "Error: falha ao executar docker compose config." in result.stderr
+    assert "docker compose config failed" in result.stderr
+    assert result.stdout == ""
+
+    log_lines = [line for line in log_path.read_text(encoding="utf-8").splitlines() if line.strip()]
+    assert log_lines, "esperado ao menos uma chamada ao stub do docker compose"
