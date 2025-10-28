@@ -385,7 +385,23 @@ class SyncReport:
 
 
 def build_sync_report(repo_root: Path, metadata: ComposeMetadata) -> SyncReport:
-    base_vars = extract_compose_variables([metadata.base_file])
+    variable_cache: Dict[Path, Set[str]] = {}
+
+    def cached_compose_variables(path: Path) -> Set[str]:
+        normalized = path.resolve()
+        cached = variable_cache.get(normalized)
+        if cached is None:
+            cached = extract_compose_variables([normalized])
+            variable_cache[normalized] = cached
+        return cached
+
+    def gather_variables(paths: Sequence[Path]) -> Set[str]:
+        collected: Set[str] = set()
+        for entry in paths:
+            collected.update(cached_compose_variables(entry))
+        return collected
+
+    base_vars = gather_variables([metadata.base_file])
     compose_vars_by_instance: Dict[str, Set[str]] = {}
     for instance, files in metadata.files_by_instance.items():
         instance_vars = set(base_vars)
@@ -394,8 +410,8 @@ def build_sync_report(repo_root: Path, metadata: ComposeMetadata) -> SyncReport:
             path for app in app_names if (path := metadata.app_base_by_name.get(app))
         ]
         if app_base_files:
-            instance_vars.update(extract_compose_variables(app_base_files))
-        instance_vars.update(extract_compose_variables(files))
+            instance_vars.update(gather_variables(app_base_files))
+        instance_vars.update(gather_variables(files))
         compose_vars_by_instance[instance] = instance_vars
 
     common_env_path = repo_root / "env" / "common.example.env"
