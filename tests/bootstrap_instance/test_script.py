@@ -118,3 +118,21 @@ def test_override_only_mode_skips_base(repo_copy: Path) -> None:
 
     listed_lines = [line.strip() for line in stdout.splitlines() if line.strip().startswith("-")]
     assert all("compose/apps/overrides/base.yml" not in line for line in listed_lines)
+
+
+@pytest.mark.parametrize(
+    ("app_name", "instance_name", "expected_message"),
+    (
+        ("-invalid", "sandbox", "Erro: O nome da aplicação"),
+        ("analytics", "-sandbox", "Erro: O nome da instância"),
+        ("InvalidCaps", "sandbox", "Erro: O nome da aplicação"),
+        ("analytics", "InvalidCaps", "Erro: O nome da instância"),
+    ),
+)
+def test_rejects_invalid_names(
+    repo_copy: Path, app_name: str, instance_name: str, expected_message: str
+) -> None:
+    result = _run_bootstrap(repo_copy, app_name, instance_name)
+
+    assert result.returncode == 1
+    assert expected_message in result.stderr
