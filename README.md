@@ -47,7 +47,7 @@ Lembre-se de ajustar os valores `<app>`/`core` para refletir os perfis do seu fo
 2. **Infraestrutura** – crie os manifests em `compose/` e modele as variáveis correspondentes em `env/`.
 3. **Automação** – adapte os scripts existentes para a nova stack e documente o uso em `docs/OPERATIONS.md`.
 4. **Runbooks** – personalize os guias operacionais (`docs/core.md`, `docs/media.md`, etc.) para refletir ambientes reais.
-5. **Qualidade** – mantenha `.github/workflows/` com `template-quality.yml` intacto e adicione workflows extras conforme necessário, documentando ajustes seguros em [`docs/ci-overrides.md`](docs/ci-overrides.md).
+5. **Qualidade** – mantenha `.github/workflows/` com `template-quality.yml` intacto e adicione workflows extras conforme necessário, documentando ajustes seguros em [`docs/ci-overrides.md`](docs/ci-overrides.md). Consulte também [`tests/README.md`](tests/README.md) para conhecer a suíte de testes padrão do template.
 
 <a id="documentacao-e-customizacao-local"></a>
 ## Documentação e customização local
