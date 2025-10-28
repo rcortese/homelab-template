@@ -145,3 +145,22 @@ def test_existing_env_file_is_preserved(repo_copy: Path) -> None:
 
     listed_lines = [line.strip() for line in stdout.splitlines() if line.strip().startswith("-")]
     assert any("compose/apps/preserve/existingenv.yml" in line for line in listed_lines)
+
+
+@pytest.mark.parametrize(
+    "app_name, instance_name, expected_message",
+    [
+        ("-demo", "valid", "Erro: O nome da aplicação"),
+        ("Invalid", "valid", "Erro: O nome da aplicação"),
+        ("demo", "-invalid", "Erro: O nome da instância"),
+        ("demo", "Invalid", "Erro: O nome da instância"),
+    ],
+)
+def test_rejects_invalid_names(
+    repo_copy: Path, app_name: str, instance_name: str, expected_message: str
+) -> None:
+    result = _run_bootstrap(repo_copy, app_name, instance_name)
+
+    assert result.returncode == 1
+    stderr = result.stderr
+    assert expected_message in stderr
