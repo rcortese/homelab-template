@@ -36,11 +36,11 @@ Pré-condições:
   • O diretório de trabalho deve estar limpo (sem alterações locais pendentes de commit).
 
 Exemplos:
-  TEMPLATE_REMOTE=upstream ORIGINAL_COMMIT_ID=abc1234 FIRST_COMMIT_ID=def5678 TARGET_BRANCH=main \\
+  TEMPLATE_REMOTE=template ORIGINAL_COMMIT_ID=abc1234 FIRST_COMMIT_ID=def5678 TARGET_BRANCH=main \\
     scripts/update_from_template.sh
 
   scripts/update_from_template.sh \
-    --remote upstream \
+    --remote template \
     --original-commit abc1234 \
     --first-local-commit def5678 \
     --target-branch main \
@@ -61,6 +61,8 @@ source "$SCRIPT_DIR/lib/template_prompts.sh"
 source "$SCRIPT_DIR/lib/template_validate.sh"
 # shellcheck source=scripts/lib/template_sync.sh
 source "$SCRIPT_DIR/lib/template_sync.sh"
+# shellcheck source=scripts/lib/template_remote.sh
+source "$SCRIPT_DIR/lib/template_remote.sh"
 
 template_remote="${TEMPLATE_REMOTE:-}"
 original_commit="${ORIGINAL_COMMIT_ID:-}"
@@ -110,20 +112,11 @@ if ! template_validate_git_repository; then
   error "este diretório não é um repositório Git."
 fi
 
-default_template_remote=""
-if git remote | grep -Fxq "template"; then
-  default_template_remote="template"
-elif git remote | grep -Fxq "upstream"; then
-  default_template_remote="upstream"
-fi
+default_template_remote="$(template_remote_preferred_existing)"
 
 if [[ -z "$template_remote" ]]; then
   require_interactive_input "remote do template não informado. Use --remote, defina TEMPLATE_REMOTE ou responda às perguntas interativas."
-  if [[ -n "$default_template_remote" ]]; then
-    template_remote="$(prompt_value_with_default "Informe o nome do remote do template" "$default_template_remote")"
-  else
-    template_remote="$(prompt_required_value "Informe o nome do remote do template")"
-  fi
+  template_remote="$(prompt_value_with_default "Informe o nome do remote do template" "$default_template_remote")"
 fi
 
 if [[ -z "$target_branch" ]]; then
