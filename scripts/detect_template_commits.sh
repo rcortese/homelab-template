@@ -30,6 +30,8 @@ error() {
 
 # shellcheck source=scripts/lib/template_validate.sh
 source "$SCRIPT_DIR/lib/template_validate.sh"
+# shellcheck source=scripts/lib/template_remote.sh
+source "$SCRIPT_DIR/lib/template_remote.sh"
 
 remote="${TEMPLATE_REMOTE:-}"
 target_branch="${TARGET_BRANCH:-}"
@@ -69,46 +71,12 @@ done
 
 cd "$REPO_ROOT"
 
-detect_remote() {
-  local detected_remote=""
-  if git remote | grep -Fxq "template"; then
-    detected_remote="template"
-  elif git remote | grep -Fxq "upstream"; then
-    detected_remote="upstream"
-  else
-    mapfile -t remotes < <(git remote)
-    if [[ ${#remotes[@]} -eq 1 ]]; then
-      detected_remote="${remotes[0]}"
-    fi
-  fi
-  printf '%s' "$detected_remote"
-}
-
-detect_target_branch() {
-  local remote_name="$1"
-  local branch=""
-  branch="$(git remote show "$remote_name" 2>/dev/null | awk '/HEAD branch/ {print $NF; exit}')"
-  if [[ -n "$branch" ]]; then
-    printf '%s' "$branch"
-    return 0
-  fi
-  if git show-ref --verify --quiet "refs/remotes/$remote_name/main"; then
-    printf '%s' "main"
-    return 0
-  fi
-  if git show-ref --verify --quiet "refs/remotes/$remote_name/master"; then
-    printf '%s' "master"
-    return 0
-  fi
-  printf '%s' ""
-}
-
 if ! template_validate_git_repository; then
   error "este diretório não é um repositório Git."
 fi
 
 if [[ -z "$remote" ]]; then
-  remote="$(detect_remote)"
+  remote="$(template_remote_detect)"
 fi
 
 [[ -n "$remote" ]] || error "nenhum remote detectado automaticamente. Use --remote ou defina TEMPLATE_REMOTE."
@@ -122,7 +90,7 @@ if [[ "$fetch_remote" == true ]]; then
 fi
 
 if [[ -z "$target_branch" ]]; then
-  target_branch="$(detect_target_branch "$remote")"
+  target_branch="$(template_remote_detect_head_branch "$remote")"
 fi
 
 [[ -n "$target_branch" ]] || error "não foi possível determinar a branch do template. Use --target-branch."
