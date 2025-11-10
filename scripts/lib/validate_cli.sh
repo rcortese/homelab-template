@@ -7,20 +7,20 @@ source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/compose_file_utils.sh"
 
 validate_cli_print_help() {
   cat <<'HELP'
-Uso: scripts/validate_compose.sh
+Usage: scripts/validate_compose.sh
 
-Valida as instâncias definidas para o repositório garantindo que `docker compose config`
-execute com sucesso para cada combinação de arquivos base + instância.
+Validates the repository instances, ensuring `docker compose config` succeeds
+for every combination of base files plus instance overrides.
 
-Argumentos posicionais:
-  (nenhum)
+Positional arguments:
+  (none)
 
-Variáveis de ambiente relevantes:
-  DOCKER_COMPOSE_BIN  Sobrescreve o comando docker compose (ex.: docker-compose).
-  COMPOSE_INSTANCES   Lista de instâncias a validar (separadas por espaço ou vírgula). Default: todas.
-  COMPOSE_EXTRA_FILES Overlays extras aplicados após o override padrão (aceita espaços ou vírgulas).
+Relevant environment variables:
+  DOCKER_COMPOSE_BIN  Override the docker compose command (for example: docker-compose).
+  COMPOSE_INSTANCES   Instances to validate (space- or comma-separated). Default: all.
+  COMPOSE_EXTRA_FILES Extra overlays applied after the default override (spaces or commas).
 
-Exemplos:
+Examples:
   scripts/validate_compose.sh
   COMPOSE_INSTANCES="media" scripts/validate_compose.sh
   COMPOSE_EXTRA_FILES="compose/overlays/metrics.yml" scripts/validate_compose.sh
@@ -43,7 +43,7 @@ validate_cli_parse_instances() {
       return 2
       ;;
     *)
-      echo "Argumento não reconhecido: $first_arg" >&2
+      echo "Unrecognized argument: $first_arg" >&2
       return 1
       ;;
     esac
@@ -68,7 +68,7 @@ validate_cli_parse_instances() {
   fi
 
   if [[ ${#instances[@]} -eq 0 ]]; then
-    echo "Error: nenhuma instância informada para validação." >&2
+    echo "Error: no instance provided for validation." >&2
     return 1
   fi
 

@@ -16,7 +16,7 @@ run_step() {
   local -a cmd_exec=()
 
   if [[ $# -eq 0 ]]; then
-    echo "[!] Nenhum comando fornecido para run_step." >&2
+    echo "[!] No command provided to run_step." >&2
     return 1
   fi
 

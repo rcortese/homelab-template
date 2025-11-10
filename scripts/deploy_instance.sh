@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
-# Usage: scripts/deploy_instance.sh <instancia>
+# Usage: scripts/deploy_instance.sh <instance>
 #
-# Automatiza um deploy guiado da instância solicitada. O fluxo monta os arquivos
-# compose (base + override da instância), roda validações auxiliares e, ao final,
-# dispara um health check para confirmar o estado pós `docker compose up`.
+# Automates a guided deployment of the requested instance. The routine builds
+# the compose file list (base + instance overrides), executes optional
+# validation helpers and, at the end, runs a health check to confirm the state
+# after `docker compose up`.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -60,41 +61,41 @@ APP_DATA_UID_GID="${DEPLOY_CONTEXT[APP_DATA_UID_GID]}"
 compose_env_files_display="${COMPOSE_ENV_FILES//$'\n'/ }"
 
 cat <<SUMMARY_EOF
-[*] Instância: $INSTANCE
+[*] Instance: $INSTANCE
 [*] COMPOSE_ENV_FILES=${compose_env_files_display}
 [*] COMPOSE_ENV_FILE=${COMPOSE_ENV_FILE}
 [*] COMPOSE_FILES=${COMPOSE_FILES}
 SUMMARY_EOF
 
 if [[ $RUN_STRUCTURE -eq 1 ]]; then
-  if ! run_deploy_step "Validando estrutura do repositório" "$REPO_ROOT/scripts/check_structure.sh"; then
+  if ! run_deploy_step "Validating repository structure" "$REPO_ROOT/scripts/check_structure.sh"; then
     exit $?
   fi
 fi
 
 if [[ $RUN_VALIDATE -eq 1 ]]; then
-  if ! run_deploy_step "Validando manifest da instância" env "COMPOSE_INSTANCES=${INSTANCE}" "$REPO_ROOT/scripts/validate_compose.sh"; then
+  if ! run_deploy_step "Validating instance compose manifests" env "COMPOSE_INSTANCES=${INSTANCE}" "$REPO_ROOT/scripts/validate_compose.sh"; then
     exit $?
   fi
 fi
 
 if [[ $DRY_RUN -eq 1 ]]; then
-  echo "[*] Dry-run habilitado. Nenhum comando foi executado."
-  echo "[*] Docker Compose planejado: $(format_cmd "${COMPOSE_EXEC_CMD[@]}")"
+  echo "[*] Dry-run enabled. No command was executed."
+  echo "[*] Planned Docker Compose command: $(format_cmd "${COMPOSE_EXEC_CMD[@]}")"
   if [[ $RUN_HEALTH -eq 1 ]]; then
-    echo "[*] Health check planejado: $(format_cmd "$REPO_ROOT/scripts/check_health.sh" "$INSTANCE")"
+    echo "[*] Planned health check: $(format_cmd "$REPO_ROOT/scripts/check_health.sh" "$INSTANCE")"
   else
-    echo "[*] Health check automático ignorado (flag --skip-health)."
+    echo "[*] Automatic health check skipped (--skip-health flag)."
   fi
   exit 0
 fi
 
 if [[ $FORCE -ne 1 && -z "${CI:-}" ]]; then
-  read -r -p "Prosseguir com o deploy? [y/N] " answer
+  read -r -p "Continue with the deployment? [y/N] " answer
   case "$answer" in
   [yY][eE][sS] | [yY]) ;;
   *)
-    echo "[!] Execução cancelada pelo usuário." >&2
+    echo "[!] Execution cancelled by the user." >&2
     exit 1
     ;;
   esac
@@ -104,24 +105,24 @@ mkdir -p "${PERSISTENT_DIRS[@]}"
 
 if [[ "$(id -u)" -eq 0 ]]; then
   if chown "$APP_DATA_UID_GID" "${PERSISTENT_DIRS[@]}"; then
-    echo "[*] Diretórios persistentes preparados (${PERSISTENT_DIRS[*]}) com owner ${APP_DATA_UID_GID}."
+    echo "[*] Prepared persistent directories (${PERSISTENT_DIRS[*]}) with owner ${APP_DATA_UID_GID}."
   else
-    echo "[!] Aviso: falha ao ajustar owner ${APP_DATA_UID_GID} em (${PERSISTENT_DIRS[*]}). Prosseguindo com owner atual." >&2
+    echo "[!] Warning: failed to set owner ${APP_DATA_UID_GID} on (${PERSISTENT_DIRS[*]}). Continuing with current ownership." >&2
   fi
 else
-  echo "[*] Diretórios persistentes preparados (${PERSISTENT_DIRS[*]}). Owner desejado ${APP_DATA_UID_GID} não aplicado (permissões insuficientes)."
+  echo "[*] Prepared persistent directories (${PERSISTENT_DIRS[*]}). Desired owner ${APP_DATA_UID_GID} not applied (insufficient permissions)."
 fi
 
-if ! run_deploy_step "Aplicando docker compose (up -d)" "${COMPOSE_EXEC_CMD[@]}"; then
+if ! run_deploy_step "Running docker compose (up -d)" "${COMPOSE_EXEC_CMD[@]}"; then
   exit $?
 fi
 
 if [[ $RUN_HEALTH -eq 1 ]]; then
-  if ! run_deploy_step "Executando health check pós-deploy" "$REPO_ROOT/scripts/check_health.sh" "$INSTANCE"; then
+  if ! run_deploy_step "Running post-deploy health check" "$REPO_ROOT/scripts/check_health.sh" "$INSTANCE"; then
     exit $?
   fi
 else
-  echo "[*] Health check automático ignorado (flag --skip-health)."
+  echo "[*] Automatic health check skipped (--skip-health flag)."
 fi
 
-echo "[*] Deploy guiado finalizado com sucesso."
+echo "[*] Guided deployment finished successfully."

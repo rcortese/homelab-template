@@ -32,18 +32,18 @@ validate_executor_prepare_plan() {
     )
 
     if [[ ${#potential_matches[@]} -gt 0 ]]; then
-      echo "✖ instância=\"$instance\" (combinação de arquivos ausente nos metadados)" >&2
+      echo "[x] instance=\"$instance\" (file combination missing from metadata)" >&2
       return 1
     fi
 
     local local_candidate="$repo_root/env/local/${instance}.env"
     local template_candidate="$repo_root/env/${instance}.example.env"
     if [[ -f "$local_candidate" || -f "$template_candidate" ]]; then
-      echo "✖ instância=\"$instance\" (arquivo ausente: compose/apps/*/${instance}.yml)" >&2
+      echo "[x] instance=\"$instance\" (missing file: compose/apps/*/${instance}.yml)" >&2
       return 1
     fi
 
-    echo "Error: instância desconhecida '$instance'." >&2
+    echo "Error: unknown instance '$instance'." >&2
     return 2
   fi
 
@@ -93,7 +93,7 @@ validate_executor_prepare_plan() {
 
   local -a compose_plan_rel=()
   if ! build_compose_file_plan "$instance" compose_plan_rel extra_files; then
-    echo "✖ instância=\"$instance\" (falha ao gerar plano de arquivos)" >&2
+    echo "[x] instance=\"$instance\" (failed to build compose file plan)" >&2
     return 1
   fi
 
@@ -129,7 +129,7 @@ validate_executor_prepare_plan() {
   local file
   for file in "${files_ref[@]}"; do
     if [[ ! -f "$file" ]]; then
-      echo "✖ instância=\"$instance\" (arquivo ausente: $file)" >&2
+      echo "[x] instance=\"$instance\" (missing file: $file)" >&2
       missing=1
     else
       compose_args_ref+=("-f" "$file")
@@ -144,7 +144,7 @@ validate_executor_prepare_plan() {
       if [[ -f "$env_path" ]]; then
         env_args_ref+=("--env-file" "$env_path")
       else
-        echo "✖ instância=\"$instance\" (arquivo ausente: $env_path)" >&2
+        echo "[x] instance=\"$instance\" (missing file: $env_path)" >&2
         env_missing=1
       fi
     done
@@ -173,7 +173,7 @@ validate_executor_prepare_plan() {
     fi
   fi
   if [[ ${#instance_app_names[@]} -eq 0 ]]; then
-    echo "✖ instância=\"$instance\" (aplicações associadas não encontradas)" >&2
+    echo "[x] instance=\"$instance\" (associated applications not found)" >&2
     return 1
   fi
 
@@ -212,7 +212,7 @@ validate_executor_prepare_plan() {
   fi
 
   if [[ -n "$app_data_dir_value" && -n "$app_data_dir_mount_value" ]]; then
-    echo "✖ instância=\"$instance\" (APP_DATA_DIR e APP_DATA_DIR_MOUNT não podem ser definidos simultaneamente)" >&2
+    echo "[x] instance=\"$instance\" (APP_DATA_DIR and APP_DATA_DIR_MOUNT cannot be set simultaneously)" >&2
     return 1
   fi
 
@@ -226,7 +226,7 @@ validate_executor_prepare_plan() {
   local derived_app_data_dir=""
   local derived_app_data_dir_mount=""
   if ! env_helpers__derive_app_data_paths "$repo_root" "$service_slug" "$default_app_data_dir" "$app_data_dir_value" "$app_data_dir_mount_value" derived_app_data_dir derived_app_data_dir_mount; then
-    echo "✖ instância=\"$instance\" (falha ao derivar diretórios persistentes)" >&2
+    echo "[x] instance=\"$instance\" (failed to derive persistent directories)" >&2
     return 1
   fi
 
@@ -273,16 +273,16 @@ validate_executor_run_instances() {
       continue
     fi
 
-    echo "==> Validando $instance"
+    echo "==> Validating $instance"
     local app_data_dir_env="${derived_env[APP_DATA_DIR]:-}"
     local app_data_dir_mount_env="${derived_env[APP_DATA_DIR_MOUNT]:-}"
 
     if APP_DATA_DIR="$app_data_dir_env" \
       APP_DATA_DIR_MOUNT="$app_data_dir_mount_env" \
       "${compose_cmd[@]}" "${env_args[@]}" "${compose_args[@]}" config >/dev/null; then
-      echo "✔ $instance"
+      echo "[+] $instance"
     else
-      echo "✖ instância=\"$instance\"" >&2
+      echo "[x] instance=\"$instance\"" >&2
       echo "   files: ${files[*]}" >&2
       status=1
     fi

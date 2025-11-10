@@ -43,7 +43,7 @@ load_compose_discovery() {
   fi
 
   if [[ ! -d "$apps_dir" ]]; then
-    echo "[!] Diretório de aplicações não encontrado: $apps_dir_rel" >&2
+    echo "[!] Application directory not found: $apps_dir_rel" >&2
     return 1
   fi
 
@@ -62,7 +62,7 @@ load_compose_discovery() {
   shopt -u nullglob
 
   if [[ ${#app_dirs[@]} -eq 0 ]]; then
-    echo "[!] Nenhuma aplicação encontrada em $apps_dir_rel" >&2
+    echo "[!] No application found in $apps_dir_rel" >&2
     return 1
   fi
 
@@ -100,7 +100,7 @@ load_compose_discovery() {
       instance_rel="$apps_dir_rel/$app_name/$filename"
       instance_abs="$repo_root/$instance_rel"
       if [[ ! -f "$instance_abs" ]]; then
-        echo "[!] Arquivo de instância não encontrado: $instance_rel" >&2
+        echo "[!] Instance file not found: $instance_rel" >&2
         return 1
       fi
 
@@ -128,7 +128,7 @@ load_compose_discovery() {
       if [[ -f "$app_base_abs" ]]; then
         apps_without_overrides+=("$app_name")
       else
-        echo "[!] Aplicação '$app_name' não possui base.yml nem overrides (arquivo ausente)." >&2
+        echo "[!] Application '$app_name' has no base.yml or overrides (file missing)." >&2
         return 1
       fi
     fi
@@ -178,7 +178,7 @@ load_compose_discovery() {
   shopt -u nullglob
 
   if [[ ${#known_instances[@]} -eq 0 ]]; then
-    echo "[!] Nenhuma instância encontrada em $apps_dir_rel ou $env_dir_rel" >&2
+    echo "[!] No instance found in $apps_dir_rel or $env_dir_rel" >&2
     return 1
   fi
 

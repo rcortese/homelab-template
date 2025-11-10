@@ -99,7 +99,7 @@ build_compose_file_plan() {
   for __app_name in "${__instance_app_names[@]}"; do
     __app_base_file="${COMPOSE_APP_BASE_FILES[$__app_name]:-}"
     if [[ -z "$__app_base_file" && -z "${__overrides_by_app[$__app_name]:-}" ]]; then
-      printf '[!] Instância "%s": aplicação "%s" não possui base.yml nem overrides.\n' \
+      printf '[!] Instance "%s": application "%s" has no base.yml or overrides.\n' \
         "$instance_name" "$__app_name" >&2
       return 1
     fi

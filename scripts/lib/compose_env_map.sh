@@ -5,12 +5,12 @@ source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/compose_paths.sh"
 
 load_compose_env_map() {
   if ! declare -p COMPOSE_INSTANCE_NAMES >/dev/null 2>&1; then
-    echo "[!] COMPOSE_INSTANCE_NAMES não inicializado. Execute load_compose_discovery primeiro." >&2
+    echo "[!] COMPOSE_INSTANCE_NAMES not initialized. Run load_compose_discovery first." >&2
     return 1
   fi
 
   if ! declare -p COMPOSE_INSTANCE_FILES >/dev/null 2>&1; then
-    echo "[!] COMPOSE_INSTANCE_FILES não inicializado. Execute load_compose_discovery primeiro." >&2
+    echo "[!] COMPOSE_INSTANCE_FILES not initialized. Run load_compose_discovery first." >&2
     return 1
   fi
 
@@ -46,7 +46,7 @@ load_compose_env_map() {
     env_template_abs="$repo_root/$env_template_rel"
 
     if [[ ! -v COMPOSE_INSTANCE_FILES[$instance] ]]; then
-      echo "[!] Instância '$instance' não encontrada nos metadados." >&2
+      echo "[!] Instance '$instance' not found in metadata." >&2
       return 1
     fi
 
@@ -69,7 +69,7 @@ load_compose_env_map() {
     elif [[ -f "$env_template_abs" ]]; then
       env_files_list+=("$env_template_rel")
     else
-      echo "[!] Nenhum arquivo .env encontrado para instância '$instance'." >&2
+      echo "[!] No .env file found for instance '$instance'." >&2
       echo "    Esperado: $env_local_rel ou $env_template_rel" >&2
       return 1
     fi

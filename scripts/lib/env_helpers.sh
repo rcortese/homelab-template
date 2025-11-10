@@ -67,7 +67,7 @@ try:
     relative = absolute.relative_to(root)
 except ValueError:
     sys.stderr.write(
-        f"[!] Caminho fora do repositório: {absolute.as_posix()}\n"
+        f"[!] Path outside the repository: {absolute.as_posix()}\n"
     )
     sys.exit(1)
 
@@ -145,14 +145,14 @@ env_helpers__derive_app_data_paths() {
   local -n __app_data_dir_mount_out=$7
 
   if [[ -n "$app_data_dir_input" && -n "$app_data_dir_mount_input" ]]; then
-    echo "Error: APP_DATA_DIR e APP_DATA_DIR_MOUNT não podem ser definidos simultaneamente." >&2
+    echo "Error: APP_DATA_DIR and APP_DATA_DIR_MOUNT cannot be defined at the same time." >&2
     return 1
   fi
 
   local default_rel=""
   if [[ -n "$default_rel_input" ]]; then
     if ! default_rel="$(env_helpers__normalize_repo_relative "$repo_root" "$default_rel_input")"; then
-      echo "Error: caminho padrão APP_DATA_DIR inválido: $default_rel_input" >&2
+      echo "Error: invalid default APP_DATA_DIR path: $default_rel_input" >&2
       return 1
     fi
   fi
@@ -162,7 +162,7 @@ env_helpers__derive_app_data_paths() {
 
   if [[ -n "$app_data_dir_mount_input" ]]; then
     if ! derived_mount="$(env_helpers__normalize_absolute_path "$repo_root" "$app_data_dir_mount_input")"; then
-      echo "Error: não foi possível normalizar APP_DATA_DIR_MOUNT '${app_data_dir_mount_input}'." >&2
+      echo "Error: unable to normalize APP_DATA_DIR_MOUNT '${app_data_dir_mount_input}'." >&2
       return 1
     fi
 
@@ -188,7 +188,7 @@ env_helpers__derive_app_data_paths() {
   else
     if [[ -n "$app_data_dir_input" ]]; then
       if ! normalized_rel="$(env_helpers__normalize_repo_relative "$repo_root" "$app_data_dir_input")"; then
-        echo "Error: valor APP_DATA_DIR inválido: $app_data_dir_input" >&2
+        echo "Error: invalid APP_DATA_DIR value: $app_data_dir_input" >&2
         return 1
       fi
     else
@@ -198,7 +198,7 @@ env_helpers__derive_app_data_paths() {
     if [[ -n "$normalized_rel" ]]; then
       local absolute_base=""
       if ! absolute_base="$(env_helpers__normalize_absolute_path "$repo_root" "$normalized_rel")"; then
-        echo "Error: não foi possível calcular o caminho absoluto para '$normalized_rel'." >&2
+        echo "Error: unable to compute absolute path for '$normalized_rel'." >&2
         return 1
       fi
       absolute_base="${absolute_base%/}"
@@ -213,7 +213,7 @@ env_helpers__derive_app_data_paths() {
   fi
 
   if [[ -z "$derived_mount" ]]; then
-    echo "Error: não foi possível derivar APP_DATA_DIR_MOUNT." >&2
+    echo "Error: unable to derive APP_DATA_DIR_MOUNT." >&2
     return 1
   fi
 
