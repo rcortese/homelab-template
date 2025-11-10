@@ -17,8 +17,6 @@ def _collect_compose_metadata(repo_root: Path) -> tuple[
     dict[str, str],
     dict[str, str],
 ]:
-    base_rel = Path("compose/base.yml")
-    assert (repo_root / base_rel).exists(), "Missing compose/base.yml in repo copy"
 
     apps_dir = repo_root / "compose" / "apps"
     assert apps_dir.is_dir(), "Missing compose/apps directory in repo copy"
@@ -204,9 +202,10 @@ def test_compose_instances_outputs_expected_metadata(repo_copy: Path) -> None:
     ) = _collect_compose_metadata(repo_copy)
 
     base_line = find_declare_line(result.stdout, "BASE_COMPOSE_FILE")
-    base_match = re.search(r"=\"([^\"]+)\"", base_line)
+    base_match = re.search(r"=\"([^\"]*)\"", base_line)
     assert base_match is not None
-    assert base_match.group(1) == "compose/base.yml"
+    expected_base = "compose/base.yml" if (repo_copy / "compose" / "base.yml").exists() else ""
+    assert base_match.group(1) == expected_base
 
     names_line = find_declare_line(result.stdout, "COMPOSE_INSTANCE_NAMES")
     assert parse_indexed_values(names_line) == expected_names
@@ -267,14 +266,19 @@ def test_instances_include_apps_without_overrides(
             assert override in overrides
 
 
-def test_missing_base_file_causes_failure(repo_copy: Path) -> None:
+def test_missing_base_file_is_allowed(repo_copy: Path) -> None:
     base_file = repo_copy / "compose" / "base.yml"
-    base_file.unlink()
+    if base_file.exists():
+        base_file.unlink()
 
     result = run_compose_instances(repo_copy)
 
-    assert result.returncode != 0
-    assert "compose/base.yml" in result.stderr
+    assert result.returncode == 0, result.stderr
+
+    base_line = find_declare_line(result.stdout, "BASE_COMPOSE_FILE")
+    base_match = re.search(r"=\"([^\"]*)\"", base_line)
+    assert base_match is not None
+    assert base_match.group(1) == ""
 
 
 def test_missing_env_files_causes_failure(repo_copy: Path) -> None:

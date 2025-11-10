@@ -47,10 +47,6 @@ build_compose_file_plan() {
     return 1
   fi
 
-  if [[ -z "${BASE_COMPOSE_FILE:-}" ]]; then
-    return 1
-  fi
-
   local -n __plan_ref=$target_array_name
   __plan_ref=()
 
@@ -68,7 +64,9 @@ build_compose_file_plan() {
     mapfile -t __instance_app_names < <(printf '%s\n' "${COMPOSE_INSTANCE_APP_NAMES[$instance_name]}")
   fi
 
-  append_unique_file __plan_ref "$BASE_COMPOSE_FILE"
+  if [[ -n "${BASE_COMPOSE_FILE:-}" ]]; then
+    append_unique_file __plan_ref "$BASE_COMPOSE_FILE"
+  fi
 
   local -a __instance_level_overrides=()
   declare -A __overrides_by_app=()

@@ -17,8 +17,8 @@ executar `docker compose`.
 
 | Tipo de arquivo | Localização | Papel |
 | --------------- | ----------- | ----- |
-| **Base** | `compose/base.yml` | Mantém apenas anchors e volumes compartilhados reutilizados pelas aplicações. Deve ser carregado **sempre** como primeiro manifesto. |
-| **Instância (global)** | `compose/<instância>.yml` (ex.: [`compose/core.yml`](../compose/core.yml), [`compose/media.yml`](../compose/media.yml)) | Reúne ajustes compartilhados por todas as aplicações daquela instância (ex.: redes extras, volumes padrão ou labels globais). É aplicado imediatamente após o arquivo base para que os recursos sejam sobrescritos antes dos manifests das aplicações. |
+| **Base** | `compose/base.yml` (opcional) | Mantém apenas anchors e volumes compartilhados reutilizados pelas aplicações. É carregado automaticamente quando existir; se estiver ausente, o plano começa diretamente pelos manifests da instância. |
+| **Instância (global)** | `compose/<instância>.yml` (ex.: [`compose/core.yml`](../compose/core.yml), [`compose/media.yml`](../compose/media.yml)) *(opcional)* | Reúne ajustes compartilhados por todas as aplicações daquela instância (ex.: redes extras, volumes padrão ou labels globais). Quando o arquivo existir, ele é aplicado imediatamente após o manifesto base para que os recursos sejam sobrescritos antes dos manifests das aplicações. |
 | **Aplicação** | `compose/apps/<app>/base.yml` | Declara os serviços adicionais que compõem uma aplicação (ex.: `app`). Usa os anchors definidos em `compose/base.yml`. Substitua `<app>` pelo diretório da sua aplicação principal (ex.: `compose/apps/<sua-app>/base.yml`). É incluído automaticamente para todas as instâncias **quando o arquivo existir**. |
 | **Overrides da aplicação** | `compose/apps/<app>/<instância>.yml` | Especializa os serviços da aplicação para cada ambiente (nome do container, portas, variáveis específicas como `APP_PUBLIC_URL` ou `MEDIA_ROOT`). Cada instância possui um arquivo por aplicação (ex.: `compose/apps/<sua-app>/core.yml`). |
 
@@ -41,8 +41,8 @@ services:
 
 ### Exemplos incluídos no template
 
-- [`compose/core.yml`](../compose/core.yml) documenta como adicionar labels para um proxy reverso, conectar os serviços da instância a uma rede externa (`core_proxy`) e declarar volumes nomeados (`core_logs`).
-- [`compose/media.yml`](../compose/media.yml) mostra como compartilhar montagens de mídia (`MEDIA_HOST_PATH`) entre serviços e como definir um volume comum para caches de transcodificação (`media_cache`).
+- Quando presente, [`compose/core.yml`](../compose/core.yml) documenta como adicionar labels para um proxy reverso, conectar os serviços da instância a uma rede externa (`core_proxy`) e declarar volumes nomeados (`core_logs`).
+- Quando presente, [`compose/media.yml`](../compose/media.yml) mostra como compartilhar montagens de mídia (`MEDIA_HOST_PATH`) entre serviços e como definir um volume comum para caches de transcodificação (`media_cache`).
 
 ### Aplicações compostas apenas por overrides
 
@@ -73,7 +73,7 @@ instâncias, evitando a criação de artefatos redundantes.
 - `scripts/lib/compose_discovery.sh` identifica diretórios override-only e
   registra somente os arquivos `<instância>.yml` existentes.
 - Durante a geração do plano (`scripts/lib/compose_plan.sh`), apenas esses
-  overrides são encadeados após `compose/base.yml` e os ajustes globais da
+  overrides são encadeados após `compose/base.yml` (quando presente) e os ajustes globais da
   instância, preservando a ordem dos demais manifests.
 - O mapa `COMPOSE_APP_BASE_FILES`, exportado por
   `scripts/lib/compose_instances.sh`, mantém apenas aplicações com `base.yml`
@@ -86,8 +86,8 @@ Ao combinar diversas aplicações, carregue os manifests em blocos (`base.yml`, 
 
 | Ordem | Arquivo | Função |
 | ----- | ------- | ------ |
-| 1 | `compose/base.yml` | Estrutura fundacional com anchors compartilhados. |
-| 2 | `compose/<instância>.yml` (ex.: `compose/core.yml`, `compose/media.yml`) | Ajustes globais da instância (labels, redes extras, políticas padrões). |
+| 1 | `compose/base.yml` (quando existir) | Estrutura fundacional com anchors compartilhados. |
+| 2 | `compose/<instância>.yml` (ex.: `compose/core.yml`, `compose/media.yml`) *(quando existir)* | Ajustes globais da instância (labels, redes extras, políticas padrões). |
 | 3 | `compose/apps/<app-principal>/base.yml` (ex.: `compose/apps/app/base.yml`) | Define serviços da aplicação principal. |
 | 4 | `compose/apps/<app-principal>/<instância>.yml` (ex.: `compose/apps/app/core.yml`) | Ajusta a aplicação principal para a instância alvo. |
 | 5 | `compose/apps/<app-auxiliar>/base.yml` (ex.: `compose/apps/monitoring/base.yml`) | Declara serviços auxiliares (ex.: observabilidade). |
@@ -117,8 +117,8 @@ snippet converte automaticamente cada entrada em um novo `-f`.
 docker compose \
   --env-file env/local/common.env \
   --env-file env/local/<instância>.env \
-  -f compose/base.yml \
-  -f compose/<instância>.yml \ # ex.: compose/core.yml ou compose/media.yml
+  -f compose/base.yml \  # Inclua somente se o arquivo existir
+  -f compose/<instância>.yml \ # Inclua somente se o arquivo existir (ex.: compose/core.yml)
   -f compose/apps/<app-principal>/base.yml \
   -f compose/apps/<app-principal>/<instância>.yml \
   # Opcional: adicione pares base/instância para cada aplicação auxiliar habilitada
@@ -166,13 +166,13 @@ carregados e nas variáveis apontadas pelo comando acima:
 
 | Cenário | `--env-file` (ordem) | Overrides obrigatórios (`-f`) | Overlays adicionais | Observações |
 | ------- | -------------------- | ----------------------------- | ------------------- | ----------- |
-| **core** | `env/local/common.env` → `env/local/core.env` | `compose/core.yml`, `compose/apps/<app-principal>/core.yml` (ex.: `compose/apps/app/core.yml`) | — | Sem overlays obrigatórios. Utilize apenas quando a stack demandar arquivos extras. |
-| **media** | `env/local/common.env` → `env/local/media.env` | `compose/media.yml`, `compose/apps/<app-principal>/media.yml` (ex.: `compose/apps/app/media.yml`) | Opcional: `compose/overlays/<overlay>.yml` (ex.: armazenamento de mídia) | Adicione overlays específicos da instância listando-os em `COMPOSE_EXTRA_FILES` antes de executar o comando. |
+| **core** | `env/local/common.env` → `env/local/core.env` | `compose/core.yml` (quando existir), `compose/apps/<app-principal>/core.yml` (ex.: `compose/apps/app/core.yml`) | — | Sem overlays obrigatórios. Utilize apenas quando a stack demandar arquivos extras. |
+| **media** | `env/local/common.env` → `env/local/media.env` | `compose/media.yml` (quando existir), `compose/apps/<app-principal>/media.yml` (ex.: `compose/apps/app/media.yml`) | Opcional: `compose/overlays/<overlay>.yml` (ex.: armazenamento de mídia) | Adicione overlays específicos da instância listando-os em `COMPOSE_EXTRA_FILES` antes de executar o comando. |
 
 ### Combinação ad-hoc com `COMPOSE_FILES`
 
 ```bash
-export COMPOSE_FILES="compose/base.yml compose/media.yml compose/apps/<app-principal>/base.yml compose/apps/<app-principal>/media.yml"
+export COMPOSE_FILES="compose/base.yml compose/media.yml compose/apps/<app-principal>/base.yml compose/apps/<app-principal>/media.yml" # Remova entradas inexistentes
 docker compose \
   --env-file env/local/common.env \
   --env-file env/local/media.env \

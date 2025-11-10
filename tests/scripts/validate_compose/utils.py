@@ -43,7 +43,9 @@ class InstanceMetadata:
                 files.append(candidate)
                 seen.add(candidate)
 
-        append_unique(root / BASE_COMPOSE_REL)
+        base_candidate = root / BASE_COMPOSE_REL
+        if base_candidate.exists():
+            append_unique(base_candidate)
 
         override_paths = [root / entry for entry in self.override_files]
         overrides_by_app: dict[str, list[Path]] = {}
@@ -109,10 +111,6 @@ def expected_compose_call(
 
 def _discover_instance_metadata(repo_root: Path) -> tuple[InstanceMetadata, ...]:
     compose_dir = repo_root / "compose"
-    base_file = compose_dir / "base.yml"
-    if not base_file.exists():  # pragma: no cover - defensive
-        raise FileNotFoundError(f"Arquivo base não encontrado: {base_file}")
-
     apps_dir = compose_dir / "apps"
     if not apps_dir.is_dir():  # pragma: no cover - defensive
         raise FileNotFoundError(f"Diretório de aplicações não encontrado: {apps_dir}")

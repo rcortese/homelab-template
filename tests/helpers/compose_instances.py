@@ -121,7 +121,7 @@ def load_compose_instances_data(repo_root: Path) -> ComposeInstancesData:
         raise RuntimeError(result.stderr.strip() or "compose_instances.sh failed")
 
     base_line = _find_declare_line(result.stdout, "BASE_COMPOSE_FILE")
-    base_match = re.search(r"=\"([^\"]+)\"", base_line)
+    base_match = re.search(r"=\"([^\"]*)\"", base_line)
     if base_match is None:
         raise AssertionError(f"BASE_COMPOSE_FILE not found in: {base_line!r}")
     base_file = base_match.group(1)

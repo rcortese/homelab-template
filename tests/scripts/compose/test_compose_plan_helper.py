@@ -133,7 +133,7 @@ def test_compose_plan_matches_existing_logic(repo_copy: Path) -> None:
         _env_file_map,
     ) = _collect_compose_metadata(repo_copy)
 
-    base_file = "compose/base.yml"
+    base_file = "compose/base.yml" if (repo_copy / "compose" / "base.yml").exists() else ""
 
     for instance in expected_names:
         result = run_compose_plan(repo_copy, instance)
@@ -155,7 +155,9 @@ def test_compose_plan_matches_existing_logic(repo_copy: Path) -> None:
 
 
 def test_compose_plan_appends_extra_files(repo_copy: Path) -> None:
-    extras = ["compose/custom-extra.yml", "compose/base.yml"]
+    extras = ["compose/custom-extra.yml"]
+    if (repo_copy / "compose" / "base.yml").exists():
+        extras.append("compose/base.yml")
     result = run_compose_plan(repo_copy, "core", extras=extras)
 
     assert result.returncode == 0, result.stderr
@@ -174,7 +176,7 @@ def test_compose_plan_appends_extra_files(repo_copy: Path) -> None:
     ) = _collect_compose_metadata(repo_copy)
 
     expected_plan = build_expected_plan(
-        "compose/base.yml",
+        "compose/base.yml" if (repo_copy / "compose" / "base.yml").exists() else "",
         "core",
         expected_app_names_map,
         expected_app_base_map,
