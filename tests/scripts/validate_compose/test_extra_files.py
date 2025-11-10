@@ -5,7 +5,10 @@ import subprocess
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from tests.helpers.compose_instances import ComposeInstancesData
+from tests.helpers.compose_instances import (
+    ComposeInstancesData,
+    load_compose_instances_data,
+)
 
 from .utils import expected_compose_call
 
@@ -167,3 +170,76 @@ def test_env_override_for_extra_files(
         ],
         "config",
     )
+
+
+def test_skips_shared_base_when_missing(
+    repo_copy: Path,
+    docker_stub: DockerStub,
+) -> None:
+    base_path = repo_copy / "compose" / "base.yml"
+    if base_path.exists():
+        base_path.unlink()
+
+    docker_stub.set_exit_code(0)
+
+    instances = load_compose_instances_data(repo_copy)
+    instance = _select_instance(instances)
+    env_chain = _env_chain_paths(repo_copy, instances, instance)
+    base_files = _compose_plan_paths(repo_copy, instances, instance)
+
+    result = subprocess.run(
+        [str(repo_copy / "scripts" / "validate_compose.sh")],
+        capture_output=True,
+        text=True,
+        check=False,
+        cwd=repo_copy,
+        env={**os.environ, "COMPOSE_INSTANCES": instance},
+    )
+
+    assert result.returncode == 0, result.stderr
+    calls = docker_stub.read_calls()
+    assert len(calls) == 1
+    (call,) = calls
+    assert call == expected_compose_call(
+        env_chain,
+        base_files,
+        "config",
+    )
+    assert all("compose/base.yml" not in str(path) for path in base_files)
+
+
+def test_skips_instance_manifest_when_missing(
+    repo_copy: Path,
+    docker_stub: DockerStub,
+    compose_instances_data: ComposeInstancesData,
+) -> None:
+    instance = _select_instance(compose_instances_data)
+    manifest = repo_copy / "compose" / f"{instance}.yml"
+    if manifest.exists():
+        manifest.unlink()
+
+    docker_stub.set_exit_code(0)
+
+    instances = load_compose_instances_data(repo_copy)
+    env_chain = _env_chain_paths(repo_copy, instances, instance)
+    base_files = _compose_plan_paths(repo_copy, instances, instance)
+
+    result = subprocess.run(
+        [str(repo_copy / "scripts" / "validate_compose.sh")],
+        capture_output=True,
+        text=True,
+        check=False,
+        cwd=repo_copy,
+        env={**os.environ, "COMPOSE_INSTANCES": instance},
+    )
+
+    assert result.returncode == 0, result.stderr
+    calls = docker_stub.read_calls()
+    assert len(calls) == 1
+    (call,) = calls
+    assert call == expected_compose_call(
+        env_chain,
+        base_files,
+        "config",
+    )
+    assert manifest not in base_files

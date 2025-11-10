@@ -77,7 +77,8 @@ def test_defaults_for_core_instance(
     expected_relative = compose_instances_data.compose_plan("core")
     assert compose_entries == expected_relative
 
-    assert compose_instances_data.base_file in compose_entries
+    if compose_instances_data.base_file:
+        assert compose_instances_data.base_file in compose_entries
 
     core_apps = compose_instances_data.instance_app_names.get("core", [])
     core_overrides = compose_instances_data.instance_files.get("core", [])

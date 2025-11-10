@@ -38,7 +38,7 @@ PAIR_PATTERN = re.compile(
 
 @dataclass
 class ComposeMetadata:
-    base_file: Path
+    base_file: Path | None
     instances: Sequence[str]
     files_by_instance: Mapping[str, Sequence[Path]]
     app_names_by_instance: Mapping[str, Sequence[str]]
@@ -109,7 +109,15 @@ def load_compose_metadata(repo_root: Path) -> ComposeMetadata:
         if line.startswith("declare -- BASE_COMPOSE_FILE="):
             _, _, tail = line.partition("=")
             base_value = decode_bash_string(tail)
-            base_file = (repo_root / base_value).resolve()
+            if base_value:
+                candidate = (repo_root / base_value).resolve()
+                if not candidate.exists():
+                    raise ComposeMetadataError(
+                        f"Arquivo base declarado ausente: {candidate}"
+                    )
+                base_file = candidate
+            else:
+                base_file = None
         elif line.startswith("declare -a COMPOSE_INSTANCE_NAMES="):
             instances = parse_declare_array(line)
         elif line.startswith("declare -A COMPOSE_INSTANCE_FILES="):
@@ -136,16 +144,17 @@ def load_compose_metadata(repo_root: Path) -> ComposeMetadata:
                 if value:
                     app_base_map[app_name] = (repo_root / value).resolve()
 
-    if base_file is None or not base_file.exists():
+    if base_file is not None and not base_file.exists():
         raise ComposeMetadataError("Arquivo compose/base.yml não encontrado.")
     if not instances:
         raise ComposeMetadataError("Nenhuma instância Compose detectada.")
 
     normalized_files_map: Dict[str, Sequence[Path]] = {}
     for instance in instances:
-        files = files_map.get(instance)
+        files = files_map.get(instance, [])
         if not files:
-            raise ComposeMetadataError(f"Nenhum override localizado para a instância '{instance}'.")
+            normalized_files_map[instance] = ()
+            continue
         normalized_files_map[instance] = files
 
     normalized_app_names: Dict[str, Sequence[str]] = {}
@@ -401,7 +410,11 @@ def build_sync_report(repo_root: Path, metadata: ComposeMetadata) -> SyncReport:
             collected.update(cached_compose_variables(entry))
         return collected
 
-    base_vars = gather_variables([metadata.base_file])
+    base_sources: list[Path] = []
+    if metadata.base_file is not None:
+        base_sources.append(metadata.base_file)
+
+    base_vars = gather_variables(base_sources)
     compose_vars_by_instance: Dict[str, Set[str]] = {}
     for instance, files in metadata.files_by_instance.items():
         instance_vars = set(base_vars)

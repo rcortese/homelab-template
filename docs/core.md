@@ -33,7 +33,7 @@ Siga o [checklist genérico](./OPERATIONS.md#checklist-generico-deploy-pos) e, p
 
 ## Referências
 
-- `compose/base.yml` + `compose/apps/<app>/<ambiente>.yml`
+- (`compose/base.yml`, quando existir) + (`compose/<ambiente>.yml`, quando existir) + `compose/apps/<app>/<ambiente>.yml`
 - [Guia de combinações do Docker Compose](./COMPOSE_GUIDE.md#stacks-com-múltiplas-aplicações) para orientar a ativação/desativação de aplicações.
 - `env/<ambiente>.example.env`
 - ADRs relacionados à criação/manutenção deste ambiente

@@ -10,7 +10,7 @@ Este guia descreve a estrutura mínima esperada para qualquer repositório que h
 
 | Caminho | Descrição | Itens esperados |
 | --- | --- | --- |
-| `compose/` | Manifests Docker Compose base e variações por ambiente ou função. | `base.yml`, sobreposições nomeadas (`<alvo>.yml`, ex.: [`core.yml`](../compose/core.yml) e [`media.yml`](../compose/media.yml)) e diretórios em `compose/apps/`. |
+| `compose/` | Manifests Docker Compose base e variações por ambiente ou função. | `base.yml` (quando necessário), sobreposições nomeadas (`<alvo>.yml`, ex.: [`core.yml`](../compose/core.yml) e [`media.yml`](../compose/media.yml), quando existentes) e diretórios em `compose/apps/`. |
 | `docs/` | Documentação local, runbooks, guias operacionais e ADRs. | `README.md`, `STRUCTURE.md`, `OPERATIONS.md`, subpastas temáticas e [`local/`](./local/README.md). |
 | `env/` | Modelos de variáveis, arquivos de exemplo e orientações de preenchimento. | `*.example.env`, `README.md`, `local/` ignorado no Git. Expanda com variáveis necessárias para todas as aplicações ativadas. |
 | `scripts/` | Automação reutilizável (deploy, validação, backups, health-check). | Scripts shell (ou equivalentes) referenciados pela documentação. |

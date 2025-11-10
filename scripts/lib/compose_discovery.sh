@@ -35,11 +35,11 @@ load_compose_discovery() {
   local env_dir_rel="env"
   local env_local_dir_rel="$env_dir_rel/local"
 
-  BASE_COMPOSE_FILE="$compose_dir_rel/base.yml"
-  local base_compose_abs="$repo_root/$BASE_COMPOSE_FILE"
-  if [[ ! -f "$base_compose_abs" ]]; then
-    echo "[!] Arquivo base não encontrado: $BASE_COMPOSE_FILE" >&2
-    return 1
+  BASE_COMPOSE_FILE=""
+  local base_candidate="$compose_dir_rel/base.yml"
+  local base_compose_abs="$repo_root/$base_candidate"
+  if [[ -f "$base_compose_abs" ]]; then
+    BASE_COMPOSE_FILE="$base_candidate"
   fi
 
   if [[ ! -d "$apps_dir" ]]; then
@@ -229,6 +229,7 @@ load_compose_discovery() {
   : "${COMPOSE_INSTANCE_APP_NAMES[@]}"
   : "${COMPOSE_APP_BASE_FILES[@]}"
   : "${COMPOSE_INSTANCE_NAMES[@]}"
+  : "${BASE_COMPOSE_FILE}"
 
   return 0
 }

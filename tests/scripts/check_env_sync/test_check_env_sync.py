@@ -85,6 +85,28 @@ def test_check_env_sync_succeeds_when_everything_matches(repo_copy: Path) -> Non
     assert "Todas as variáveis de ambiente estão sincronizadas." in result.stdout
 
 
+def test_load_metadata_accepts_instance_without_overrides(
+    repo_copy: Path, compose_instances_data: ComposeInstancesData
+) -> None:
+    instance_name = _select_instance(compose_instances_data)
+    manifest = repo_copy / "compose" / f"{instance_name}.yml"
+    if manifest.exists():
+        manifest.unlink()
+
+    for candidate in (repo_copy / "compose" / "apps").glob(f"*/{instance_name}.yml"):
+        base_candidate = candidate.with_name("base.yml")
+        if base_candidate.exists():
+            candidate.unlink()
+
+    metadata = load_compose_metadata(repo_copy)
+
+    assert instance_name in metadata.instances
+    remaining_files = list(metadata.files_by_instance[instance_name])
+    for path in remaining_files:
+        base_candidate = path.with_name("base.yml")
+        assert not base_candidate.exists()
+
+
 def test_check_env_sync_detects_missing_variables(
     repo_copy: Path, compose_instances_data: ComposeInstancesData
 ) -> None:
@@ -307,16 +329,16 @@ def test_check_env_sync_detects_missing_template(
     assert "Todas as variáveis de ambiente estão sincronizadas." not in result.stdout
 
 
-def test_check_env_sync_reports_metadata_failure(repo_copy: Path) -> None:
+def test_check_env_sync_allows_missing_base_file(repo_copy: Path) -> None:
     base_file = repo_copy / "compose" / "base.yml"
-    base_file.unlink()
+    if base_file.exists():
+        base_file.unlink()
 
     result = run_check(repo_copy)
 
-    assert result.returncode == 1
-    assert result.stdout == ""
-    assert "[!]" in result.stderr
-    assert "compose/base.yml" in result.stderr
+    assert result.returncode == 0, result.stderr
+    assert "compose/base.yml" not in result.stderr
+    assert "Todas as variáveis de ambiente estão sincronizadas." in result.stdout
 
 
 def test_check_env_sync_reports_missing_compose_override(repo_copy: Path) -> None:
@@ -345,6 +367,31 @@ EOF
     assert "[!]" in result.stderr
     assert "Arquivo Compose ausente" in result.stderr
     assert str(missing_path) in result.stderr
+
+
+def test_check_env_sync_errors_when_declared_base_missing(repo_copy: Path) -> None:
+    script_path = repo_copy / "scripts" / "lib" / "compose_instances.sh"
+    script_path.write_text(
+        """#!/usr/bin/env bash
+cat <<'EOF'
+declare -- BASE_COMPOSE_FILE="compose/missing-base.yml"
+declare -a COMPOSE_INSTANCE_NAMES=([0]="core")
+declare -A COMPOSE_INSTANCE_FILES=([core]=$'compose/apps/app/core.yml')
+declare -A COMPOSE_INSTANCE_ENV_LOCAL=([core]=$'env/local/core.env')
+declare -A COMPOSE_INSTANCE_ENV_TEMPLATES=([core]=$'env/core.example.env')
+declare -A COMPOSE_INSTANCE_ENV_FILES=([core]=$'env/local/core.env')
+declare -A COMPOSE_INSTANCE_APP_NAMES=([core]=$'app')
+declare -A COMPOSE_APP_BASE_FILES=([app]=$'compose/apps/app/base.yml')
+EOF
+""",
+        encoding="utf-8",
+    )
+    script_path.chmod(0o755)
+
+    result = run_check(repo_copy)
+
+    assert result.returncode == 1
+    assert "Arquivo base declarado ausente" in result.stderr
 
 
 def test_main_filters_instances_before_build(monkeypatch, tmp_path: Path) -> None:
