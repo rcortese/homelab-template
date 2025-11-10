@@ -11,9 +11,9 @@ def test_dry_run_outputs_planned_commands(repo_copy: Path) -> None:
     assert result.returncode == 0, result.stderr
     assert "COMPOSE_ENV_FILES=env/local/common.env env/local/core.env" in result.stdout
     assert "COMPOSE_ENV_FILE=env/local/core.env" in result.stdout
-    assert "Docker Compose planejado:" in result.stdout
+    assert "Planned Docker Compose command:" in result.stdout
     assert "compose.sh core -- up -d" in result.stdout
-    assert "Health check planejado" in result.stdout
+    assert "Planned health check" in result.stdout
 
 
 def test_dry_run_includes_extra_files_from_env_file(
@@ -48,7 +48,7 @@ def test_dry_run_skip_health_outputs_skip_message(repo_copy: Path) -> None:
     result = run_deploy(repo_copy, "core", "--dry-run", "--skip-health")
 
     assert result.returncode == 0, result.stderr
-    assert "Health check automático ignorado (flag --skip-health)." in result.stdout
+    assert "Automatic health check skipped (--skip-health flag)." in result.stdout
 
 
 def test_env_override_takes_precedence_for_extra_files(
@@ -90,5 +90,5 @@ def test_missing_local_env_file_fails(repo_copy: Path) -> None:
     result = run_deploy(repo_copy, "core", "--dry-run")
 
     assert result.returncode == 1
-    assert "Arquivo env/local/core.env não encontrado" in result.stderr
-    assert "Copie o template padrão" in result.stderr
+    assert "File env/local/core.env not found." in result.stderr
+    assert "Copy the default template" in result.stderr

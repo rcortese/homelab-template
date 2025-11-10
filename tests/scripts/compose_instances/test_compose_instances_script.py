@@ -292,5 +292,5 @@ def test_missing_env_files_causes_failure(repo_copy: Path) -> None:
     result = run_compose_instances(repo_copy)
 
     assert result.returncode != 0
-    assert "Nenhum arquivo .env encontrado" in result.stderr
+    assert "No .env file found" in result.stderr
     assert "core" in result.stderr

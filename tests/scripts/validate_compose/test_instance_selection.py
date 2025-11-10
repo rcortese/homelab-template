@@ -71,7 +71,7 @@ def test_unknown_instance_returns_error(docker_stub: DockerStub) -> None:
     result = run_validate_compose({"COMPOSE_INSTANCES": "unknown"})
 
     assert result.returncode == 1
-    assert "instância desconhecida" in result.stderr
+    assert "unknown instance" in result.stderr
     assert docker_stub.read_calls() == []
 
 
@@ -102,7 +102,7 @@ def test_only_separators_in_compose_instances_returns_error(
     result = run_validate_compose({"COMPOSE_INSTANCES": instances})
 
     assert result.returncode == 1
-    assert "Error: nenhuma instância informada para validação." in result.stderr
+    assert "Error: no instance provided for validation." in result.stderr
     assert docker_stub.read_calls() == []
 
 
@@ -118,7 +118,7 @@ def test_reports_failure_when_compose_command_fails_with_docker_stub(
     result = run_validate_compose({"COMPOSE_INSTANCES": target_instance})
 
     assert result.returncode != 0
-    assert f"✖ instância=\"{target_instance}\"" in result.stderr
+    assert f"[x] instance=\"{target_instance}\"" in result.stderr
 
     metadata_map = get_instance_metadata_map()
     files = metadata_map[target_instance].compose_files()
