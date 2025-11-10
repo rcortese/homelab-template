@@ -203,7 +203,11 @@ env_helpers__derive_app_data_paths() {
       fi
       absolute_base="${absolute_base%/}"
       if [[ -n "$service_slug" ]]; then
-        derived_mount="${absolute_base}/${service_slug}"
+        if [[ "$absolute_base" == */"$service_slug" ]]; then
+          derived_mount="$absolute_base"
+        else
+          derived_mount="${absolute_base}/${service_slug}"
+        fi
       else
         derived_mount="$absolute_base"
       fi

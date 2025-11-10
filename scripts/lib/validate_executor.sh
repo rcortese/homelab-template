@@ -219,8 +219,10 @@ validate_executor_prepare_plan() {
   local default_app_data_dir=""
   local service_slug=""
   if [[ -n "$primary_app" ]]; then
-    service_slug="${primary_app}-${instance}"
-    default_app_data_dir="data/${service_slug}"
+    service_slug="$primary_app"
+    if [[ -n "$instance" ]]; then
+      default_app_data_dir="data/${instance}/${primary_app}"
+    fi
   fi
 
   local derived_app_data_dir=""

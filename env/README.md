@@ -29,7 +29,7 @@ Este diretório armazena modelos (`*.example.env`) e instruções para gerar arq
 | Variável | Obrigatória? | Uso | Referência |
 | --- | --- | --- | --- |
 | `TZ` | Sim | Define timezone para logs e agendamentos. | `compose/apps/app/base.yml`. |
-| `APP_DATA_DIR`/`APP_DATA_DIR_MOUNT` | Opcional | Define o diretório persistente relativo (`data/<app>-<instância>`) ou um caminho absoluto alternativo — nunca use ambos ao mesmo tempo. | `scripts/deploy_instance.sh`, `scripts/compose.sh`, `scripts/backup.sh`, `scripts/fix_permission_issues.sh`. |
+| `APP_DATA_DIR`/`APP_DATA_DIR_MOUNT` | Opcional | Define o diretório persistente relativo (`data/<instância>/<app>`) ou um caminho absoluto alternativo — nunca use ambos ao mesmo tempo. | `scripts/deploy_instance.sh`, `scripts/compose.sh`, `scripts/backup.sh`, `scripts/fix_permission_issues.sh`. |
 | `APP_DATA_UID`/`APP_DATA_GID` | Opcional | Ajusta o proprietário padrão dos volumes persistentes. | `scripts/deploy_instance.sh`, `scripts/backup.sh`, `scripts/fix_permission_issues.sh`. |
 | `APP_NETWORK_NAME` | Opcional | Nome lógico da rede compartilhada entre as aplicações. | `compose/base.yml`. |
 | `APP_NETWORK_DRIVER` | Opcional | Driver utilizado ao criar a rede compartilhada (ex.: `bridge`, `macvlan`). | `compose/base.yml`. |
@@ -70,9 +70,9 @@ Os modelos de instância incluem placeholders ilustrativos que devem ser renomea
 
 Renomeie esses identificadores para termos alinhados ao seu domínio (por exemplo, `PORTAL_PUBLIC_URL`, `PORTAL_NETWORK_IPV4`, `ACME_PROXY_NETWORK_NAME`) e atualize os manifests associados para evitar resíduos do exemplo padrão.
 
-> **Nota:** o diretório persistente principal segue a convenção `data/<app>-<instância>`, considerando a aplicação principal (primeira da lista em `COMPOSE_INSTANCE_APP_NAMES`). Deixe `APP_DATA_DIR` e `APP_DATA_DIR_MOUNT` em branco para usar automaticamente esse fallback relativo. Informe **apenas um** deles quando precisar personalizar o caminho (relativo ou absoluto, respectivamente); os scripts retornam erro se ambos estiverem definidos ao mesmo tempo. Ajuste `APP_DATA_UID` e `APP_DATA_GID` para alinhar permissões.
+> **Nota:** o diretório persistente principal segue a convenção `data/<instância>/<app>`, considerando a aplicação principal (primeira da lista em `COMPOSE_INSTANCE_APP_NAMES`). Deixe `APP_DATA_DIR` e `APP_DATA_DIR_MOUNT` em branco para usar automaticamente esse fallback relativo. Informe **apenas um** deles quando precisar personalizar o caminho (relativo ou absoluto, respectivamente); os scripts retornam erro se ambos estiverem definidos ao mesmo tempo. Ajuste `APP_DATA_UID` e `APP_DATA_GID` para alinhar permissões.
 
-> **Novo fluxo (`LOCAL_INSTANCE`)**: os wrappers (`scripts/compose.sh`, `scripts/deploy_instance.sh`, etc.) exportam automaticamente `LOCAL_INSTANCE` com base no arquivo `.env` da instância ativa (ex.: `core`, `media`). Essa variável substitui o sufixo de `data/app-<instância>` nos manifests. Ao executar `docker compose` diretamente, exporte `LOCAL_INSTANCE=<instância>` antes do comando ou reutilize os scripts para evitar divergências de diretórios.
+> **Novo fluxo (`LOCAL_INSTANCE`)**: os wrappers (`scripts/compose.sh`, `scripts/deploy_instance.sh`, etc.) exportam automaticamente `LOCAL_INSTANCE` com base no arquivo `.env` da instância ativa (ex.: `core`, `media`). Essa variável injeta o segmento da instância no fallback `data/<instância>/<app>` usado pelos manifests. Ao executar `docker compose` diretamente, exporte `LOCAL_INSTANCE=<instância>` antes do comando ou reutilize os scripts para evitar divergências de diretórios.
 
 ## Boas práticas
 

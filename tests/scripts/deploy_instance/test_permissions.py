@@ -50,7 +50,7 @@ def test_deploy_without_privileges_skips_chown(repo_copy: Path) -> None:
     )
 
     for directory in (
-        (repo_copy / "data" / "app-core" / "app-core").resolve(),
+        (repo_copy / "data" / "core" / "app").resolve(),
         (repo_copy / "backups").resolve(),
     ):
         assert Path(directory).exists()
@@ -105,10 +105,10 @@ def test_deploy_uses_convention_for_data_dir(repo_copy: Path) -> None:
 
     assert result.returncode == 0, result.stderr
     data_dir = (repo_copy / "custom-storage").resolve()
-    mount_dir = data_dir / "app-core"
+    mount_dir = data_dir / "app"
     assert data_dir.exists()
     assert mount_dir.exists()
-    assert not (repo_copy / "data" / "app-core").exists()
+    assert not (repo_copy / "data" / "core").exists()
     assert (repo_copy / "backups").exists()
 
 
@@ -135,7 +135,7 @@ def test_deploy_with_absolute_data_dir(repo_copy: Path, docker_stub) -> None:
     assert result.returncode == 0, result.stderr
 
     assert absolute_data_dir.exists()
-    assert (absolute_data_dir / "app-core").exists()
+    assert (absolute_data_dir / "app").exists()
     assert (repo_copy / "backups").exists()
 
     env_records = docker_stub.read_call_env()
@@ -146,7 +146,7 @@ def test_deploy_with_absolute_data_dir(repo_copy: Path, docker_stub) -> None:
     assert mount_value is not None
     mount_path = Path(mount_value)
     assert mount_path.is_absolute()
-    assert mount_path == absolute_data_dir / "app-core"
+    assert mount_path == absolute_data_dir / "app"
 
 
 def test_deploy_with_empty_app_data_dir_uses_default(
@@ -170,15 +170,15 @@ def test_deploy_with_empty_app_data_dir_uses_default(
     )
 
     assert result.returncode == 0, result.stderr
-    base_dir = (repo_copy / "data" / "app-core").resolve()
-    mount_dir = base_dir / "app-core"
+    base_dir = (repo_copy / "data" / "core").resolve()
+    mount_dir = base_dir / "app"
     assert base_dir.exists()
     assert mount_dir.exists()
     assert (repo_copy / "backups").exists()
 
     env_records = docker_stub.read_call_env()
     assert len(env_records) >= 1
-    assert env_records[0].get("APP_DATA_DIR") == "data/app-core"
+    assert env_records[0].get("APP_DATA_DIR") == "data/core/app"
     mount_value = env_records[0].get("APP_DATA_DIR_MOUNT")
     assert mount_value is not None
     mount_path = Path(mount_value)
@@ -208,7 +208,7 @@ def test_deploy_with_only_mount_defined(repo_copy: Path, docker_stub) -> None:
 
     assert result.returncode == 0, result.stderr
 
-    mount_dir = mount_base / "app-core"
+    mount_dir = mount_base / "app"
     assert mount_dir.exists()
     assert (repo_copy / "backups").exists()
 

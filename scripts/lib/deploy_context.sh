@@ -255,13 +255,13 @@ build_deploy_context() {
     primary_app="${instance_app_names[0]}"
   fi
   local default_app_data_dir=""
-  if [[ -n "$primary_app" ]]; then
-    default_app_data_dir="data/${primary_app}-${instance}"
+  if [[ -n "$primary_app" && -n "$instance" ]]; then
+    default_app_data_dir="data/${instance}/${primary_app}"
   fi
 
   local service_slug=""
   if [[ -n "$primary_app" ]]; then
-    service_slug="${primary_app}-${instance}"
+    service_slug="$primary_app"
   fi
 
   local app_data_dir_value_raw="${APP_DATA_DIR:-}"

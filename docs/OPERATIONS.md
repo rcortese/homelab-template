@@ -144,11 +144,11 @@ Use `--base-dir`, `--with-docs` e `--override-only` para declarar explicitamente
 
 ## scripts/deploy_instance.sh
 
-Além das flags principais (`--force`, `--skip-structure`, `--skip-validate`, `--skip-health`), personalize prompts e combinações de arquivos para refletir ambientes reais. Defina `COMPOSE_EXTRA_FILES` no `.env` quando precisar de overlays adicionais. O script calcula o diretório persistente a partir de `APP_DATA_DIR` (caminho relativo) ou `APP_DATA_DIR_MOUNT` (caminho absoluto) — deixe ambos vazios para usar o fallback `data/<app>-<instância>` e nunca habilite as duas variáveis ao mesmo tempo, pois a rotina aborta com erro.
+Além das flags principais (`--force`, `--skip-structure`, `--skip-validate`, `--skip-health`), personalize prompts e combinações de arquivos para refletir ambientes reais. Defina `COMPOSE_EXTRA_FILES` no `.env` quando precisar de overlays adicionais. O script calcula o diretório persistente a partir de `APP_DATA_DIR` (caminho relativo) ou `APP_DATA_DIR_MOUNT` (caminho absoluto) — deixe ambos vazios para usar o fallback `data/<instância>/<app>` e nunca habilite as duas variáveis ao mesmo tempo, pois a rotina aborta com erro.
 
 ## scripts/fix_permission_issues.sh
 
-O script depende de `scripts/lib/deploy_context.sh` para calcular `APP_DATA_DIR` ou `APP_DATA_DIR_MOUNT`, além de `APP_DATA_UID` e `APP_DATA_GID`. Em ambientes compartilhados, combine a execução com `--dry-run` para revisar alterações antes de aplicar `chown`. Documente exceções ao padrão relativo `data/<app>-<instância>` e lembre-se de que apenas uma das variáveis (`APP_DATA_DIR` ou `APP_DATA_DIR_MOUNT`) pode estar definida.
+O script depende de `scripts/lib/deploy_context.sh` para calcular `APP_DATA_DIR` ou `APP_DATA_DIR_MOUNT`, além de `APP_DATA_UID` e `APP_DATA_GID`. Em ambientes compartilhados, combine a execução com `--dry-run` para revisar alterações antes de aplicar `chown`. Documente exceções ao padrão relativo `data/<instância>/<app>` e lembre-se de que apenas uma das variáveis (`APP_DATA_DIR` ou `APP_DATA_DIR_MOUNT`) pode estar definida.
 
 ## scripts/backup.sh
 
@@ -159,15 +159,15 @@ O script depende de `scripts/lib/deploy_context.sh` para calcular `APP_DATA_DIR`
 - O comando padrão (`scripts/backup.sh core`) gera um snapshot completo da instância e informa o local do artefato ao final. Consulte [`docs/BACKUP_RESTORE.md`](./BACKUP_RESTORE.md) para práticas de retenção e restauração.
 - **Dicas de personalização para forks:**
   - Exporte variáveis complementares (por exemplo, `EXTRA_BACKUP_PATHS` ou credenciais de repositórios externos) antes de chamar o script, permitindo que wrappers locais incluam diretórios extras ou enviem os artefatos para armazenamento remoto.
-  - Ajuste o `.env` da instância para apontar `APP_DATA_DIR` (relativo) ou `APP_DATA_DIR_MOUNT` (absoluto) quando o layout de dados divergir do padrão `data/<app>-<instância>` — nunca habilite os dois ao mesmo tempo.
+  - Ajuste o `.env` da instância para apontar `APP_DATA_DIR` (relativo) ou `APP_DATA_DIR_MOUNT` (absoluto) quando o layout de dados divergir do padrão `data/<instância>/<app>` — nunca habilite os dois ao mesmo tempo.
   - Amplie o fluxo em wrappers externos adicionando hooks pré/pós-backup (scripts auxiliares, notificações ou compressão) mantendo a lógica central de parada/cópia/restart encapsulada aqui.
 
 ## scripts/compose.sh
 
 - **Formato básico:** `scripts/compose.sh <instancia> <subcomando> [argumentos...]`. A instância define quais manifests (`compose/base.yml`, quando existir, além dos overlays de app e overrides da instância) e cadeias de `.env` serão carregados antes de encaminhar o subcomando ao `docker compose`.
-- **Variáveis derivadas:** o wrapper exporta `LOCAL_INSTANCE` a partir do `.env` final aplicado (ex.: `core`, `media`). Quem invocar `docker compose` diretamente deve exportar essa variável manualmente para preservar o sufixo `data/app-<instancia>` das montagens.
+- **Variáveis derivadas:** o wrapper exporta `LOCAL_INSTANCE` a partir do `.env` final aplicado (ex.: `core`, `media`). Quem invocar `docker compose` diretamente deve exportar essa variável manualmente para preservar o segmento da instância nas montagens `data/<instância>/<app>`.
 - **Sem instância:** utilize `--` para separar os argumentos quando quiser apenas reutilizar o wrapper sem carregar metadados (ex.: `scripts/compose.sh -- config`).
-- **Variáveis úteis:** `DOCKER_COMPOSE_BIN` sobrescreve o binário invocado; `COMPOSE_FILES` e `COMPOSE_ENV_FILE` (ou `COMPOSE_ENV_FILES`) forçam combinações personalizadas sem depender dos manifests/`.env` padrão; `APP_DATA_DIR` (relativo) e `APP_DATA_DIR_MOUNT` (absoluto) são opcionais e devem ser usados de forma exclusiva — deixe ambos vazios para adotar o fallback `data/<app>-<instância>` calculado automaticamente.
+- **Variáveis úteis:** `DOCKER_COMPOSE_BIN` sobrescreve o binário invocado; `COMPOSE_FILES` e `COMPOSE_ENV_FILE` (ou `COMPOSE_ENV_FILES`) forçam combinações personalizadas sem depender dos manifests/`.env` padrão; `APP_DATA_DIR` (relativo) e `APP_DATA_DIR_MOUNT` (absoluto) são opcionais e devem ser usados de forma exclusiva — deixe ambos vazios para adotar o fallback `data/<instância>/<app>` calculado automaticamente.
 - **Ajuda integrada:** `scripts/compose.sh --help` descreve todas as opções suportadas e exemplos adicionais (`scripts/compose.sh core up -d`, `scripts/compose.sh media logs app`, `scripts/compose.sh core -- down app`).
 
 ## scripts/describe_instance.sh
@@ -260,7 +260,7 @@ entrem em conflito com o guia principal.
 ## Personalizações sugeridas
 
 - **Novo serviço:** utilize `scripts/bootstrap_instance.sh <app> <instância>` como ponto de partida; em seguida personalize compose, `.env` e documentação antes de prosseguir com validações.
-- **Diretórios persistentes:** o caminho `data/<app>-<instância>` é calculado automaticamente; utilize `APP_DATA_DIR` (relativo) **ou** `APP_DATA_DIR_MOUNT` (absoluto) quando precisar personalizar o destino e ajuste `APP_DATA_UID`/`APP_DATA_GID` no `.env` para alinhar permissões.
+- **Diretórios persistentes:** o caminho `data/<instância>/<app>` é calculado automaticamente; utilize `APP_DATA_DIR` (relativo) **ou** `APP_DATA_DIR_MOUNT` (absoluto) quando precisar personalizar o destino e ajuste `APP_DATA_UID`/`APP_DATA_GID` no `.env` para alinhar permissões.
 - **Serviços monitorados:** defina `HEALTH_SERVICES` nos arquivos `.env` para que `scripts/check_health.sh` use os alvos corretos de log.
 - **Volumes extras:** utilize overrides específicos (`compose/apps/<app>/<instância>.yml`) para montar diretórios adicionais ou expor portas distintas por ambiente. Quando presente, veja também [`compose/media.yml`](../compose/media.yml) para um exemplo de volume nomeado compartilhado (`media_cache`) entre serviços da instância.
 - **Overlays por configuração:** registre overlays opcionais em `compose/overlays/*.yml` e habilite-os por ambiente via `COMPOSE_EXTRA_FILES`. Isso mantém diffs de templates restritos a arquivos de configuração, sem editar scripts.

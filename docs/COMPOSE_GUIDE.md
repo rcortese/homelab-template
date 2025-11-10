@@ -158,7 +158,7 @@ docker compose \
 > [`env/README.md#como-gerar-arquivos-locais`](../env/README.md#como-gerar-arquivos-locais)
 > para garantir que variáveis globais obrigatórias não sejam omitidas. Além
 > disso, exporte `LOCAL_INSTANCE=<instância>` (o wrapper faz isso automaticamente)
-> antes de chamar `docker compose` para preservar o sufixo `data/app-<instância>`
+> antes de chamar `docker compose` para preservar o caminho `data/<instância>/<app>`
 > nos volumes.
 
 As diferenças entre as instâncias principais ficam concentradas nos arquivos

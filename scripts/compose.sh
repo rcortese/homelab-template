@@ -213,24 +213,24 @@ elif [[ $metadata_loaded -eq 1 && -n "$INSTANCE_NAME" && -v COMPOSE_INSTANCE_APP
   fi
 fi
 
-instance_slug=""
+default_app_data_dir=""
 if [[ -n "$primary_app_name" && -n "$INSTANCE_NAME" ]]; then
-  instance_slug="${primary_app_name}-${INSTANCE_NAME}"
+  default_app_data_dir="data/${INSTANCE_NAME}/${primary_app_name}"
 fi
 
-default_app_data_dir=""
-if [[ -n "$instance_slug" ]]; then
-  default_app_data_dir="data/${instance_slug}"
+service_slug=""
+if [[ -n "$primary_app_name" ]]; then
+  service_slug="$primary_app_name"
 fi
 
 derived_app_data_dir=""
 derived_app_data_dir_mount=""
 precomputed_values=0
 
-if [[ -n "$instance_slug" && -n "$app_data_dir_value" && -n "$app_data_dir_mount_value" ]]; then
+if [[ -n "$service_slug" && -n "$app_data_dir_value" && -n "$app_data_dir_mount_value" ]]; then
   temp_app_data_dir=""
   temp_app_data_mount=""
-  if env_helpers__derive_app_data_paths "$REPO_ROOT" "$instance_slug" "$default_app_data_dir" "$app_data_dir_value" "" temp_app_data_dir temp_app_data_mount; then
+  if env_helpers__derive_app_data_paths "$REPO_ROOT" "$service_slug" "$default_app_data_dir" "$app_data_dir_value" "" temp_app_data_dir temp_app_data_mount; then
     if [[ -n "$temp_app_data_mount" && "$temp_app_data_mount" == "$app_data_dir_mount_value" ]]; then
       derived_app_data_dir="$temp_app_data_dir"
       derived_app_data_dir_mount="$app_data_dir_mount_value"
@@ -241,7 +241,7 @@ if [[ -n "$instance_slug" && -n "$app_data_dir_value" && -n "$app_data_dir_mount
   if ((precomputed_values == 0)); then
     temp_app_data_dir=""
     temp_app_data_mount=""
-    if env_helpers__derive_app_data_paths "$REPO_ROOT" "$instance_slug" "$default_app_data_dir" "" "$app_data_dir_mount_value" temp_app_data_dir temp_app_data_mount; then
+    if env_helpers__derive_app_data_paths "$REPO_ROOT" "$service_slug" "$default_app_data_dir" "" "$app_data_dir_mount_value" temp_app_data_dir temp_app_data_mount; then
       if [[ -n "$temp_app_data_mount" && "$temp_app_data_mount" == "$app_data_dir_mount_value" ]]; then
         if [[ -z "$temp_app_data_dir" ]]; then
           temp_app_data_dir="$app_data_dir_value"
@@ -270,7 +270,7 @@ fi
 if ((precomputed_values == 1)); then
   should_derive=0
 elif ((should_derive == 1)); then
-  if ! env_helpers__derive_app_data_paths "$REPO_ROOT" "$instance_slug" "$default_app_data_dir" "$app_data_dir_value" "$app_data_dir_mount_value" derived_app_data_dir derived_app_data_dir_mount; then
+  if ! env_helpers__derive_app_data_paths "$REPO_ROOT" "$service_slug" "$default_app_data_dir" "$app_data_dir_value" "$app_data_dir_mount_value" derived_app_data_dir derived_app_data_dir_mount; then
     exit 1
   fi
 else
