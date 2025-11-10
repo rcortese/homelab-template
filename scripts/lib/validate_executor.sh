@@ -211,7 +211,6 @@ validate_executor_prepare_plan() {
     app_data_dir_mount_value="${env_loaded[APP_DATA_DIR_MOUNT]}"
   fi
 
-
   local default_app_data_dir=""
   local service_slug=""
   if [[ -n "$primary_app" ]]; then
