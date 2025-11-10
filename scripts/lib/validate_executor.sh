@@ -349,15 +349,49 @@ validate_executor_run_instances() {
     local app_data_dir_env="${derived_env[APP_DATA_DIR]:-}"
     local app_data_dir_mount_env="${derived_env[APP_DATA_DIR_MOUNT]:-}"
 
+    local stderr_file
+    if ! stderr_file="$(mktemp -t validate-compose-stderr.XXXXXX)"; then
+      echo "[x] instance=\"$instance\"" >&2
+      echo "   error: falha ao criar arquivo temporário para logs." >&2
+      status=1
+      continue
+    fi
+
     if APP_DATA_DIR="$app_data_dir_env" \
       APP_DATA_DIR_MOUNT="$app_data_dir_mount_env" \
-      "${compose_cmd[@]}" "${env_args[@]}" "${compose_args[@]}" config >/dev/null; then
+      "${compose_cmd[@]}" "${env_args[@]}" "${compose_args[@]}" config >/dev/null 2>"$stderr_file"; then
       echo "[+] $instance"
     else
       echo "[x] instance=\"$instance\"" >&2
       echo "   files: ${files[*]}" >&2
+      if [[ ${#env_args[@]} -gt 0 ]]; then
+        local -a env_files_display=()
+        local idx=0
+        while ((idx < ${#env_args[@]})); do
+          if [[ "${env_args[$idx]}" == "--env-file" ]]; then
+            ((idx++))
+            if ((idx < ${#env_args[@]})); then
+              env_files_display+=("${env_args[$idx]}")
+            fi
+          else
+            env_files_display+=("${env_args[$idx]}")
+          fi
+          ((idx++))
+        done
+        if (( ${#env_files_display[@]} > 0 )); then
+          echo "   env files: ${env_files_display[*]}" >&2
+        fi
+      fi
+      echo "   command: ${compose_cmd[*]} config" >&2
+      if [[ -s "$stderr_file" ]]; then
+        while IFS= read -r error_line; do
+          echo "   error: $error_line" >&2
+        done <"$stderr_file"
+      fi
       status=1
     fi
+
+    rm -f "$stderr_file"
   done
 
   return $status
