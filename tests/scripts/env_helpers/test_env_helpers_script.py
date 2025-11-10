@@ -149,7 +149,7 @@ def test_derive_rejects_conflicting_inputs() -> None:
     )
 
     assert result.returncode == 42
-    assert "APP_DATA_DIR e APP_DATA_DIR_MOUNT" in result.stderr
+    assert "APP_DATA_DIR and APP_DATA_DIR_MOUNT" in result.stderr
 
 
 def test_normalize_absolute_path_from_relative() -> None:

@@ -9,7 +9,7 @@ app_detection__list_active_services() {
   shift
 
   if [[ -z "$__target_ref" ]]; then
-    echo "[!] app_detection__list_active_services requer variável de destino." >&2
+    echo "[!] app_detection__list_active_services requires a target variable." >&2
     return 1
   fi
 

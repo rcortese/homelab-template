@@ -21,7 +21,7 @@ prompt_required_value() {
       printf '%s' "$value"
       return 0
     fi
-    printf '%s\n' "Valor obrigatório. Tente novamente." >&2
+    printf '%s\n' "Required value. Please try again." >&2
   done
 }
 

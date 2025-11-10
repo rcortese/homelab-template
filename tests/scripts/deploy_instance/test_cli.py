@@ -15,8 +15,8 @@ def test_unknown_instance_shows_available_options(repo_copy: Path) -> None:
     result = run_deploy(repo_copy, "unknown")
 
     assert result.returncode == 1
-    assert "Instância 'unknown' inválida." in result.stderr
-    assert "Disponíveis:" in result.stderr
+    assert "Invalid instance 'unknown'." in result.stderr
+    assert "Available:" in result.stderr
 
     after_dirs = {
         path.relative_to(repo_copy)

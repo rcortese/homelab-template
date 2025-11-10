@@ -45,7 +45,7 @@ def test_deploy_without_privileges_skips_chown(repo_copy: Path) -> None:
 
     assert result.returncode == 0, result.stderr
     assert (
-        "Owner desejado 1000:1000 não aplicado (permissões insuficientes)."
+        "Desired owner 1000:1000 not applied (insufficient permissions)."
         in result.stdout
     )
 

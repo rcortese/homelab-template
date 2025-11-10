@@ -20,7 +20,7 @@ load_deploy_metadata() {
 
   local compose_metadata=""
   if ! compose_metadata="$("${_DEPLOY_CONTEXT_DIR}/compose_instances.sh" "$repo_root" | sed 's/^declare /declare -g /')"; then
-    echo "[!] Não foi possível carregar metadados das instâncias." >&2
+    echo "[!] Failed to load instance metadata." >&2
     return 1
   fi
 
@@ -40,13 +40,13 @@ deploy_context__report_missing_instance() {
   )
 
   if [[ ${#candidate_files[@]} -gt 0 ]]; then
-    echo "[!] Metadados ausentes para instância '$instance'." >&2
+    echo "[!] Missing metadata for instance '$instance'." >&2
   else
-    echo "[!] Instância '$instance' inválida." >&2
+    echo "[!] Invalid instance '$instance'." >&2
   fi
 
   if ((${#available_instances[@]} > 0)); then
-    echo "    Disponíveis: ${available_instances[*]}" >&2
+    echo "    Available: ${available_instances[*]}" >&2
   fi
 
   return 1
@@ -93,13 +93,13 @@ build_deploy_context() {
     local template_display="${template_file:-env/${instance}.example.env}"
 
     if [[ -n "$template_file" && -f "$repo_root/$template_file" ]]; then
-      echo "[!] Arquivo env/local/${instance}.env não encontrado." >&2
-      echo "    Copie o template padrão antes de continuar:" >&2
+      echo "[!] File env/local/${instance}.env not found." >&2
+      echo "    Copy the default template before continuing:" >&2
       echo "    mkdir -p env/local" >&2
       echo "    cp ${template_file} env/local/${instance}.env" >&2
     else
-      echo "[!] Nenhum arquivo .env foi encontrado para a instância '$instance'." >&2
-      echo "    Esperado: env/local/${instance}.env ou ${template_display}" >&2
+      echo "[!] No .env file was found for instance '$instance'." >&2
+      echo "    Expected: env/local/${instance}.env or ${template_display}" >&2
     fi
     return 1
   fi
@@ -142,13 +142,13 @@ build_deploy_context() {
     local abs_entry="${env_files_abs[$idx]}"
 
     if [[ ! -f "$abs_entry" ]]; then
-      echo "[!] Arquivo ${rel_entry} não encontrado." >&2
+      echo "[!] File ${rel_entry} not found." >&2
       if [[ "$rel_entry" == "$local_env_file" ]]; then
         if [[ -n "$template_file" && -f "$repo_root/$template_file" ]]; then
-          echo "    Copie o template padrão antes de continuar:" >&2
+          echo "    Copy the default template before continuing:" >&2
           echo "    cp ${template_file} ${rel_entry}" >&2
         elif [[ -n "$template_file" ]]; then
-          echo "    Template correspondente (${template_file}) também não foi localizado." >&2
+          echo "    Matching template (${template_file}) was not found either." >&2
         fi
       fi
       return 1
@@ -212,7 +212,7 @@ build_deploy_context() {
     mapfile -t instance_app_names < <(printf '%s\n' "${COMPOSE_INSTANCE_APP_NAMES[$instance]}")
   fi
   if [[ ${#instance_app_names[@]} -eq 0 ]]; then
-    echo "[!] Aplicação correspondente à instância '$instance' não encontrada." >&2
+    echo "[!] Application associated with instance '$instance' not found." >&2
     return 1
   fi
 

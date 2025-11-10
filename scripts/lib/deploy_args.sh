@@ -2,25 +2,25 @@
 
 print_help() {
   cat <<'USAGE'
-Uso: scripts/deploy_instance.sh <instancia> [flags]
+Usage: scripts/deploy_instance.sh <instance> [flags]
 
-Realiza um deploy guiado da instância (core/media), carregando automaticamente
-os arquivos compose necessários (base + override da instância) e executando
-validações auxiliares.
+Runs a guided deployment for the requested instance (core/media). The command
+automatically assembles the compose files (base + instance overrides) and
+executes optional validation helpers.
 
-Argumentos posicionais:
-  instancia       Nome da instância (ex.: core, media).
+Positional arguments:
+  instance        Name of the instance (for example: core, media).
 
 Flags:
-  --dry-run       Apenas exibe os comandos que seriam executados.
-  --force         Pula confirmações interativas (útil localmente ou em CI).
-  --skip-structure  Não executa scripts/check_structure.sh antes do deploy.
-  --skip-validate   Não executa scripts/validate_compose.sh antes do deploy.
-  --skip-health     Não executa scripts/check_health.sh após o deploy.
-  -h, --help      Mostra esta ajuda e sai.
+  --dry-run         Only display the commands that would be executed.
+  --force           Skip interactive confirmations (handy locally or in CI).
+  --skip-structure  Skip scripts/check_structure.sh before the deployment.
+  --skip-validate   Skip scripts/validate_compose.sh before the deployment.
+  --skip-health     Skip scripts/check_health.sh after the deployment.
+  -h, --help        Show this help message and exit.
 
-Variáveis de ambiente relevantes:
-  CI              Quando definida, assume modo não interativo (equivalente a --force).
+Relevant environment variables:
+  CI                When set, assume non-interactive mode (same as --force).
 USAGE
 }
 
@@ -66,7 +66,7 @@ parse_deploy_args() {
       continue
       ;;
     -*)
-      echo "[!] Flag desconhecida: $1" >&2
+      echo "[!] Unknown flag: $1" >&2
       echo >&2
       print_help >&2
       return 1
@@ -77,7 +77,7 @@ parse_deploy_args() {
         shift
         continue
       fi
-      echo "[!] Parâmetro inesperado: $1" >&2
+      echo "[!] Unexpected parameter: $1" >&2
       echo >&2
       print_help >&2
       return 1
@@ -86,7 +86,7 @@ parse_deploy_args() {
   done
 
   if [[ $show_help -eq 0 && -z "$instance" ]]; then
-    echo "[!] Instância não informada." >&2
+    echo "[!] Instance not provided." >&2
     echo >&2
     print_help >&2
     return 1
