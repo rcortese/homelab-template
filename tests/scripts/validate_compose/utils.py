@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import json
 import os
 import subprocess
+import textwrap
 from dataclasses import dataclass
 from collections.abc import Iterable, Sequence
 from functools import lru_cache
@@ -107,6 +109,46 @@ def expected_compose_call(
         cmd.extend(["-f", str(file)])
     cmd.extend(args)
     return cmd
+
+
+def load_app_data_from_deploy_context(repo_root: Path, instance: str) -> dict[str, str]:
+    script = textwrap.dedent(
+        f"""
+        set -euo pipefail
+        source {json.dumps(str(repo_root / 'scripts' / 'lib' / 'deploy_context.sh'))}
+        if ! context_out=$(build_deploy_context {json.dumps(str(repo_root))} {json.dumps(instance)}); then
+          exit 1
+        fi
+        eval "$context_out"
+        printf 'APP_DATA_DIR=%s\\n' "${{DEPLOY_CONTEXT[APP_DATA_DIR]}}"
+        printf 'APP_DATA_DIR_MOUNT=%s\\n' "${{DEPLOY_CONTEXT[APP_DATA_DIR_MOUNT]}}"
+        """
+    ).strip()
+
+    result = subprocess.run(
+        ["bash", "-c", script],
+        capture_output=True,
+        text=True,
+        check=False,
+        cwd=repo_root,
+        env={**os.environ},
+    )
+    if result.returncode != 0:
+        raise RuntimeError(
+            f"Failed to build deploy context for instance '{instance}': {result.stderr}"
+        )
+
+    context: dict[str, str] = {}
+    for line in result.stdout.splitlines():
+        if "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        context[key] = value
+
+    for key in ("APP_DATA_DIR", "APP_DATA_DIR_MOUNT"):
+        context.setdefault(key, "")
+
+    return context
 
 
 def _discover_instance_metadata(repo_root: Path) -> tuple[InstanceMetadata, ...]:
