@@ -211,10 +211,6 @@ validate_executor_prepare_plan() {
     app_data_dir_mount_value="${env_loaded[APP_DATA_DIR_MOUNT]}"
   fi
 
-  if [[ -n "$app_data_dir_value" && -n "$app_data_dir_mount_value" ]]; then
-    echo "[x] instance=\"$instance\" (APP_DATA_DIR and APP_DATA_DIR_MOUNT cannot be set simultaneously)" >&2
-    return 1
-  fi
 
   local default_app_data_dir=""
   local service_slug=""
@@ -227,9 +223,84 @@ validate_executor_prepare_plan() {
 
   local derived_app_data_dir=""
   local derived_app_data_dir_mount=""
-  if ! env_helpers__derive_app_data_paths "$repo_root" "$service_slug" "$default_app_data_dir" "$app_data_dir_value" "$app_data_dir_mount_value" derived_app_data_dir derived_app_data_dir_mount; then
-    echo "[x] instance=\"$instance\" (failed to derive persistent directories)" >&2
-    return 1
+  local precomputed_values=0
+
+  if [[ -n "$service_slug" && -n "$app_data_dir_value" && -n "$app_data_dir_mount_value" ]]; then
+    local temp_app_data_dir=""
+    local temp_app_data_mount=""
+
+    if env_helpers__derive_app_data_paths \
+      "$repo_root" \
+      "$service_slug" \
+      "$default_app_data_dir" \
+      "$app_data_dir_value" \
+      "" \
+      temp_app_data_dir \
+      temp_app_data_mount; then
+      if [[ -n "$temp_app_data_mount" && "$temp_app_data_mount" == "$app_data_dir_mount_value" ]]; then
+        derived_app_data_dir="$temp_app_data_dir"
+        derived_app_data_dir_mount="$app_data_dir_mount_value"
+        precomputed_values=1
+      fi
+    fi
+
+    if ((precomputed_values == 0)); then
+      temp_app_data_dir=""
+      temp_app_data_mount=""
+      if env_helpers__derive_app_data_paths \
+        "$repo_root" \
+        "$service_slug" \
+        "$default_app_data_dir" \
+        "" \
+        "$app_data_dir_mount_value" \
+        temp_app_data_dir \
+        temp_app_data_mount; then
+        if [[ -n "$temp_app_data_mount" && "$temp_app_data_mount" == "$app_data_dir_mount_value" ]]; then
+          if [[ -z "$temp_app_data_dir" ]]; then
+            temp_app_data_dir="$app_data_dir_value"
+          fi
+          derived_app_data_dir="$temp_app_data_dir"
+          derived_app_data_dir_mount="$temp_app_data_mount"
+          precomputed_values=1
+        fi
+      fi
+    fi
+
+    if ((precomputed_values == 0)); then
+      echo "[x] instance=\"$instance\" (APP_DATA_DIR and APP_DATA_DIR_MOUNT cannot be set simultaneously)" >&2
+      return 1
+    fi
+
+    app_data_dir_value="$derived_app_data_dir"
+    app_data_dir_mount_value="$derived_app_data_dir_mount"
+  fi
+
+  local should_derive=0
+  if [[ -n "$default_app_data_dir" || -n "$app_data_dir_value" || -n "$app_data_dir_mount_value" ]]; then
+    should_derive=1
+  fi
+
+  if ((precomputed_values == 1)); then
+    should_derive=0
+  fi
+
+  if ((precomputed_values == 1)); then
+    :
+  elif ((should_derive == 1)); then
+    if ! env_helpers__derive_app_data_paths \
+      "$repo_root" \
+      "$service_slug" \
+      "$default_app_data_dir" \
+      "$app_data_dir_value" \
+      "$app_data_dir_mount_value" \
+      derived_app_data_dir \
+      derived_app_data_dir_mount; then
+      echo "[x] instance=\"$instance\" (failed to derive persistent directories)" >&2
+      return 1
+    fi
+  else
+    derived_app_data_dir="$app_data_dir_value"
+    derived_app_data_dir_mount="$app_data_dir_mount_value"
   fi
 
   derived_env_ref[APP_DATA_DIR]="$derived_app_data_dir"
