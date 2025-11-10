@@ -29,7 +29,7 @@ import sys
 from pathlib import Path
 
 def find_comment_index(value: str) -> int | None:
-    """Locate the start of an inline comment, if any.
+    r"""Locate the start of an inline comment, if any.
 
     A comment begins at an unescaped ``#`` character that is either the first
     character in the value or is immediately preceded by whitespace. Escaped
