@@ -49,6 +49,7 @@ def test_env_loader_parses_various_formats(tmp_path: Path) -> None:
     result = run_env_loader(env_file=env_file, keys=["BAZ", "FOO", "BAR", "EMPTY"])
 
     assert result.returncode == 0, result.stderr
+    assert result.stderr == ""
     lines = result.stdout.splitlines()
     expected = {"FOO=bar", "BAR=quoted value", "BAZ=value with spaces", "EMPTY="}
     assert set(lines) == expected
@@ -106,6 +107,7 @@ def test_env_loader_supports_hash_values(tmp_path: Path) -> None:
     )
 
     assert result.returncode == 0
+    assert result.stderr == ""
     assert set(result.stdout.splitlines()) == {
         "PASSWORD=#SuperSecret",
         "COMMENT=value",
@@ -135,6 +137,7 @@ def test_env_loader_preserves_hashes_in_quoted_values(tmp_path: Path) -> None:
     )
 
     assert result.returncode == 0, result.stderr
+    assert result.stderr == ""
     assert set(result.stdout.splitlines()) == {
         "QUOTED_HASH=#Keep #this",
         "QUOTED_EMBEDDED=#value#with#hash",
