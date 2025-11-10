@@ -313,6 +313,12 @@ validate_executor_prepare_plan() {
 }
 
 validate_executor_run_instances() {
+  local had_errexit=0
+  if [[ $- == *e* ]]; then
+    had_errexit=1
+    set +e
+  fi
+
   local repo_root="$1"
   local base_file="$2"
   local env_loader="$3"
@@ -349,16 +355,78 @@ validate_executor_run_instances() {
     local app_data_dir_env="${derived_env[APP_DATA_DIR]:-}"
     local app_data_dir_mount_env="${derived_env[APP_DATA_DIR_MOUNT]:-}"
 
-    if APP_DATA_DIR="$app_data_dir_env" \
-      APP_DATA_DIR_MOUNT="$app_data_dir_mount_env" \
-      "${compose_cmd[@]}" "${env_args[@]}" "${compose_args[@]}" config >/dev/null; then
-      echo "[+] $instance"
+    local -a env_files_pretty=()
+    if ((${#env_args[@]} > 0)); then
+      local idx=0
+      while ((idx < ${#env_args[@]})); do
+        local token="${env_args[idx]}"
+        if [[ "$token" == "--env-file" ]]; then
+          ((idx++))
+          if ((idx < ${#env_args[@]})); then
+            env_files_pretty+=("${env_args[idx]}")
+          fi
+        fi
+        ((idx++))
+      done
+    fi
+
+    local compose_output=""
+    local compose_status=0
+    local compose_output_file=""
+
+    if compose_output_file=$(mktemp -t validate-compose-config.XXXXXX 2>/dev/null); then
+      APP_DATA_DIR="$app_data_dir_env" \
+        APP_DATA_DIR_MOUNT="$app_data_dir_mount_env" \
+        "${compose_cmd[@]}" "${env_args[@]}" "${compose_args[@]}" config \
+        >"$compose_output_file" 2>&1
+      compose_status=$?
+
+      if ((compose_status == 0)); then
+        rm -f "$compose_output_file"
+        echo "[+] $instance"
+      else
+        compose_output=$(<"$compose_output_file")
+        rm -f "$compose_output_file"
+        echo "[x] instance=\"$instance\" (docker compose config exited with status $compose_status)" >&2
+        echo "   files: ${files[*]}" >&2
+        if ((${#env_files_pretty[@]} > 0)); then
+          echo "   env files: ${env_files_pretty[*]}" >&2
+        else
+          echo "   env files: (none)" >&2
+        fi
+        echo "   derived env: APP_DATA_DIR=\"$app_data_dir_env\" APP_DATA_DIR_MOUNT=\"$app_data_dir_mount_env\"" >&2
+        if [[ -n "$compose_output" ]]; then
+          echo "   docker compose config output:" >&2
+          while IFS= read -r compose_line; do
+            echo "     $compose_line" >&2
+          done <<<"$compose_output"
+        fi
+        status=1
+      fi
     else
-      echo "[x] instance=\"$instance\"" >&2
-      echo "   files: ${files[*]}" >&2
-      status=1
+      APP_DATA_DIR="$app_data_dir_env" \
+        APP_DATA_DIR_MOUNT="$app_data_dir_mount_env" \
+        "${compose_cmd[@]}" "${env_args[@]}" "${compose_args[@]}" config >/dev/null 2>&1
+      compose_status=$?
+
+      if ((compose_status == 0)); then
+        echo "[+] $instance"
+      else
+        echo "[x] instance=\"$instance\" (docker compose config exited with status $compose_status)" >&2
+        echo "   files: ${files[*]}" >&2
+        if ((${#env_files_pretty[@]} > 0)); then
+          echo "   env files: ${env_files_pretty[*]}" >&2
+        else
+          echo "   env files: (none)" >&2
+        fi
+        echo "   derived env: APP_DATA_DIR=\"$app_data_dir_env\" APP_DATA_DIR_MOUNT=\"$app_data_dir_mount_env\"" >&2
+        status=1
+      fi
     fi
   done
 
+  if ((had_errexit == 1)); then
+    set -e
+  fi
   return $status
 }

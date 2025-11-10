@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+from pathlib import Path
 from typing import TYPE_CHECKING
+
+import textwrap
 
 import pytest
 
@@ -118,7 +121,10 @@ def test_reports_failure_when_compose_command_fails_with_docker_stub(
     result = run_validate_compose({"COMPOSE_INSTANCES": target_instance})
 
     assert result.returncode != 0
-    assert f"[x] instance=\"{target_instance}\"" in result.stderr
+    assert (
+        f"[x] instance=\"{target_instance}\" (docker compose config exited with status 1)"
+        in result.stderr
+    )
 
     metadata_map = get_instance_metadata_map()
     files = metadata_map[target_instance].compose_files()
@@ -127,3 +133,71 @@ def test_reports_failure_when_compose_command_fails_with_docker_stub(
 
     calls = docker_stub.read_calls()
     assert len(calls) == 1
+
+
+def test_compose_failure_reports_diagnostics(tmp_path: Path) -> None:
+    metadata_sequence = list(load_instance_metadata())
+    assert metadata_sequence, "Expected at least one compose instance for validation tests"
+
+    target_instance = metadata_sequence[0].name
+
+    compose_script = tmp_path / "fake-compose"
+    compose_script.write_text(
+        textwrap.dedent(
+            """#!/usr/bin/env bash
+            echo "line-from-compose stdout"
+            echo "line-from-compose stderr" >&2
+            exit 23
+            """
+        ).strip()
+        + "\n",
+        encoding="utf-8",
+    )
+    compose_script.chmod(0o755)
+
+    result = run_validate_compose(
+        {
+            "COMPOSE_INSTANCES": target_instance,
+            "DOCKER_COMPOSE_BIN": str(compose_script),
+        }
+    )
+
+    assert result.returncode != 0
+
+    stderr_lines = result.stderr.splitlines()
+    assert any(
+        line
+        == f"[x] instance=\"{target_instance}\" (docker compose config exited with status 23)"
+        for line in stderr_lines
+    ), result.stderr
+
+    metadata_map = get_instance_metadata_map()
+    metadata = metadata_map[target_instance]
+
+    expected_files = " ".join(str(path) for path in metadata.compose_files())
+    files_line = next(
+        (line.strip() for line in stderr_lines if line.strip().startswith("files:")),
+        "",
+    )
+    assert files_line == f"files: {expected_files}"
+
+    env_line = next(
+        (line.strip() for line in stderr_lines if line.strip().startswith("env files:")),
+        "",
+    )
+    resolved_env_chain = [str(path) for path in metadata.resolved_env_chain()]
+    if resolved_env_chain:
+        assert env_line == f"env files: {' '.join(resolved_env_chain)}"
+    else:
+        assert env_line == "env files: (none)"
+
+    derived_line = next(
+        (line.strip() for line in stderr_lines if line.strip().startswith("derived env:")),
+        "",
+    )
+    assert derived_line.startswith("derived env: APP_DATA_DIR=")
+    assert "APP_DATA_DIR_MOUNT=" in derived_line
+
+    assert "docker compose config output:" in result.stderr
+    assert "     line-from-compose stdout" in result.stderr
+    assert "     line-from-compose stderr" in result.stderr
