@@ -160,10 +160,14 @@ def _discover_instance_metadata(repo_root: Path) -> tuple[InstanceMetadata, ...]
     instance_files: dict[str, list[Path]] = {}
     instance_app_names: dict[str, list[str]] = {}
     apps_without_overrides: list[str] = []
+    apps_with_base: set[str] = set()
+    app_override_instances: dict[str, set[str]] = {}
 
     for app_dir in sorted(path for path in apps_dir.iterdir() if path.is_dir()):
         base_override = app_dir / "base.yml"
         has_base = base_override.exists()
+        if has_base:
+            apps_with_base.add(app_dir.name)
 
         app_files = list(sorted(app_dir.glob("*.yml"))) + list(sorted(app_dir.glob("*.yaml")))
         found_override = False
@@ -183,6 +187,8 @@ def _discover_instance_metadata(repo_root: Path) -> tuple[InstanceMetadata, ...]
             instance_app_names.setdefault(instance_name, [])
             if app_dir.name not in instance_app_names[instance_name]:
                 instance_app_names[instance_name].append(app_dir.name)
+
+            app_override_instances.setdefault(app_dir.name, set()).add(instance_name)
 
         if not found_override and has_base:
             apps_without_overrides.append(app_dir.name)
@@ -228,6 +234,15 @@ def _discover_instance_metadata(repo_root: Path) -> tuple[InstanceMetadata, ...]
     if apps_without_overrides:
         for app_name in apps_without_overrides:
             for name in instance_names:
+                if app_name not in instance_app_names[name]:
+                    instance_app_names[name].append(app_name)
+
+    if apps_with_base:
+        for app_name in sorted(apps_with_base):
+            override_instances = app_override_instances.get(app_name, set())
+            for name in instance_names:
+                if name in override_instances:
+                    continue
                 if app_name not in instance_app_names[name]:
                     instance_app_names[name].append(app_name)
 

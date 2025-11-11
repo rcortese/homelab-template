@@ -46,7 +46,15 @@ class ComposeInstancesData:
             app_name = remainder.split("/", 1)[0]
             overrides_by_app.setdefault(app_name, []).append(path)
 
-        for app in self.instance_app_names.get(instance, []):
+        apps_for_instance = list(self.instance_app_names.get(instance, []))
+        for app_name in self.app_base_files:
+            if app_name in apps_for_instance:
+                continue
+            if overrides_by_app.get(app_name):
+                continue
+            apps_for_instance.append(app_name)
+
+        for app in apps_for_instance:
             base_file = self.app_base_files.get(app, "")
             append_unique(base_file)
             for override in overrides_by_app.get(app, []):
