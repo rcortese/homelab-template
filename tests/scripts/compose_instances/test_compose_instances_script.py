@@ -26,6 +26,8 @@ def _collect_compose_metadata(repo_root: Path) -> tuple[
     apps_without_overrides: list[str] = []
     app_base_files: dict[str, str] = {}
 
+    overrides_by_app: dict[str, set[str]] = defaultdict(set)
+
     for app_dir in sorted(path for path in apps_dir.iterdir() if path.is_dir()):
         base_file = app_dir / "base.yml"
         if base_file.exists():
@@ -48,6 +50,8 @@ def _collect_compose_metadata(repo_root: Path) -> tuple[
             app_name = app_dir.name
             if app_name not in instance_app_names[instance_name]:
                 instance_app_names[instance_name].append(app_name)
+
+            overrides_by_app[app_name].add(instance_name)
 
         if not found_override and base_file.exists():
             apps_without_overrides.append(app_dir.name)
@@ -95,6 +99,14 @@ def _collect_compose_metadata(repo_root: Path) -> tuple[
             for name in instance_names:
                 if app_name not in instance_app_names[name]:
                     instance_app_names[name].append(app_name)
+
+    for app_name in app_base_files:
+        override_instances = overrides_by_app.get(app_name, set())
+        for name in instance_names:
+            if name in override_instances:
+                continue
+            if app_name not in instance_app_names[name]:
+                instance_app_names[name].append(app_name)
 
     env_local_map: dict[str, str] = {}
     env_template_map: dict[str, str] = {}
@@ -264,6 +276,25 @@ def test_instances_include_apps_without_overrides(
         expected_overrides = compose_instances_data.instance_files.get(instance, [])
         for override in expected_overrides:
             assert override in overrides
+
+
+def test_apps_with_base_are_registered_for_all_instances(
+    repo_copy: Path, compose_instances_data: ComposeInstancesData
+) -> None:
+    result = run_compose_instances(repo_copy)
+
+    assert result.returncode == 0, result.stderr
+
+    names_line = find_declare_line(result.stdout, "COMPOSE_INSTANCE_NAMES")
+    instance_names = parse_indexed_values(names_line)
+
+    app_names_line = find_declare_line(result.stdout, "COMPOSE_INSTANCE_APP_NAMES")
+    app_names_map = parse_mapping(app_names_line)
+
+    for instance in instance_names:
+        apps = [entry for entry in app_names_map.get(instance, "").splitlines() if entry]
+        for app_name in compose_instances_data.app_base_files:
+            assert app_name in apps
 
 
 def test_missing_base_file_is_allowed(repo_copy: Path) -> None:

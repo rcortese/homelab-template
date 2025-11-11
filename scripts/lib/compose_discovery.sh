@@ -23,6 +23,26 @@ compose_discovery__append_instance_file() {
   COMPOSE_INSTANCE_FILES[$instance]+=$'\n'"$file"
 }
 
+compose_discovery__append_instance_app() {
+  local instance="$1"
+  local app="$2"
+  local existing="${COMPOSE_INSTANCE_APP_NAMES[$instance]:-}"
+  local entry
+
+  if [[ -z "$existing" ]]; then
+    COMPOSE_INSTANCE_APP_NAMES[$instance]="$app"
+    return
+  fi
+
+  while IFS=$'\n' read -r entry; do
+    if [[ "$entry" == "$app" ]]; then
+      return
+    fi
+  done <<<"$existing"
+
+  COMPOSE_INSTANCE_APP_NAMES[$instance]+=$'\n'"$app"
+}
+
 load_compose_discovery() {
   local repo_root
   if ! repo_root="$(compose_common__resolve_repo_root "$1")"; then
@@ -71,6 +91,7 @@ load_compose_discovery() {
   fi
 
   local -A seen_instances=()
+  local -A app_override_instances=()
   local -a apps_without_overrides=()
   local app_name app_base_rel app_base_abs
   local instance_file filename instance_rel instance_abs instance
@@ -104,24 +125,28 @@ load_compose_discovery() {
         return 1
       fi
 
-      local existing_apps="${COMPOSE_INSTANCE_APP_NAMES[$instance]:-}"
-      if [[ -z "$existing_apps" ]]; then
-        COMPOSE_INSTANCE_APP_NAMES[$instance]="$app_name"
-      else
-        local already_listed=0
-        while IFS=$'\n' read -r existing_app; do
-          if [[ "$existing_app" == "$app_name" ]]; then
-            already_listed=1
-            break
-          fi
-        done <<<"$existing_apps"
-
-        if [[ $already_listed -eq 0 ]]; then
-          COMPOSE_INSTANCE_APP_NAMES[$instance]+=$'\n'"$app_name"
-        fi
-      fi
+      compose_discovery__append_instance_app "$instance" "$app_name"
       seen_instances[$instance]=1
       compose_discovery__append_instance_file "$instance" "$instance_rel"
+
+      local recorded_instances="${app_override_instances[$app_name]-}"
+      local already_recorded=0
+      if [[ -n "$recorded_instances" ]]; then
+        while IFS=$'\n' read -r recorded_instance; do
+          if [[ "$recorded_instance" == "$instance" ]]; then
+            already_recorded=1
+            break
+          fi
+        done <<<"$recorded_instances"
+      fi
+
+      if [[ $already_recorded -eq 0 ]]; then
+        if [[ -z "$recorded_instances" ]]; then
+          app_override_instances[$app_name]="$instance"
+        else
+          app_override_instances[$app_name]+=$'\n'"$instance"
+        fi
+      fi
     done
 
     if [[ $found_for_app -eq 0 ]]; then
@@ -201,24 +226,41 @@ load_compose_discovery() {
     local app_without_override existing_apps already_listed
     for instance in "${instance_names[@]}"; do
       for app_without_override in "${apps_without_overrides[@]}"; do
-        existing_apps="${COMPOSE_INSTANCE_APP_NAMES[$instance]:-}"
-        already_listed=0
-        if [[ -n "$existing_apps" ]]; then
-          while IFS=$'\n' read -r existing_app; do
-            if [[ "$existing_app" == "$app_without_override" ]]; then
-              already_listed=1
+        compose_discovery__append_instance_app "$instance" "$app_without_override"
+      done
+    done
+  fi
+
+  if [[ ${#COMPOSE_APP_BASE_FILES[@]} -gt 0 ]]; then
+    local -a base_app_names=()
+    local base_app override_instances override_instance
+
+    for base_app in "${!COMPOSE_APP_BASE_FILES[@]}"; do
+      base_app_names+=("$base_app")
+    done
+
+    if [[ ${#base_app_names[@]} -gt 0 ]]; then
+      mapfile -t base_app_names < <(printf '%s\n' "${base_app_names[@]}" | sort)
+    fi
+
+    for base_app in "${base_app_names[@]}"; do
+      local recorded_instances="${app_override_instances[$base_app]-}"
+      for instance in "${instance_names[@]}"; do
+        local has_override=0
+        if [[ -n "$recorded_instances" ]]; then
+          while IFS=$'\n' read -r override_instance; do
+            if [[ "$override_instance" == "$instance" ]]; then
+              has_override=1
               break
             fi
-          done <<<"$existing_apps"
+          done <<<"$recorded_instances"
         fi
 
-        if [[ $already_listed -eq 0 ]]; then
-          if [[ -z "$existing_apps" ]]; then
-            COMPOSE_INSTANCE_APP_NAMES[$instance]="$app_without_override"
-          else
-            COMPOSE_INSTANCE_APP_NAMES[$instance]+=$'\n'"$app_without_override"
-          fi
+        if [[ $has_override -eq 1 ]]; then
+          continue
         fi
+
+        compose_discovery__append_instance_app "$instance" "$base_app"
       done
     done
   fi
