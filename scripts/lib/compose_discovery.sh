@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 
-# shellcheck source=scripts/lib/compose_paths.sh
-source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/compose_paths.sh"
+COMPOSE_DISCOVERY_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+readonly COMPOSE_DISCOVERY_LIB_DIR
+# shellcheck disable=SC1091 # dynamic path resolution via BASH_SOURCE
+source "${COMPOSE_DISCOVERY_LIB_DIR}/compose_paths.sh"
 
 compose_discovery__append_instance_file() {
   local instance="$1"
@@ -223,7 +225,7 @@ load_compose_discovery() {
   done
 
   if [[ ${#apps_without_overrides[@]} -gt 0 ]]; then
-    local app_without_override existing_apps already_listed
+    local app_without_override
     for instance in "${instance_names[@]}"; do
       for app_without_override in "${apps_without_overrides[@]}"; do
         compose_discovery__append_instance_app "$instance" "$app_without_override"
@@ -233,7 +235,7 @@ load_compose_discovery() {
 
   if [[ ${#COMPOSE_APP_BASE_FILES[@]} -gt 0 ]]; then
     local -a base_app_names=()
-    local base_app override_instances override_instance
+    local base_app override_instance
 
     for base_app in "${!COMPOSE_APP_BASE_FILES[@]}"; do
       base_app_names+=("$base_app")
