@@ -22,7 +22,7 @@ executar `docker compose`.
 | **Aplicação** | `compose/apps/<app>/base.yml` | Declara os serviços adicionais que compõem uma aplicação (ex.: `app`). Usa os anchors definidos em `compose/base.yml`. Substitua `<app>` pelo diretório da sua aplicação principal (ex.: `compose/apps/<sua-app>/base.yml`). É incluído automaticamente para todas as instâncias **quando o arquivo existir**. |
 | **Overrides da aplicação** | `compose/apps/<app>/<instância>.yml` | Especializa os serviços da aplicação para cada ambiente (nome do container, portas, variáveis específicas como `APP_PUBLIC_URL` ou `MEDIA_ROOT`). Cada instância possui um arquivo por aplicação (ex.: `compose/apps/<sua-app>/core.yml`). |
 
-> **Observação:** aplicações que têm apenas `base.yml` são carregadas automaticamente em **todas** as instâncias. Para restringir a execução a um subconjunto específico, crie um override por instância (mesmo que o conteúdo seja apenas `profiles` ou `deploy.replicas: 0`) ou mova os manifests para um diretório override-only.
+> **Observação:** aplicações que têm apenas `base.yml` são carregadas automaticamente em **todas** as instâncias, incluindo aquelas que ainda não receberam um override dedicado mesmo que outras instâncias já tenham overrides próprios. Para restringir a execução a um subconjunto específico, crie um override por instância (mesmo que o conteúdo seja apenas `profiles` ou `deploy.replicas: 0`) ou mova os manifests para um diretório override-only.
 
 Exemplo de stub para desativar uma aplicação na instância `media`:
 
