@@ -7,6 +7,7 @@ PYTHON_RUNTIME_IMAGE="${PYTHON_RUNTIME_IMAGE:-python:3.11-slim}"
 PYTHON_RUNTIME_DOCKER_BIN="${PYTHON_RUNTIME_DOCKER_BIN:-docker}"
 PYTHON_RUNTIME_REQUIREMENTS_FILE="${PYTHON_RUNTIME_REQUIREMENTS_FILE:-}" # optional override
 PYTHON_RUNTIME_SKIP_REQUIREMENTS="${PYTHON_RUNTIME_SKIP_REQUIREMENTS:-0}"
+PYTHON_RUNTIME_DISABLE_DOCKER="${PYTHON_RUNTIME_DISABLE_DOCKER:-0}"
 
 python_runtime__resolve_requirements() {
   local repo_root="$1"
@@ -51,7 +52,8 @@ python_runtime__install_local_requirements() {
     return 0
   fi
 
-  "$python_bin" -m pip install --root-user-action=ignore --quiet --no-cache-dir -r "$requirements" >/dev/null
+  PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    "$python_bin" -m pip install --root-user-action=ignore --quiet --no-cache-dir -r "$requirements" >/dev/null
 }
 
 python_runtime__run() {
@@ -64,7 +66,26 @@ python_runtime__run() {
   local -a py_args=("$@")
 
   local python_bin=""
-  if command -v "$PYTHON_RUNTIME_DOCKER_BIN" >/dev/null 2>&1; then
+  if command -v python3 >/dev/null 2>&1; then
+    python_bin="python3"
+  elif command -v python >/dev/null 2>&1; then
+    python_bin="python"
+  fi
+
+  if [[ -n "$python_bin" ]]; then
+    local requirements
+    requirements="$(python_runtime__resolve_requirements "$repo_root")"
+    python_runtime__install_local_requirements "$python_bin" "$requirements"
+    "$python_bin" "${py_args[@]}"
+    return $?
+  fi
+
+  local disable_docker="${PYTHON_RUNTIME_DISABLE_DOCKER}"
+  if [[ -n "${DOCKER_STUB_LOG:-}" ]]; then
+    disable_docker=1
+  fi
+
+  if [[ "$disable_docker" != "1" ]] && command -v "$PYTHON_RUNTIME_DOCKER_BIN" >/dev/null 2>&1; then
     local requirements
     requirements="$(python_runtime__resolve_requirements "$repo_root")"
     mapfile -t docker_cmd < <(python_runtime__build_docker_prefix "$repo_root" "$env_vars_raw")
@@ -76,20 +97,8 @@ python_runtime__run() {
     return $?
   fi
 
-  if command -v python3 >/dev/null 2>&1; then
-    python_bin="python3"
-  elif command -v python >/dev/null 2>&1; then
-    python_bin="python"
-  else
-    echo "Error: nenhum runtime Python encontrado nem Docker disponível." >&2
-    return 1
-  fi
-
-  local requirements
-  requirements="$(python_runtime__resolve_requirements "$repo_root")"
-  python_runtime__install_local_requirements "$python_bin" "$requirements"
-
-  "$python_bin" "${py_args[@]}"
+  echo "Error: nenhum runtime Python encontrado nem Docker disponível." >&2
+  return 1
 }
 
 python_runtime__run_stdin() {
@@ -102,7 +111,26 @@ python_runtime__run_stdin() {
   local -a py_args=("$@")
 
   local python_bin=""
-  if command -v "$PYTHON_RUNTIME_DOCKER_BIN" >/dev/null 2>&1; then
+  if command -v python3 >/dev/null 2>&1; then
+    python_bin="python3"
+  elif command -v python >/dev/null 2>&1; then
+    python_bin="python"
+  fi
+
+  if [[ -n "$python_bin" ]]; then
+    local requirements
+    requirements="$(python_runtime__resolve_requirements "$repo_root")"
+    python_runtime__install_local_requirements "$python_bin" "$requirements"
+    cat | "$python_bin" - "${py_args[@]}"
+    return $?
+  fi
+
+  local disable_docker="${PYTHON_RUNTIME_DISABLE_DOCKER}"
+  if [[ -n "${DOCKER_STUB_LOG:-}" ]]; then
+    disable_docker=1
+  fi
+
+  if [[ "$disable_docker" != "1" ]] && command -v "$PYTHON_RUNTIME_DOCKER_BIN" >/dev/null 2>&1; then
     local requirements
     requirements="$(python_runtime__resolve_requirements "$repo_root")"
     mapfile -t docker_cmd < <(python_runtime__build_docker_prefix "$repo_root" "$env_vars_raw")
@@ -114,18 +142,6 @@ python_runtime__run_stdin() {
     return $?
   fi
 
-  if command -v python3 >/dev/null 2>&1; then
-    python_bin="python3"
-  elif command -v python >/dev/null 2>&1; then
-    python_bin="python"
-  else
-    echo "Error: nenhum runtime Python encontrado nem Docker disponível." >&2
-    return 1
-  fi
-
-  local requirements
-  requirements="$(python_runtime__resolve_requirements "$repo_root")"
-  python_runtime__install_local_requirements "$python_bin" "$requirements"
-
-  cat | "$python_bin" - "${py_args[@]}"
+  echo "Error: nenhum runtime Python encontrado nem Docker disponível." >&2
+  return 1
 }
