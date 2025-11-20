@@ -32,23 +32,6 @@ exit {exit_code}
     path.chmod(0o755)
 
 
-def _create_python_stub(path: Path, log_file: Path, message: str, exit_code: int = 0) -> None:
-    """Create an executable Python stub that logs its invocation."""
-
-    lines = [
-        "#!/usr/bin/env python3",
-        "from pathlib import Path",
-        f"log_path = Path({str(log_file)!r})",
-        "with log_path.open('a', encoding='utf-8') as fh:",
-        f"    fh.write({message!r})",
-        "    fh.write('\\n')",
-    ]
-    if exit_code:
-        lines.append(f"raise SystemExit({exit_code})")
-    content = "\n".join(lines) + "\n"
-    path.write_text(content, encoding="utf-8")
-    path.chmod(0o755)
-
 
 def _prepare_repo(
     tmp_path: Path,
@@ -73,8 +56,8 @@ def _prepare_repo(
         "check_structure",
     )
 
-    _create_python_stub(
-        scripts_dir / "check_env_sync.py",
+    _create_shell_stub(
+        scripts_dir / "check_env_sync.sh",
         log_file,
         "check_env_sync",
         exit_code=1 if failing_env_sync else 0,
