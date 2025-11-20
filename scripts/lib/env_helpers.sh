@@ -52,7 +52,7 @@ env_helpers__normalize_repo_relative() {
     return 0
   fi
 
-  python_runtime__run_stdin "$REPO_ROOT" "" -- "$repo_root" "$input_value" <<'PY'
+  python_runtime__run_stdin "$repo_root" "" -- "$repo_root" "$input_value" <<'PY'
 from pathlib import Path
 import sys
 
@@ -92,7 +92,7 @@ env_helpers__normalize_absolute_path() {
     return 0
   fi
 
-  python_runtime__run_stdin "$REPO_ROOT" "" -- "$repo_root" "$input_value" <<'PY'
+  python_runtime__run_stdin "$repo_root" "" -- "$repo_root" "$input_value" <<'PY'
 from pathlib import Path
 import sys
 
@@ -119,7 +119,7 @@ env_helpers__relative_from_absolute() {
     return 1
   fi
 
-  python_runtime__run_stdin "$REPO_ROOT" "" -- "$repo_root" "$absolute_value" <<'PY'
+  python_runtime__run_stdin "$repo_root" "" -- "$repo_root" "$absolute_value" <<'PY'
 from pathlib import Path
 import sys
 

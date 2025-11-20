@@ -48,8 +48,22 @@ SHELLCHECK_BIN="${SHELLCHECK_BIN:-shellcheck}"
 SHFMT_BIN="${SHFMT_BIN:-shfmt}"
 CHECKBASHISMS_BIN="${CHECKBASHISMS_BIN:-checkbashisms}"
 
-# shellcheck source=scripts/lib/python_runtime.sh
-source "${SCRIPT_DIR}/lib/python_runtime.sh"
+PYTHON_HELPERS_PATH="${SCRIPT_DIR}/lib/python_runtime.sh"
+
+if [[ -f "$PYTHON_HELPERS_PATH" ]]; then
+  # shellcheck source=scripts/lib/python_runtime.sh
+  source "$PYTHON_HELPERS_PATH"
+
+  run_pytest() {
+    python_runtime__run "$REPO_ROOT" "" -- -m pytest "$@"
+  }
+else
+  run_pytest() {
+    local python_bin
+    python_bin="${PYTHON_BIN:-python}"
+    "${python_bin}" -m pytest "$@"
+  }
+fi
 
 require_command() {
   local tool="$1"
@@ -70,7 +84,7 @@ fi
 
 # Executa a suíte de testes Python do template.
 cd "${REPO_ROOT}"
-python_runtime__run "$REPO_ROOT" "" -- -m pytest
+run_pytest
 
 if ((RUN_LINT)); then
   # Prepara a lista de scripts shell para lint.
