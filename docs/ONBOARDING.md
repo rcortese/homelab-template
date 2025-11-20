@@ -49,7 +49,7 @@ scripts/check_all.sh
 O agregador `scripts/check_all.sh` executa, na ordem abaixo, as validações estruturais essenciais do template e encerra imediatamente quando alguma delas falha:
 
 - `scripts/check_structure.sh` – confirma se diretórios e arquivos obrigatórios continuam presentes.
-- `scripts/check_env_sync.py` – verifica se manifests Compose e arquivos `env/*.example.env` permanecem sincronizados.
+- `scripts/check_env_sync.sh` – verifica se manifests Compose e arquivos `env/*.example.env` permanecem sincronizados (wrapper Docker com fallback para `scripts/check_env_sync.py`).
   - Utilize `--instance <nome>` (repetível) quando quiser validar apenas um subconjunto de instâncias durante ajustes locais.
 - `scripts/validate_compose.sh` – valida as combinações padrão de manifests para os perfis ativos.
 

@@ -22,6 +22,9 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 ORIGINAL_PWD="${PWD:-}"
 CHANGED_TO_REPO_ROOT=false
 
+# shellcheck source=scripts/lib/python_runtime.sh
+source "${SCRIPT_DIR}/lib/python_runtime.sh"
+
 OUTPUT_FORMAT="text"
 OUTPUT_FILE=""
 
@@ -478,7 +481,10 @@ if [[ "$OUTPUT_FORMAT" == "json" ]]; then
     LOG_SUCCESS_FLAG SERVICE_PAYLOAD INSTANCE_NAME
 
   json_payload="$(
-    python3 - <<'PYTHON'
+    python_runtime__run_stdin \
+      "$REPO_ROOT" \
+      "COMPOSE_PS_TEXT COMPOSE_PS_JSON PRIMARY_LOG_SERVICES AUTO_LOG_SERVICES ALL_LOG_SERVICES FAILED_SERVICES_STR LOG_SUCCESS_FLAG SERVICE_PAYLOAD INSTANCE_NAME" \
+      -- <<'PYTHON'
 import base64
 import json
 import os

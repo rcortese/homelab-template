@@ -2,6 +2,10 @@
 # Common helpers for environment variable handling in scripts.
 
 _ENV_HELPERS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "${_ENV_HELPERS_DIR}/../.." && pwd)"
+
+# shellcheck source=scripts/lib/python_runtime.sh
+source "${_ENV_HELPERS_DIR}/python_runtime.sh"
 
 load_env_pairs() {
   local env_file="$1"
@@ -48,7 +52,7 @@ env_helpers__normalize_repo_relative() {
     return 0
   fi
 
-  python3 - "$repo_root" "$input_value" <<'PY'
+  python_runtime__run_stdin "$REPO_ROOT" "" -- "$repo_root" "$input_value" <<'PY'
 from pathlib import Path
 import sys
 
@@ -88,7 +92,7 @@ env_helpers__normalize_absolute_path() {
     return 0
   fi
 
-  python3 - "$repo_root" "$input_value" <<'PY'
+  python_runtime__run_stdin "$REPO_ROOT" "" -- "$repo_root" "$input_value" <<'PY'
 from pathlib import Path
 import sys
 
@@ -115,7 +119,7 @@ env_helpers__relative_from_absolute() {
     return 1
   fi
 
-  python3 - "$repo_root" "$absolute_value" <<'PY'
+  python_runtime__run_stdin "$REPO_ROOT" "" -- "$repo_root" "$absolute_value" <<'PY'
 from pathlib import Path
 import sys
 

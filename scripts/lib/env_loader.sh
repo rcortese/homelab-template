@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+
+# shellcheck source=scripts/lib/python_runtime.sh
+source "${SCRIPT_DIR}/python_runtime.sh"
+
 print_usage() {
   cat <<'EOF'
 Uso: scripts/lib/env_loader.sh <arquivo.env> <VARIAVEL> [VARIAVEL...]
@@ -23,7 +29,7 @@ if [[ ! -f "$ENV_FILE" ]]; then
   exit 1
 fi
 
-python3 - "$ENV_FILE" "$@" <<'PY'
+python_runtime__run_stdin "$REPO_ROOT" "" -- "$ENV_FILE" "$@" <<'PY'
 import re
 import sys
 from pathlib import Path

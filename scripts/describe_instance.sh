@@ -21,6 +21,9 @@ USAGE
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
+# shellcheck source=scripts/lib/python_runtime.sh
+source "${SCRIPT_DIR}/lib/python_runtime.sh"
+
 FORMAT="table"
 INSTANCE_NAME=""
 LIST_ONLY=false
@@ -138,7 +141,10 @@ export DESCRIBE_INSTANCE_COMPOSE_FILES="${COMPOSE_FILES:-}"
 export DESCRIBE_INSTANCE_EXTRA_FILES="${COMPOSE_EXTRA_FILES:-}"
 export DESCRIBE_INSTANCE_REPO_ROOT="$REPO_ROOT"
 
-python3 - "$config_stdout" <<'PYTHON'
+python_runtime__run_stdin \
+  "$REPO_ROOT" \
+  "DESCRIBE_INSTANCE_FORMAT DESCRIBE_INSTANCE_NAME DESCRIBE_INSTANCE_COMPOSE_FILES DESCRIBE_INSTANCE_EXTRA_FILES DESCRIBE_INSTANCE_REPO_ROOT" \
+  -- "$config_stdout" <<'PYTHON'
 import json
 import os
 import sys
