@@ -20,7 +20,7 @@ from scripts.check_env_sync import (
 from tests.helpers.compose_instances import ComposeInstancesData
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
-SCRIPT_PATH = REPO_ROOT / "scripts" / "check_env_sync.py"
+SCRIPT_PATH = REPO_ROOT / "scripts" / "check_env_sync.sh"
 
 
 def _select_instance(compose_instances_data: ComposeInstancesData) -> str:
