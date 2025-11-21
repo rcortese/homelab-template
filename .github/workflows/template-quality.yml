@@ -10,7 +10,6 @@ name: Template Quality Checks
 
 on:
   push:
-    branches: [ main ]
     paths:
       - '.github/**'
       - 'compose/**'
@@ -19,7 +18,6 @@ on:
       - 'tests/**'
       - 'requirements-dev.txt'
   pull_request:
-    branches: [ main ]
     paths:
       - '.github/**'
       - 'compose/**'
