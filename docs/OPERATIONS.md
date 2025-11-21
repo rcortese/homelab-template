@@ -10,7 +10,7 @@ Este documento apresenta um ponto de partida para descrever processos operaciona
 | --- | --- | --- | --- |
 | [`scripts/check_all.sh`](#scriptscheck_allsh) | Agregar validações de estrutura, `.env` e Compose em um único comando. | `scripts/check_all.sh` | Antes de abrir PRs ou rodar pipelines locais completos. |
 | [`scripts/check_structure.sh`](#scriptscheck_structuresh) | Confirmar diretórios/arquivos obrigatórios. | `scripts/check_structure.sh` | Antes de PRs ou pipelines que reorganizam arquivos. |
-| [`scripts/check_env_sync.py`](#scriptscheck_env_syncpy) | Verificar sincronização entre Compose e `env/*.example.env`. | `scripts/check_env_sync.py` | Após editar Compose ou templates `.env`; em validações locais/CI. |
+| [`scripts/check_env_sync.sh`](#scriptscheck_env_syncsh) | Verificar sincronização entre Compose e `env/*.example.env`. | `scripts/check_env_sync.sh` | Após editar Compose ou templates `.env`; em validações locais/CI. |
 | [`scripts/run_quality_checks.sh`](#scriptsrun_quality_checkssh) | Executar `pytest`, `shfmt`, `shellcheck` e `checkbashisms` em uma única chamada. | `scripts/run_quality_checks.sh` | Após alterações em código Python ou shell. |
 | [`scripts/bootstrap_instance.sh`](#scriptsbootstrap_instancesh) | Criar estrutura inicial de aplicação/instância. | `scripts/bootstrap_instance.sh <app> <instancia>` | Ao iniciar novos serviços ou ambientes. |
 | [`scripts/validate_compose.sh`](#scriptsvalidate_composesh) | Validar combinações padrão de Docker Compose. | `scripts/validate_compose.sh` | Após ajustes em manifests; etapas de CI. |
@@ -29,7 +29,7 @@ Este documento apresenta um ponto de partida para descrever processos operaciona
 - Garanta que os arquivos `.env` locais foram gerados a partir dos modelos descritos em [`env/README.md`](../env/README.md).
 - Revise as combinações de manifests (incluindo `compose/base.yml` quando existir, `compose/<instância>.yml` quando existir e os overrides) que serão utilizadas pelos scripts. Os modelos [`compose/core.yml`](../compose/core.yml) e [`compose/media.yml`](../compose/media.yml) documentam como aplicar ajustes globais por instância antes dos manifests das aplicações.
 - Execute `scripts/check_all.sh` para validar estrutura, sincronização de variáveis e manifests Compose antes de abrir PRs ou publicar mudanças locais.
-- Execute `scripts/check_env_sync.py` isoladamente sempre que editar manifests ou templates `.env` para garantir que as variáveis continuam sincronizadas.
+- Execute `scripts/check_env_sync.sh` isoladamente sempre que editar manifests ou templates `.env` para garantir que as variáveis continuam sincronizadas.
 - Documente dependências extras (CLI, credenciais, acesso a registries) em seções adicionais.
 
 <a id="checklist-generico-deploy-pos"></a>
@@ -68,24 +68,24 @@ Este documento apresenta um ponto de partida para descrever processos operaciona
 
 - **Ordem das verificações:**
   1. `scripts/check_structure.sh` — garante que diretórios e arquivos obrigatórios estão presentes.
-  2. `scripts/check_env_sync.py` — valida a sincronização entre os manifests Compose e os arquivos `env/*.example.env`.
+  2. `scripts/check_env_sync.sh` — valida a sincronização entre os manifests Compose e os arquivos `env/*.example.env`.
   3. `scripts/validate_compose.sh` — confirma se as combinações de Compose permanecem válidas para os perfis suportados.
 - **Comportamento em caso de falha:** o script é executado com `set -euo pipefail` e encerra imediatamente na primeira verificação que retornar código diferente de zero, propagando a mensagem do helper que falhou.
 - **Variáveis e flags relevantes:** não possui parâmetros próprios; respeita as variáveis aceitas pelos scripts internos (`COMPOSE_INSTANCES`, `COMPOSE_EXTRA_FILES`, `DOCKER_COMPOSE_BIN`, entre outras). Exporte-as antes da chamada quando precisar personalizar o encadeamento.
-- **Orientações de uso:** priorize `scripts/check_all.sh` em ciclos de validação completos antes de abrir PRs, sincronizar forks ou iniciar pipelines manuais. Utilize os scripts individuais apenas durante ajustes focados (por exemplo, rodar `scripts/check_env_sync.py` após editar um `.env`). Reproduza a chamada em pipelines de CI que representem o fluxo local de validações, mantendo paridade entre ambientes.
+- **Orientações de uso:** priorize `scripts/check_all.sh` em ciclos de validação completos antes de abrir PRs, sincronizar forks ou iniciar pipelines manuais. Utilize os scripts individuais apenas durante ajustes focados (por exemplo, rodar `scripts/check_env_sync.sh` após editar um `.env`). Reproduza a chamada em pipelines de CI que representem o fluxo local de validações, mantendo paridade entre ambientes.
 
 ## scripts/check_structure.sh
 
-Consulte o resumo na tabela acima. Inclua `scripts/check_env_sync.py` nas execuções locais ou de CI para manter manifests e variáveis sincronizados.
+Consulte o resumo na tabela acima. Inclua `scripts/check_env_sync.sh` nas execuções locais ou de CI para manter manifests e variáveis sincronizados.
 
-## scripts/check_env_sync.py
+## scripts/check_env_sync.sh
 
-- **Objetivo:** comparar os manifests (`compose/base.yml`, quando presente, + overrides detectados) com os arquivos `env/*.example.env` correspondentes e sinalizar divergências.
+- **Objetivo:** comparar os manifests (`compose/base.yml`, quando presente, + overrides detectados) com os arquivos `env/*.example.env` correspondentes e sinalizar divergências. O wrapper shell (`scripts/check_env_sync.sh`) prioriza a execução via Docker (`python:3.11-slim`) e recorre ao Python local apenas como fallback, utilizando `scripts/check_env_sync.py` como módulo principal.
 - **Uso típico:**
   ```bash
-  scripts/check_env_sync.py
-  scripts/check_env_sync.py --repo-root /caminho/alternativo
-  scripts/check_env_sync.py --instance core --instance media
+  scripts/check_env_sync.sh
+  scripts/check_env_sync.sh --repo-root /caminho/alternativo
+  scripts/check_env_sync.sh --instance core --instance media
   ```
 - **Saída:** lista variáveis ausentes, obsoletas ou instâncias sem template, retornando código de saída diferente de zero quando encontrar problemas — ideal para CI.
 - **Filtragem por instância:** utilize a flag repetível `--instance` para focar a validação em um subconjunto específico sem precisar exportar variáveis globais. Combine-a com os demais parâmetros quando quiser comparar apenas um conjunto reduzido durante ajustes iterativos.
@@ -100,7 +100,7 @@ Consulte o resumo na tabela acima. Inclua `scripts/check_env_sync.py` nas execu�
   scripts/run_quality_checks.sh
   scripts/run_quality_checks.sh --no-lint
   ```
-- **Personalização:** defina `PYTHON_BIN`, `SHFMT_BIN`, `SHELLCHECK_BIN` ou `CHECKBASHISMS_BIN` para apontar binários alternativos quando necessário (por exemplo, em ambientes virtuais ou wrappers locais) ou passe `--no-lint` quando quiser apenas rodar a suíte de testes Python.
+- **Personalização:** defina `PYTHON_RUNTIME_IMAGE`/`PYTHON_RUNTIME_REQUIREMENTS_FILE` para customizar a execução em container ou `PYTHON_RUNTIME_SKIP_REQUIREMENTS=1` para reutilizar dependências já instaladas localmente. Ajuste também `SHFMT_BIN`, `SHELLCHECK_BIN` ou `CHECKBASHISMS_BIN` para apontar binários alternativos quando necessário, e passe `--no-lint` quando quiser apenas rodar a suíte de testes Python.
 - **Boas práticas:** execute o helper durante ciclos iterativos em código Python ou shell para detectar regressões rapidamente e replique a chamada em pipelines locais antes de rodar `scripts/check_all.sh`.
 
 ## scripts/bootstrap_instance.sh

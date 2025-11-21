@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# shellcheck source-path=SCRIPTDIR
 set -euo pipefail
 
 print_help() {
@@ -32,16 +33,16 @@ USAGE
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-# shellcheck source=scripts/lib/compose_command.sh
+# shellcheck source=lib/compose_command.sh
 source "$SCRIPT_DIR/lib/compose_command.sh"
 
-# shellcheck source=scripts/lib/compose_plan.sh
+# shellcheck source=lib/compose_plan.sh
 source "$SCRIPT_DIR/lib/compose_plan.sh"
 
-# shellcheck source=scripts/lib/env_file_chain.sh
+# shellcheck source=lib/env_file_chain.sh
 source "$SCRIPT_DIR/lib/env_file_chain.sh"
 
-# shellcheck source=scripts/lib/env_helpers.sh
+# shellcheck source=lib/env_helpers.sh
 source "$SCRIPT_DIR/lib/env_helpers.sh"
 
 INSTANCE_NAME=""

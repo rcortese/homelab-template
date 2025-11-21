@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# shellcheck source-path=SCRIPTDIR/lib
+# shellcheck source-path=SCRIPTDIR
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -28,9 +28,9 @@ error() {
   exit 1
 }
 
-# shellcheck source=scripts/lib/template_validate.sh
+# shellcheck source=lib/template_validate.sh
 source "$SCRIPT_DIR/lib/template_validate.sh"
-# shellcheck source=scripts/lib/template_remote.sh
+# shellcheck source=lib/template_remote.sh
 source "$SCRIPT_DIR/lib/template_remote.sh"
 
 remote="${TEMPLATE_REMOTE:-}"

@@ -12,7 +12,7 @@ Os utilitários presentes em `scripts/lib/` nunca são executados isoladamente: 
 
 - **Shell resiliente:** todos os scripts Bash adotam `set -euo pipefail` para abortar em falhas e prevenir variáveis não declaradas. Preserve essa configuração ao escrever novos helpers.
 - **Variáveis de ambiente compartilhadas:** helpers aceitam variáveis como `COMPOSE_INSTANCES`, `COMPOSE_EXTRA_FILES`, `DOCKER_COMPOSE_BIN`, `APP_DATA_DIR`, `APP_DATA_DIR_MOUNT`, `APP_DATA_UID`/`APP_DATA_GID`, entre outras. Consulte cada seção em [`docs/OPERATIONS.md`](../docs/OPERATIONS.md) para detalhes e exporte-as antes da execução quando precisar personalizar o comportamento.
-- **Dependências externas:** certifique-se de ter Docker Compose v2 disponível (`docker compose ...`), Python 3 com as dependências listadas em `requirements-dev.txt`, e ferramentas usadas pelos linters (por exemplo, `shfmt`, `shellcheck`, `checkbashisms`). Alguns fluxos utilizam também `git`, `tar`, `jq` e utilitários padrão do GNU coreutils.
+- **Dependências externas:** certifique-se de ter Docker Compose v2 disponível (`docker compose ...`) e as ferramentas usadas pelos linters (por exemplo, `shfmt`, `shellcheck`, `checkbashisms`). Os trechos em Python são executados via imagem oficial (`python:3.11-slim`) quando o Docker está presente; o runtime local de Python 3 é usado apenas como fallback e instala automaticamente as dependências de `requirements-dev.txt` se necessário. Alguns fluxos utilizam também `git`, `tar`, `jq` e utilitários padrão do GNU coreutils.
 
 ## Catálogo por categoria
 
@@ -22,7 +22,7 @@ Os utilitários presentes em `scripts/lib/` nunca são executados isoladamente: 
 | --- | --- | --- |
 | `check_all.sh` | Encadeia estrutura, sincronização de variáveis e validação Compose em uma única chamada antes de PRs. | [`docs/OPERATIONS.md#scriptscheck_allsh`](../docs/OPERATIONS.md#scriptscheck_allsh) |
 | `check_structure.sh` | Garante que diretórios e arquivos mandatórios do template estejam presentes. | [`docs/OPERATIONS.md#scriptscheck_structuresh`](../docs/OPERATIONS.md#scriptscheck_structuresh) |
-| `check_env_sync.py` | Compara manifests Compose com `env/*.example.env`, sinalizando variáveis ausentes ou obsoletas. | [`docs/OPERATIONS.md#scriptscheck_env_syncpy`](../docs/OPERATIONS.md#scriptscheck_env_syncpy) |
+| `check_env_sync.sh` | Compara manifests Compose com `env/*.example.env`, sinalizando variáveis ausentes ou obsoletas. | [`docs/OPERATIONS.md#scriptscheck_env_syncpy`](../docs/OPERATIONS.md#scriptscheck_env_syncpy) |
 | `run_quality_checks.sh` | Reúne `pytest`, `shfmt`, `shellcheck` e `checkbashisms` para validações de qualidade. | [`docs/OPERATIONS.md#scriptsrun_quality_checkssh`](../docs/OPERATIONS.md#scriptsrun_quality_checkssh) |
 | `validate_compose.sh` | Valida combinações padrão de Docker Compose para diferentes perfis/instâncias. | [`docs/OPERATIONS.md#scriptsvalidate_composesh`](../docs/OPERATIONS.md#scriptsvalidate_composesh) |
 

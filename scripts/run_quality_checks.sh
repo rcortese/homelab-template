@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# shellcheck source-path=SCRIPTDIR
 # Usage: scripts/run_quality_checks.sh [--no-lint]
 #
 # Executa a bateria padrão de testes e linters do template.
@@ -44,10 +45,26 @@ done
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
-PYTHON_BIN="${PYTHON_BIN:-python}"
 SHELLCHECK_BIN="${SHELLCHECK_BIN:-shellcheck}"
 SHFMT_BIN="${SHFMT_BIN:-shfmt}"
 CHECKBASHISMS_BIN="${CHECKBASHISMS_BIN:-checkbashisms}"
+
+PYTHON_HELPERS_PATH="${SCRIPT_DIR}/lib/python_runtime.sh"
+
+if [[ -f "$PYTHON_HELPERS_PATH" ]]; then
+  # shellcheck source=lib/python_runtime.sh
+  source "$PYTHON_HELPERS_PATH"
+
+  run_pytest() {
+    python_runtime__run "$REPO_ROOT" "" -- -m pytest "$@"
+  }
+else
+  run_pytest() {
+    local python_bin
+    python_bin="${PYTHON_BIN:-python}"
+    "${python_bin}" -m pytest "$@"
+  }
+fi
 
 require_command() {
   local tool="$1"
@@ -60,8 +77,6 @@ require_command() {
   fi
 }
 
-require_command "python" "${PYTHON_BIN}" "PYTHON_BIN"
-
 if ((RUN_LINT)); then
   require_command "shfmt" "${SHFMT_BIN}" "SHFMT_BIN"
   require_command "shellcheck" "${SHELLCHECK_BIN}" "SHELLCHECK_BIN"
@@ -70,7 +85,7 @@ fi
 
 # Executa a suíte de testes Python do template.
 cd "${REPO_ROOT}"
-"${PYTHON_BIN}" -m pytest
+run_pytest "$@"
 
 if ((RUN_LINT)); then
   # Prepara a lista de scripts shell para lint.
