@@ -105,7 +105,7 @@ if ((RUN_LINT)); then
       printf '%s\n' "${shfmt_diff}"
       exit 1
     fi
-    "${SHELLCHECK_BIN}" -x "${shellcheck_targets[@]}"
+    "${SHELLCHECK_BIN}" "${shellcheck_targets[@]}"
     "${CHECKBASHISMS_BIN}" "${shellcheck_targets[@]}"
   fi
 fi
