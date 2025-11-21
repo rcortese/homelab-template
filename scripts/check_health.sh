@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# shellcheck source-path=SCRIPTDIR
 # Usage: scripts/check_health.sh [--format text|json] [--output <arquivo>] [instancia]
 #
 # Arguments:
@@ -22,7 +23,7 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 ORIGINAL_PWD="${PWD:-}"
 CHANGED_TO_REPO_ROOT=false
 
-# shellcheck source=scripts/lib/python_runtime.sh
+# shellcheck source=lib/python_runtime.sh
 source "${SCRIPT_DIR}/lib/python_runtime.sh"
 
 OUTPUT_FORMAT="text"
@@ -35,16 +36,16 @@ fi
 
 REPO_ROOT="$(pwd)"
 
-# shellcheck source=scripts/lib/compose_command.sh
+# shellcheck source=lib/compose_command.sh
 source "$SCRIPT_DIR/lib/compose_command.sh"
 
-# shellcheck source=scripts/lib/env_helpers.sh
+# shellcheck source=lib/env_helpers.sh
 source "$SCRIPT_DIR/lib/env_helpers.sh"
 
-# shellcheck source=scripts/lib/env_file_chain.sh
+# shellcheck source=lib/env_file_chain.sh
 source "$SCRIPT_DIR/lib/env_file_chain.sh"
 
-# shellcheck source=scripts/lib/compose_instances.sh
+# shellcheck source=lib/compose_instances.sh
 source "$SCRIPT_DIR/lib/compose_instances.sh"
 
 print_help() {

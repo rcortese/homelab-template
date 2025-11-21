@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# shellcheck source-path=SCRIPTDIR
 set -euo pipefail
 
 print_help() {
@@ -21,7 +22,7 @@ USAGE
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-# shellcheck source=scripts/lib/python_runtime.sh
+# shellcheck source=lib/python_runtime.sh
 source "${SCRIPT_DIR}/lib/python_runtime.sh"
 
 FORMAT="table"
@@ -73,7 +74,7 @@ if [[ "$LIST_ONLY" == true && -n "$INSTANCE_NAME" ]]; then
 fi
 
 if [[ "$LIST_ONLY" == true ]]; then
-  # shellcheck source=scripts/lib/compose_instances.sh
+  # shellcheck source=lib/compose_instances.sh
   source "$SCRIPT_DIR/lib/compose_instances.sh"
 
   if ! load_compose_instances "$REPO_ROOT"; then
@@ -104,7 +105,7 @@ if [[ "$FORMAT_LOWER" != "table" && "$FORMAT_LOWER" != "json" ]]; then
   exit 1
 fi
 
-# shellcheck source=scripts/lib/compose_defaults.sh
+# shellcheck source=lib/compose_defaults.sh
 source "$SCRIPT_DIR/lib/compose_defaults.sh"
 
 if ! setup_compose_defaults "$INSTANCE_NAME" "$REPO_ROOT"; then
