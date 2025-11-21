@@ -2,7 +2,6 @@
 # Common helpers for environment variable handling in scripts.
 
 _ENV_HELPERS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "${_ENV_HELPERS_DIR}/../.." && pwd)"
 
 # shellcheck source=scripts/lib/python_runtime.sh
 source "${_ENV_HELPERS_DIR}/python_runtime.sh"

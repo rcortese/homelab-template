@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# shellcheck source-path=SCRIPTDIR/lib
+# shellcheck source-path=SCRIPTDIR
 # Usage: scripts/validate_compose.sh
 #
 # Arguments:
@@ -17,14 +17,14 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 ENV_LOADER="$SCRIPT_DIR/lib/env_loader.sh"
 
-# shellcheck source=scripts/lib/compose_command.sh
+# shellcheck source=lib/compose_command.sh
 source "$SCRIPT_DIR/lib/compose_command.sh"
 
-# shellcheck source=scripts/lib/compose_file_utils.sh
+# shellcheck source=lib/compose_file_utils.sh
 source "$SCRIPT_DIR/lib/compose_file_utils.sh"
-# shellcheck source=scripts/lib/validate_cli.sh
+# shellcheck source=lib/validate_cli.sh
 source "$SCRIPT_DIR/lib/validate_cli.sh"
-# shellcheck source=scripts/lib/validate_executor.sh
+# shellcheck source=lib/validate_executor.sh
 source "$SCRIPT_DIR/lib/validate_executor.sh"
 
 if ! compose_metadata="$("$SCRIPT_DIR/lib/compose_instances.sh" "$REPO_ROOT")"; then

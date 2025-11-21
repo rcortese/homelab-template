@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# shellcheck source-path=SCRIPTDIR
 # Usage: scripts/run_quality_checks.sh [--no-lint]
 #
 # Executa a bateria padrão de testes e linters do template.
@@ -51,7 +52,7 @@ CHECKBASHISMS_BIN="${CHECKBASHISMS_BIN:-checkbashisms}"
 PYTHON_HELPERS_PATH="${SCRIPT_DIR}/lib/python_runtime.sh"
 
 if [[ -f "$PYTHON_HELPERS_PATH" ]]; then
-  # shellcheck source=scripts/lib/python_runtime.sh
+  # shellcheck source=lib/python_runtime.sh
   source "$PYTHON_HELPERS_PATH"
 
   run_pytest() {
@@ -84,7 +85,7 @@ fi
 
 # Executa a suíte de testes Python do template.
 cd "${REPO_ROOT}"
-run_pytest
+run_pytest "$@"
 
 if ((RUN_LINT)); then
   # Prepara a lista de scripts shell para lint.
@@ -104,7 +105,7 @@ if ((RUN_LINT)); then
       printf '%s\n' "${shfmt_diff}"
       exit 1
     fi
-    "${SHELLCHECK_BIN}" "${shellcheck_targets[@]}"
+    "${SHELLCHECK_BIN}" -x "${shellcheck_targets[@]}"
     "${CHECKBASHISMS_BIN}" "${shellcheck_targets[@]}"
   fi
 fi

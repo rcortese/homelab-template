@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# shellcheck source-path=SCRIPTDIR/lib
+# shellcheck source-path=SCRIPTDIR
 # Usage: scripts/update_from_template.sh [--remote <nome>] [--original-commit <hash>] [--first-local-commit <hash>] [--target-branch <branch>] [--dry-run]
 #
 # Argumentos principais:
@@ -55,13 +55,13 @@ error() {
   exit 1
 }
 
-# shellcheck source=scripts/lib/template_prompts.sh
+# shellcheck source=lib/template_prompts.sh
 source "$SCRIPT_DIR/lib/template_prompts.sh"
-# shellcheck source=scripts/lib/template_validate.sh
+# shellcheck source=lib/template_validate.sh
 source "$SCRIPT_DIR/lib/template_validate.sh"
-# shellcheck source=scripts/lib/template_sync.sh
+# shellcheck source=lib/template_sync.sh
 source "$SCRIPT_DIR/lib/template_sync.sh"
-# shellcheck source=scripts/lib/template_remote.sh
+# shellcheck source=lib/template_remote.sh
 source "$SCRIPT_DIR/lib/template_remote.sh"
 
 template_remote="${TEMPLATE_REMOTE:-}"
