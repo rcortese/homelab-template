@@ -2,23 +2,23 @@
 # shellcheck source-path=SCRIPTDIR
 # Usage: scripts/run_quality_checks.sh [--no-lint]
 #
-# Executa a bateria padrão de testes e linters do template.
-# A rotina valida código Python via ``pytest`` e executa ``shfmt``,
-# ``shellcheck`` e ``checkbashisms`` sobre os scripts de automação. Falha imediatamente se qualquer etapa
-# retornar código diferente de zero.
+# Runs the default suite of tests and linters for the template.
+# The routine validates Python code via ``pytest`` and executes ``shfmt``,
+# ``shellcheck`` and ``checkbashisms`` against the automation scripts. It fails immediately if any step
+# returns a non-zero exit code.
 #
-# Exemplo:
+# Example:
 #   scripts/run_quality_checks.sh
 set -euo pipefail
 
 usage() {
   cat <<'EOF'
-Uso: scripts/run_quality_checks.sh [--no-lint]
+Usage: scripts/run_quality_checks.sh [--no-lint]
 
-Executa ``pytest`` e aplica ``shfmt``/``shellcheck``/``checkbashisms`` sobre o template.
+Runs ``pytest`` and applies ``shfmt``/``shellcheck``/``checkbashisms`` to the template.
 
-Opções:
-  --no-lint    Pula a etapa de linting via ``shfmt``/``shellcheck``/``checkbashisms``.
+Options:
+  --no-lint    Skip the linting step via ``shfmt``/``shellcheck``/``checkbashisms``.
 EOF
 }
 
@@ -35,7 +35,7 @@ while (($# > 0)); do
     exit 0
     ;;
   *)
-    echo "Argumento desconhecido: $1" >&2
+    echo "Unknown argument: $1" >&2
     usage >&2
     exit 1
     ;;
@@ -72,7 +72,7 @@ require_command() {
   local env_var="$3"
 
   if ! command -v "$bin" >/dev/null 2>&1; then
-    echo "Erro: dependência '${tool}' não encontrada (tentou usar '${bin}'). Instale o binário ou defina ${env_var}." >&2
+    echo "Error: dependency '${tool}' not found (attempted '${bin}'). Install the binary or set ${env_var}." >&2
     exit 1
   fi
 }

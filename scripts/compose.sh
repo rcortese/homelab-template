@@ -4,26 +4,26 @@ set -euo pipefail
 
 print_help() {
   cat <<'USAGE'
-Uso: scripts/compose.sh [instancia] [--] [argumentos...]
+Usage: scripts/compose.sh [instance] [--] [arguments...]
 
-Wrapper para montar comandos docker compose reutilizando convenções do repositório.
+Wrapper to build docker compose commands reusing the repository conventions.
 
-Argumentos posicionais:
-  instancia        Nome da instância (ex.: core). Quando informado, carrega compose/base.yml
-                   + manifests da aplicação (ex.: compose/apps/app/base.yml e
-                   compose/apps/app/<instancia>.yml) e busca env/local/<instancia>.env.
+Positional arguments:
+  instance        Instance name (e.g., core). When provided, loads compose/base.yml
+                  plus application manifests (e.g., compose/apps/app/base.yml and
+                  compose/apps/app/<instance>.yml) and searches env/local/<instance>.env.
 
 Flags:
-  -h, --help       Exibe esta ajuda e sai.
-  --               Separa os parâmetros do docker compose, útil quando o subcomando
-                   começa com hífen.
+  -h, --help      Show this help message and exit.
+  --              Separates docker compose parameters, useful when the subcommand
+                  starts with a hyphen.
 
-Variáveis de ambiente relevantes:
-  DOCKER_COMPOSE_BIN  Sobrescreve o comando docker compose (ex.: docker-compose).
-  COMPOSE_FILES        Sobrescreve a lista de manifests (-f) aplicados.
-  COMPOSE_ENV_FILE     Define o arquivo .env utilizado pelo docker compose.
+Relevant environment variables:
+  DOCKER_COMPOSE_BIN  Overrides the docker compose command (e.g., docker-compose).
+  COMPOSE_FILES        Overrides the list of applied manifests (-f).
+  COMPOSE_ENV_FILE     Defines the .env file used by docker compose.
 
-Exemplos:
+Examples:
   scripts/compose.sh core up -d
   scripts/compose.sh media logs app
   scripts/compose.sh core -- down app

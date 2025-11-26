@@ -12,17 +12,17 @@ set -euo pipefail
 case "${1:-}" in
 -h | --help)
   cat <<'EOF'
-Uso: scripts/check_structure.sh
+Usage: scripts/check_structure.sh
 
-Valida se os diretórios e arquivos obrigatórios do repositório existem.
+Validates that the required repository directories and files exist.
 
-Argumentos posicionais:
-  (nenhum)
+Positional arguments:
+  (none)
 
-Variáveis de ambiente relevantes:
-  CI  Opcional, pode ser usado para diferenciar execuções em pipelines.
+Relevant environment variables:
+  CI  Optional, can be used to differentiate pipeline runs.
 
-Exemplo:
+Example:
   scripts/check_structure.sh
 EOF
   exit 0

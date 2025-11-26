@@ -109,30 +109,29 @@ generate_text_report() {
 
 print_help() {
   cat <<'USAGE'
-Uso: scripts/check_db_integrity.sh instancia [opções]
+Usage: scripts/check_db_integrity.sh instance [options]
 
-Pausa os serviços ativos da instância, verifica a integridade dos arquivos
-SQLite (*.db) dentro do diretório data (ou diretório customizado) e tenta
-recuperá-los quando necessário.
+Pauses the active services for the instance, checks the integrity of SQLite (*.db)
+files inside the data directory (or custom directory), and attempts recovery when needed.
 
-Argumentos posicionais:
-  instancia              Nome da instância definida nos manifests docker compose.
+Positional arguments:
+  instance               Instance name defined in the docker compose manifests.
 
-Opções:
-  --data-dir <dir>       Diretório base contendo os arquivos .db (padrão: data/).
-  --format {text,json}   Define o formato de saída (padrão: text).
-  --no-resume            Não retoma os serviços após a verificação.
-  --output <arquivo>     Caminho para gravar o resumo final.
-  -h, --help             Exibe esta ajuda e sai.
+Options:
+  --data-dir <dir>       Base directory containing .db files (default: data/).
+  --format {text,json}   Output format (default: text).
+  --no-resume            Do not resume services after verification.
+  --output <file>        Path to write the final summary.
+  -h, --help             Show this help message and exit.
 
-Variáveis de ambiente relevantes:
-  SQLITE3_MODE           Força 'container', 'binary' ou 'auto' (padrão: container).
-  SQLITE3_CONTAINER_RUNTIME  Runtime de contêiner utilizado (padrão: docker).
-  SQLITE3_CONTAINER_IMAGE    Imagem do contêiner sqlite3 (padrão: keinos/sqlite3:latest).
-  SQLITE3_BIN            Caminho para um binário sqlite3 local (usado em modo binary ou fallback).
-  DATA_DIR               Alternativa para --data-dir.
+Relevant environment variables:
+  SQLITE3_MODE               Force 'container', 'binary' or 'auto' (default: container).
+  SQLITE3_CONTAINER_RUNTIME  Container runtime used (default: docker).
+  SQLITE3_CONTAINER_IMAGE    sqlite3 container image (default: keinos/sqlite3:latest).
+  SQLITE3_BIN                Path to a local sqlite3 binary (used in binary mode or fallback).
+  DATA_DIR                   Alternative to --data-dir.
 
-Exemplos:
+Examples:
   scripts/check_db_integrity.sh core
   DATA_DIR="/mnt/storage/data" scripts/check_db_integrity.sh media --no-resume
 USAGE

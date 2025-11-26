@@ -150,10 +150,10 @@ def test_existing_env_file_is_preserved(repo_copy: Path) -> None:
 @pytest.mark.parametrize(
     "app_name, instance_name, expected_message",
     [
-        ("-demo", "valid", "Erro: O nome da aplicação"),
-        ("Invalid", "valid", "Erro: O nome da aplicação"),
-        ("demo", "-invalid", "Erro: O nome da instância"),
-        ("demo", "Invalid", "Erro: O nome da instância"),
+        ("-demo", "valid", "Error: The application name must"),
+        ("Invalid", "valid", "Error: The application name must"),
+        ("demo", "-invalid", "Error: The instance name must"),
+        ("demo", "Invalid", "Error: The instance name must"),
     ],
 )
 def test_rejects_invalid_names(

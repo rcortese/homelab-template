@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # shellcheck source-path=SCRIPTDIR
-# Uso: scripts/backup.sh <instancia>
+# Usage: scripts/backup.sh <instance>
 #
-# Executa um backup simples pausando a stack correspondente, copiando os dados
-# persistidos para o diretório `backups/` e religando a stack ao final.
+# Performs a simple backup by stopping the corresponding stack, copying the
+# persisted data to the `backups/` directory, and starting the stack again.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -11,10 +11,10 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 if [[ $# -lt 1 ]]; then
   cat <<'USAGE' >&2
-Uso: scripts/backup.sh <instancia>
+Usage: scripts/backup.sh <instance>
 
-Interrompe a stack da instância informada, copia os dados persistidos para um
-snapshot em backups/<instancia>-<timestamp> e sobe os serviços novamente.
+Stops the stack for the provided instance, copies persisted data to a snapshot
+in backups/<instance>-<timestamp>, and restarts the services.
 USAGE
   exit 1
 fi

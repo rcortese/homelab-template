@@ -68,7 +68,7 @@ def test_help_flags_exit_early_and_show_usage(
     result = run_check_health(args=[arg])
 
     assert result.returncode == 0, result.stderr
-    assert "Uso: scripts/check_health.sh" in result.stdout
+    assert "Usage: scripts/check_health.sh" in result.stdout
 
     calls = docker_stub.read_calls()
     assert calls == []

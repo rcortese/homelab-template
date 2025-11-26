@@ -4,18 +4,18 @@ set -euo pipefail
 
 print_help() {
   cat <<'USAGE'
-Uso: scripts/describe_instance.sh [--list] <instancia> [--format <formato>]
+Usage: scripts/describe_instance.sh [--list] <instance> [--format <format>]
 
-Gera um resumo dos serviços, portas e volumes da instância solicitada a
-partir de `docker compose config`, reutilizando as convenções do template.
+Generates a summary of services, ports, and volumes for the requested
+instance from `docker compose config`, reusing the template conventions.
 
-Argumentos posicionais:
-  instancia            Nome da instância (ex.: core, media).
+Positional arguments:
+  instance            Instance name (e.g., core, media).
 
 Flags:
-  -h, --help           Exibe esta ajuda e sai.
-  --list               Lista as instâncias disponíveis e sai.
-  --format <formato>   Define o formato da saída. Valores aceitos: table (padrão), json.
+  -h, --help          Show this help message and exit.
+  --list              List available instances and exit.
+  --format <format>   Output format. Accepted values: table (default), json.
 USAGE
 }
 
@@ -42,7 +42,7 @@ while [[ $# -gt 0 ]]; do
   --format)
     shift
     if [[ $# -eq 0 ]]; then
-      echo "Error: --format requer um valor (table ou json)." >&2
+      echo "Error: --format requires a value (table or json)." >&2
       exit 1
     fi
     FORMAT="$1"
@@ -53,14 +53,14 @@ while [[ $# -gt 0 ]]; do
     shift
     ;;
   --*)
-    echo "Error: flag desconhecida '$1'." >&2
+    echo "Error: unknown flag '$1'." >&2
     exit 1
     ;;
   *)
     if [[ -z "$INSTANCE_NAME" ]]; then
       INSTANCE_NAME="$1"
     else
-      echo "Error: parâmetros extras não reconhecidos: '$1'." >&2
+      echo "Error: extra parameters not recognized: '$1'." >&2
       exit 1
     fi
     shift
@@ -69,7 +69,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [[ "$LIST_ONLY" == true && -n "$INSTANCE_NAME" ]]; then
-  echo "Error: --list não pode ser combinado com o nome da instância." >&2
+  echo "Error: --list cannot be combined with an instance name." >&2
   exit 1
 fi
 
@@ -78,13 +78,13 @@ if [[ "$LIST_ONLY" == true ]]; then
   source "$SCRIPT_DIR/lib/compose_instances.sh"
 
   if ! load_compose_instances "$REPO_ROOT"; then
-    echo "Error: falha ao carregar as instâncias disponíveis." >&2
+    echo "Error: failed to load available instances." >&2
     exit 1
   fi
 
-  echo "Instâncias disponíveis:"
+  echo "Available instances:"
   if [[ ${#COMPOSE_INSTANCE_NAMES[@]} -eq 0 ]]; then
-    echo "  (nenhuma instância encontrada)"
+    echo "  (no instances found)"
   else
     for name in "${COMPOSE_INSTANCE_NAMES[@]}"; do
       echo "  • $name"
@@ -94,14 +94,14 @@ if [[ "$LIST_ONLY" == true ]]; then
 fi
 
 if [[ -z "$INSTANCE_NAME" ]]; then
-  echo "Error: informe o nome da instância." >&2
+  echo "Error: provide the instance name." >&2
   print_help >&2
   exit 1
 fi
 
 FORMAT_LOWER="${FORMAT,,}"
 if [[ "$FORMAT_LOWER" != "table" && "$FORMAT_LOWER" != "json" ]]; then
-  echo "Error: formato inválido '$FORMAT'. Utilize 'table' ou 'json'." >&2
+  echo "Error: invalid format '$FORMAT'. Use 'table' or 'json'." >&2
   exit 1
 fi
 
@@ -109,7 +109,7 @@ fi
 source "$SCRIPT_DIR/lib/compose_defaults.sh"
 
 if ! setup_compose_defaults "$INSTANCE_NAME" "$REPO_ROOT"; then
-  echo "Error: falha ao montar a configuração de compose para '$INSTANCE_NAME'." >&2
+  echo "Error: failed to build compose configuration for '$INSTANCE_NAME'." >&2
   exit 1
 fi
 

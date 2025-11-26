@@ -1,20 +1,20 @@
 #!/usr/bin/env bash
 # shellcheck source-path=SCRIPTDIR
-# Uso: scripts/fix_permission_issues.sh <instancia> [opcoes]
+# Usage: scripts/fix_permission_issues.sh <instance> [options]
 #
-# Ajusta permissões e prepara diretórios persistentes para a instância
-# informada, reaproveitando os valores configurados nos arquivos `.env`.
+# Adjusts permissions and prepares persistent directories for the specified
+# instance, reusing the values configured in the `.env` files.
 set -euo pipefail
 
 print_help() {
   cat <<'USAGE'
-Uso: scripts/fix_permission_issues.sh <instancia> [opcoes]
+Usage: scripts/fix_permission_issues.sh <instance> [options]
 
-Aplica correções em permissões de diretórios persistentes associados à instância.
+Applies permission fixes to persistent directories associated with the instance.
 
-Opcoes disponiveis:
-  --dry-run   Apenas exibe as ações planejadas sem executar comandos.
-  -h, --help  Mostra esta mensagem e sai.
+Available options:
+  --dry-run   Only display planned actions without executing commands.
+  -h, --help  Show this message and exit.
 USAGE
 }
 
@@ -40,13 +40,13 @@ while [[ $# -gt 0 ]]; do
     exit 0
     ;;
   -*)
-    echo "[!] Opção desconhecida: $1" >&2
+    echo "[!] Unknown option: $1" >&2
     print_help >&2
     exit 1
     ;;
   *)
     if [[ -n "$INSTANCE" ]]; then
-      echo "[!] Instância duplicada detectada: $1" >&2
+      echo "[!] Duplicate instance detected: $1" >&2
       print_help >&2
       exit 1
     fi
@@ -57,7 +57,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [[ -z "$INSTANCE" ]]; then
-  echo "[!] Nenhuma instância informada." >&2
+  echo "[!] No instance provided." >&2
   print_help >&2
   exit 1
 fi
@@ -78,7 +78,7 @@ if [[ -n "$persistent_dirs_raw" ]]; then
 fi
 
 if [[ ${#persistent_dirs[@]} -eq 0 ]]; then
-  echo "[!] Nenhum diretório persistente foi detectado para a instância '$INSTANCE'." >&2
+  echo "[!] No persistent directories detected for instance '$INSTANCE'." >&2
   exit 1
 fi
 
@@ -90,19 +90,19 @@ app_data_dir_mount="${DEPLOY_CONTEXT[APP_DATA_DIR_MOUNT]}"
 compose_env_file="${DEPLOY_CONTEXT[COMPOSE_ENV_FILE]}"
 
 cat <<SUMMARY
-[*] Instância: $INSTANCE
-[*] Arquivo .env: $compose_env_file
-[*] Diretório de dados configurado: $app_data_dir
-[*] Diretório de dados (absoluto): $app_data_dir_mount
-[*] Owner desejado: ${target_owner}
-[*] Diretórios persistentes:
+[*] Instance: $INSTANCE
+[*] .env file: $compose_env_file
+[*] Configured data directory: $app_data_dir
+[*] Data directory (absolute): $app_data_dir_mount
+[*] Desired owner: ${target_owner}
+[*] Persistent directories:
 SUMMARY
 for dir in "${persistent_dirs[@]}"; do
   printf '    - %s\n' "$dir"
 done
 
 if [[ "$DRY_RUN" -eq 1 ]]; then
-  echo "[*] Dry-run habilitado. Nenhuma alteração será aplicada."
+  echo "[*] Dry-run enabled. No changes will be applied."
   for dir in "${persistent_dirs[@]}"; do
     printf '    mkdir -p %q\n' "$dir"
   done
@@ -117,7 +117,7 @@ if [[ "$DRY_RUN" -eq 1 ]]; then
     for dir in "${persistent_dirs[@]}"; do
       printf ' %q' "$dir"
     done
-    printf ' (requer privilégios)\n'
+    printf ' (requires privileges)\n'
   fi
   exit 0
 fi

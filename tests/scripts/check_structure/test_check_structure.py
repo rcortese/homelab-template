@@ -35,7 +35,7 @@ def test_help_displays_usage(flag):
     )
 
     assert result.returncode == 0
-    assert "Uso: scripts/check_structure.sh" in result.stdout
+    assert "Usage: scripts/check_structure.sh" in result.stdout
 
 
 def test_script_succeeds_on_repository_root():

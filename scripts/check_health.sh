@@ -50,23 +50,23 @@ source "$SCRIPT_DIR/lib/compose_instances.sh"
 
 print_help() {
   cat <<'EOF'
-Uso: scripts/check_health.sh [opções] [instancia]
+Usage: scripts/check_health.sh [options] [instance]
 
-Checa status básico da instância usando múltiplos compose files (via COMPOSE_FILES).
+Checks basic status for the instance using multiple compose files (via COMPOSE_FILES).
 
-Argumentos posicionais:
-  instancia   Nome da instância (ex.: core). Determina quais arquivos compose/env serão carregados.
+Positional arguments:
+  instance   Instance name (e.g., core). Determines which compose/env files are loaded.
 
-Opções:
-  --format {text,json}  Define o formato da saída (padrão: text).
-  --output <arquivo>    Grava a saída final no caminho informado além de exibi-la na saída padrão.
+Options:
+  --format {text,json}  Choose output format (default: text).
+  --output <file>       Write the final output to the given path in addition to stdout.
 
-Variáveis de ambiente relevantes:
-  COMPOSE_FILES     Sobrescreve os manifests Compose usados. Separe entradas com espaço.
-  COMPOSE_ENV_FILE  Define um arquivo .env alternativo para o docker compose.
-  HEALTH_SERVICES   Lista (separada por vírgula/ espaço) dos serviços para exibição de logs.
+Relevant environment variables:
+  COMPOSE_FILES     Override the Compose manifests used. Separate entries with spaces.
+  COMPOSE_ENV_FILE  Define an alternate .env file for docker compose.
+  HEALTH_SERVICES   Comma- or space-separated list of services whose logs are displayed.
 
-Exemplos:
+Examples:
   scripts/check_health.sh core
   scripts/check_health.sh --format json core
   scripts/check_health.sh --format json --output status.json media

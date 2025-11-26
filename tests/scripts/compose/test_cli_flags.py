@@ -17,7 +17,7 @@ def test_requires_arguments() -> None:
     result = run_compose()
 
     assert result.returncode == 1
-    assert "Uso:" in result.stdout
+    assert "Usage:" in result.stdout
 
 
 def test_respects_docker_compose_bin(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

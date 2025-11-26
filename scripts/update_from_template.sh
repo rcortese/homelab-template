@@ -18,24 +18,24 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 usage() {
   cat <<'EOF'
-Uso: scripts/update_from_template.sh [opções]
+Usage: scripts/update_from_template.sh [options]
 
-Sincroniza o repositório atual com o template de origem utilizando git rebase --onto.
+Syncs the current repository with the source template using git rebase --onto.
 
-Parâmetros obrigatórios (podem ser definidos via variáveis de ambiente ou informados interativamente quando o script é executado em um terminal):
-  --remote <nome>                 ou TEMPLATE_REMOTE
-  --original-commit <hash>        ou ORIGINAL_COMMIT_ID
-  --first-local-commit <hash>     ou FIRST_COMMIT_ID
-  --target-branch <branch>        ou TARGET_BRANCH
+Required parameters (can be set via environment variables or prompted interactively when the script runs in a terminal):
+  --remote <name>                 or TEMPLATE_REMOTE
+  --original-commit <hash>        or ORIGINAL_COMMIT_ID
+  --first-local-commit <hash>     or FIRST_COMMIT_ID
+  --target-branch <branch>        or TARGET_BRANCH
 
-Opções adicionais:
-  --dry-run   Exibe os comandos que seriam executados sem aplicar alterações.
-  -h, --help  Mostra esta ajuda e encerra a execução.
+Additional options:
+  --dry-run   Show the commands that would be executed without applying changes.
+  -h, --help  Show this help message and exit.
 
-Pré-condições:
-  • O diretório de trabalho deve estar limpo (sem alterações locais pendentes de commit).
+Prerequisites:
+  • The working directory must be clean (no local changes pending commit).
 
-Exemplos:
+Examples:
   TEMPLATE_REMOTE=template ORIGINAL_COMMIT_ID=abc1234 FIRST_COMMIT_ID=def5678 TARGET_BRANCH=main \\
     scripts/update_from_template.sh
 
@@ -49,7 +49,7 @@ EOF
 }
 
 error() {
-  echo "Erro: $1" >&2
+  echo "Error: $1" >&2
   echo >&2
   usage >&2
   exit 1

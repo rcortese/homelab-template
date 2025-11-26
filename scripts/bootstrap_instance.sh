@@ -1,25 +1,26 @@
 #!/usr/bin/env bash
-# Uso: scripts/bootstrap_instance.sh <aplicacao> <instancia> [opcoes]
+# Usage: scripts/bootstrap_instance.sh <application> <instance> [options]
 #
-# Inicializa a estrutura padrão de uma nova aplicação/instância no template,
-# gerando manifests Compose, modelo de variáveis e documentação opcional.
+# Initializes the default structure for a new application/instance in the
+# template, generating Compose manifests, variable templates, and optional
+# documentation.
 set -euo pipefail
 
 print_usage() {
   cat <<'USAGE'
-Uso: scripts/bootstrap_instance.sh <aplicacao> <instancia> [opcoes]
+Usage: scripts/bootstrap_instance.sh <application> <instance> [options]
 
-Gera arquivos base para uma nova aplicação/instância seguindo o padrão do template.
+Generates base files for a new application/instance following the template pattern.
 
-Argumentos posicionais:
-  aplicacao   Nome da aplicação (letras minúsculas, números, hífens ou underscores).
-  instancia   Nome da instância (letras minúsculas, números, hífens ou underscores).
+Positional arguments:
+  application   Application name (lowercase letters, numbers, hyphens, or underscores).
+  instance      Instance name (lowercase letters, numbers, hyphens, or underscores).
 
-Opções:
-  --base-dir <dir>   Diretório raiz do repositório a ser utilizado (padrão: diretório do script/..).
-  --with-docs        Cria também docs/apps/<aplicacao>.md e adiciona o link em docs/README.md.
-  --override-only    Pula a criação de compose/apps/<aplicacao>/base.yml (modo apenas overrides).
-  -h, --help         Exibe esta mensagem e sai.
+Options:
+  --base-dir <dir>   Repository root directory to use (default: script directory/..).
+  --with-docs        Also create docs/apps/<application>.md and add the link in docs/README.md.
+  --override-only    Skip creating compose/apps/<application>/base.yml (override-only mode).
+  -h, --help         Show this message and exit.
 USAGE
 }
 
@@ -31,7 +32,7 @@ require_valid_name() {
   local value="$1"
   local label="$2"
   if [[ ! $value =~ ^[a-z0-9][a-z0-9_-]*$ ]]; then
-    error "Erro: $label deve começar com letra minúscula ou número e conter apenas letras minúsculas, números, hífens ou underscores."
+    error "Error: $label must start with a lowercase letter or number and contain only lowercase letters, numbers, hyphens, or underscores."
     exit 1
   fi
 }
@@ -123,8 +124,8 @@ if [[ -z $APP_NAME || -z $INSTANCE_NAME ]]; then
   exit 1
 fi
 
-require_valid_name "$APP_NAME" "O nome da aplicação"
-require_valid_name "$INSTANCE_NAME" "O nome da instância"
+require_valid_name "$APP_NAME" "The application name"
+require_valid_name "$INSTANCE_NAME" "The instance name"
 
 APP_UPPER="$(uppercase_token "$APP_NAME")"
 INSTANCE_UPPER="$(uppercase_token "$INSTANCE_NAME")"
