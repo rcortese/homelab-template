@@ -1,39 +1,39 @@
-# Runbooks de aplicações
+# Application runbooks
 
-Esta pasta centraliza a documentação específica de cada aplicação gerenciada pela stack. Utilize-a para registrar arquitetura, variáveis sensíveis, fluxos operacionais e estratégias de monitoração que não cabem na documentação genérica do template.
+This folder centralizes documentation specific to each application managed by the stack. Use it to record architecture, sensitive variables, operational flows, and monitoring strategies that do not fit in the generic template documentation.
 
-## Como estruturar os arquivos `<app>.md`
+## How to structure `<app>.md` files
 
-Cada aplicação deve ter um arquivo dedicado, nomeado com o identificador curto da app (por exemplo, `docs/apps/minio.md`). O conteúdo pode seguir o seguinte formato sugerido, equivalente ao template `scripts/templates/bootstrap/doc-app.md.tpl`:
+Each application should have a dedicated file named with the app’s short identifier (for example, `docs/apps/minio.md`). The content can follow the suggested format below, equivalent to the template `scripts/templates/bootstrap/doc-app.md.tpl`:
 
 ```markdown
-# <Título da aplicação> (<slug>)
+# <Application title> (<slug>)
 
-## Visão geral
-- Papel na stack
-- Dependências externas
-- Critérios de disponibilidade
+## Overview
+- Role in the stack
+- External dependencies
+- Availability criteria
 
 ## Manifests
-- Arquivos Compose relacionados (bases e instâncias)
+- Related Compose files (bases and instances)
 
-## Variáveis de ambiente
-- Principais arquivos `env/*.example.env` afetados
+## Environment variables
+- Main affected `env/*.example.env` files
 
-## Fluxos operacionais
-- Passos de deploy, validações e tarefas de rotina
+## Operational flows
+- Deployment steps, validations, and routine tasks
 
-## Monitoramento e alertas
-- Métricas, painéis e notificações críticas
+## Monitoring and alerts
+- Metrics, dashboards, and critical notifications
 
-## Referências
-- Documentações externas, guias internos e links úteis
+## References
+- External documentation, internal guides, and useful links
 ```
 
-Adapte os blocos acima conforme necessário para refletir o comportamento real da aplicação e mantenha as instruções atualizadas à medida que o serviço evoluir.
+Adapt the sections above as needed to reflect the application’s real behavior and keep instructions updated as the service evolves.
 
-## Como vincular ao índice principal
+## How to link to the main index
 
-Sempre que criar ou atualizar um runbook em `docs/apps/`, adicione o link correspondente na seção **Aplicações** do [`docs/README.md`](../README.md). Dessa forma, forks do template preservam um índice único e fácil de navegar para todos os serviços documentados.
+Whenever you create or update a runbook in `docs/apps/`, add the corresponding link in the **Applications** section of [`docs/README.md`](../README.md). This ensures template forks preserve a single, easy-to-navigate index for all documented services.
 
-Também é recomendado referenciar este diretório em outros guias (por exemplo, `docs/OPERATIONS.md`) sempre que houver procedimentos que dependam de instruções específicas de uma aplicação.
+It is also recommended to reference this directory in other guides (for example, `docs/OPERATIONS.md`) whenever there are procedures that depend on application-specific instructions.
