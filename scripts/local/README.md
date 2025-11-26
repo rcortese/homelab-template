@@ -1,15 +1,13 @@
 # Local script overrides
 
-Repositórios que precisam permitir variáveis adicionais podem criar um arquivo
-`scripts/local/check_env_sync.py` e declarar `IMPLICIT_ENV_VARS` com o conjunto
-de variáveis aceitas automaticamente.
+Repositories that need to allow additional variables can create a `scripts/local/check_env_sync.py` file and declare `IMPLICIT_ENV_VARS` with the set of variables automatically accepted.
 
 ```python
-"""Overrides locais para check_env_sync."""
+"""Local overrides for check_env_sync."""
 
 from typing import Set
 
 IMPLICIT_ENV_VARS: Set[str] = {
-    # "MINHA_VARIAVEL_CUSTOMIZADA",
+    # "MY_CUSTOM_VARIABLE",
 }
 ```
