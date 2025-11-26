@@ -1,57 +1,57 @@
-# Estrutura do template
+# Template structure
 
-> Consulte também o [índice geral](./README.md) e ajuste este documento sempre que criar ou remover componentes estruturais.
+> See the [main index](./README.md) and adjust this document whenever you create or remove structural components.
 
-Este guia descreve a estrutura mínima esperada para qualquer repositório que herde este template. Ele garante que scripts, documentação e pipelines consigam localizar recursos previsivelmente.
+This guide describes the minimum structure expected for any repository inheriting this template. It ensures scripts, documentation, and pipelines can locate resources predictably.
 
-## Diretórios obrigatórios
+## Required directories
 
-> Fonte única de verdade para os diretórios mínimos exigidos pelo template. Sempre atualize esta tabela antes de replicar mudanças em outros documentos.
+> Single source of truth for the minimum directories the template requires. Always update this table before replicating changes into other documents.
 
-| Caminho | Descrição | Itens esperados |
+| Path | Description | Expected items |
 | --- | --- | --- |
-| `compose/` | Manifests Docker Compose base e variações por ambiente ou função. | `base.yml` (quando necessário), sobreposições nomeadas (`<alvo>.yml`, ex.: [`core.yml`](../compose/core.yml) e [`media.yml`](../compose/media.yml), quando existentes) e diretórios em `compose/apps/`. |
-| `docs/` | Documentação local, runbooks, guias operacionais e ADRs. | `README.md`, `STRUCTURE.md`, `OPERATIONS.md`, subpastas temáticas e [`local/`](./local/README.md). |
-| `env/` | Modelos de variáveis, arquivos de exemplo e orientações de preenchimento. | `*.example.env`, `README.md`, `local/` ignorado no Git. Expanda com variáveis necessárias para todas as aplicações ativadas. |
-| `scripts/` | Automação reutilizável (deploy, validação, backups, health-check). | Scripts shell (ou equivalentes) referenciados pela documentação. |
-| `tests/` | Verificações automatizadas do template que devem ser preservadas nos forks. | Testes base do template; cenários específicos podem viver em diretórios próprios fora de `tests/`, conforme indicado em [`tests/README.md`](../tests/README.md). |
-| `.github/workflows/` | Pipelines de CI que garantem a qualidade mínima do template. | `template-quality.yml` (mantido conforme o template) e workflows adicionais necessários para a stack derivada. |
+| `compose/` | Base Docker Compose manifests and variations by environment or function. | `base.yml` (when necessary), named overlays (`<target>.yml`, e.g., [`core.yml`](../compose/core.yml) and [`media.yml`](../compose/media.yml), when they exist) and directories under `compose/apps/`. |
+| `docs/` | Local documentation, runbooks, operational guides, and ADRs. | `README.md`, `STRUCTURE.md`, `OPERATIONS.md`, themed subfolders, and [`local/`](./local/README.md). |
+| `env/` | Variable templates, example files, and fill-in instructions. | `*.example.env`, `README.md`, Git-ignored `local/`. Expand with variables needed for every enabled application. |
+| `scripts/` | Reusable automation (deploy, validation, backups, health checks). | Shell scripts (or equivalents) referenced by the documentation. |
+| `tests/` | Automated checks from the template that forks must preserve. | Base template tests; scenario-specific suites can live in dedicated directories outside `tests/`, as noted in [`tests/README.md`](../tests/README.md). |
+| `.github/workflows/` | CI pipelines that guarantee the template’s minimum quality. | `template-quality.yml` (kept in line with the template) and any additional workflows required for the derived stack. |
 
-> Os utilitários `scripts/check_structure.sh` e a suíte `tests/test_check_structure.py` verificam explicitamente a presença desse diretório e do arquivo `template-quality.yml`. Se qualquer item faltar, o fluxo automático falha.
+> The utilities `scripts/check_structure.sh` and the suite `tests/test_check_structure.py` explicitly verify the presence of this directory and the `template-quality.yml` file. If any item is missing, the automated flow fails.
 
-## Arquivos de referência
+## Reference files
 
-| Caminho | Função |
+| Path | Purpose |
 | --- | --- |
-| `README.md` | Apresenta o repositório derivado, contexto da stack e links para a documentação local.
-| `docs/STRUCTURE.md` | Mantém esta descrição atualizada conforme novos componentes são adicionados.
-| `docs/OPERATIONS.md` | Documenta como executar scripts e fluxos operacionais do projeto.
-| `docs/ADR/` | Reúne decisões arquiteturais. Cada arquivo deve seguir a convenção `AAAA-sequência-titulo.md`.
+| `README.md` | Presents the derived repository, stack context, and links to local documentation. |
+| `docs/STRUCTURE.md` | Keeps this description up to date as new components are added. |
+| `docs/OPERATIONS.md` | Documents how to execute scripts and operational flows for the project. |
+| `docs/ADR/` | Collects architectural decisions. Each file must follow the `YYYY-sequence-title.md` convention. |
 
-## Componentes por aplicação
+## Per-application components
 
-Cada aplicação adicional precisa seguir o padrão abaixo para manter a compatibilidade com os scripts e runbooks do template:
+Each additional application must follow the pattern below to stay compatible with the template’s scripts and runbooks:
 
-> Dica: utilize `scripts/bootstrap_instance.sh <app> <instância>` para gerar automaticamente os arquivos listados na tabela abaixo antes de personalizá-los. Para aplicações compostas apenas por overrides, adicione `--override-only` ou deixe o script detectar diretórios existentes sem `base.yml`.
+> Tip: use `scripts/bootstrap_instance.sh <app> <instance>` to automatically generate the files listed in the table below before customizing them. For applications composed only of overrides, add `--override-only` or let the script detect existing directories without `base.yml`.
 
-| Caminho | Obrigatório? | Descrição |
+| Path | Required? | Description |
 | --- | --- | --- |
-| `compose/apps/<app>/` | Sim | Diretório próprio com manifests da aplicação. |
-| `compose/apps/<app>/base.yml` | Quando aplicável | Serviços base reutilizáveis por todas as instâncias. Opcional para aplicações compostas apenas por overrides específicos de instância. |
-| `compose/apps/<app>/<instância>.yml` | Um por instância | Override com nomes de serviços, portas e variáveis específicas. |
-| `docs/apps/<app>.md` | Recomendado | Documento de apoio descrevendo responsabilidades e requisitos da aplicação. |
-| `env/<instância>.example.env` | Um por instância | Deve incluir todas as variáveis consumidas pelos manifests das aplicações habilitadas para a instância. |
+| `compose/apps/<app>/` | Yes | Dedicated directory containing the application manifests. |
+| `compose/apps/<app>/base.yml` | When applicable | Base services reusable across every instance. Optional for applications composed only of instance-specific overrides. |
+| `compose/apps/<app>/<instance>.yml` | One per instance | Override with service names, ports, and instance-specific variables. |
+| `docs/apps/<app>.md` | Recommended | Support document describing the application’s responsibilities and requirements. |
+| `env/<instance>.example.env` | One per instance | Must include every variable consumed by the manifests of the applications enabled for the instance. |
 
-> Para aplicações compostas apenas por overrides, garanta a presença dos arquivos `<instância>.yml` e siga as orientações detalhadas em [Aplicações override-only](./COMPOSE_GUIDE.md#aplicações-compostas-apenas-por-overrides).
+> For applications composed only of overrides, ensure the `<instance>.yml` files are present and follow the guidance in [Override-only applications](./COMPOSE_GUIDE.md#applications-composed-only-of-overrides).
 
-## Validações sugeridas
+## Suggested validations
 
-1. **Estrutura** — reutilize `scripts/check_structure.sh` para garantir que diretórios obrigatórios estejam presentes.
-2. **Compose** — adapte `scripts/validate_compose.sh` (ou equivalente) para validar manifestos antes de merges/deploys.
-3. **Scripts auxiliares** — documente no `README.md` qualquer ferramenta adicional necessária (ex.: `make`, `poetry`, `ansible`).
+1. **Structure** — reuse `scripts/check_structure.sh` to confirm required directories are present.
+2. **Compose** — adapt `scripts/validate_compose.sh` (or equivalent) to validate manifests before merges/deploys.
+3. **Helper scripts** — document in the `README.md` any additional tooling needed (for example, `make`, `poetry`, `ansible`).
 
-## Mantendo o template vivo
+## Keeping the template alive
 
-- Atualize esta página sempre que renomear diretórios ou introduzir novas convenções obrigatórias.
-- Revise PRs de projetos derivados para garantir que os diretórios essenciais continuam alinhados ao template.
-- Registre desvios intencionais nos ADRs ou no guia de personalização para facilitar auditorias futuras.
+- Update this page whenever you rename directories or introduce new required conventions.
+- Review PRs in derived projects to ensure essential directories stay aligned with the template.
+- Record intentional deviations in ADRs or the customization guide to ease future audits.

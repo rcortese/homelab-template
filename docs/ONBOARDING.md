@@ -1,64 +1,62 @@
-# Guia de onboarding do template
+# Template onboarding guide
 
-Este roteiro resume o fluxo inicial recomendado para quem está derivando o template. Ele consolida os pré-requisitos, o bootstrap dos arquivos `.env` e as validações obrigatórias antes dos primeiros commits. Este documento é o checklist oficial das validações iniciais do template.
+This playbook summarizes the recommended first steps for anyone deriving the template. It consolidates prerequisites, the `.env` bootstrap, and the mandatory validations before the first commits. This document is the official checklist for the template’s initial validations.
 
-## 1. Instale as dependências base
+## 1. Install the base dependencies
 
-Esta é a referência canônica de dependências exigidas pelo template. Garanta que a máquina de desenvolvimento tenha as
-ferramentas abaixo instaladas (mesmo quando for utilizar ambientes remotos como codespaces ou VMs temporárias):
+This is the canonical reference for dependencies required by the template. Ensure the development machine has the tools below installed (even when using remote environments such as Codespaces or temporary VMs):
 
-- Docker Engine **>= 24.x** (ou versão estável equivalente que ofereça suporte ao Compose v2 integrado)
-- Docker Compose **v2.20+** (para compatibilidade com perfis e validações atuais)
-- Python **>= 3.11** (necessário para executar scripts de automação e suítes de testes)
-- Ferramentas de lint/format para shell: `shellcheck` **>= 0.9.0**, `shfmt` **>= 3.6.0** e `checkbashisms` (ou alternativas compatíveis
-  configuradas nos pipelines locais)
+- Docker Engine **>= 24.x** (or an equivalent stable version that supports integrated Compose v2)
+- Docker Compose **v2.20+** (for compatibility with current profiles and validations)
+- Python **>= 3.11** (necessary to run automation scripts and test suites)
+- Shell lint/format tools: `shellcheck` **>= 0.9.0**, `shfmt` **>= 3.6.0**, and `checkbashisms` (or equivalent tools configured in local pipelines)
 
-> Sempre que o template exigir novas ferramentas ou versões mínimas, esta lista será atualizada primeiro.
+> Whenever the template requires new tools or minimum versions, this list is updated first.
 
-## 2. Prepare os arquivos `.env`
+## 2. Prepare the `.env` files
 
-1. Gere o diretório ignorado pelo Git:
+1. Create the Git-ignored directory:
    ```bash
    mkdir -p env/local
    ```
-2. Execute o bootstrap para criar manifests, modelos `.env` e documentação opcional de uma nova instância:
+2. Run the bootstrap to create manifests, `.env` templates, and optional documentation for a new instance:
    ```bash
-   scripts/bootstrap_instance.sh <aplicacao> <instancia>
-   # acrescente --with-docs para gerar os esboços em docs/apps/
+   scripts/bootstrap_instance.sh <application> <instance>
+   # add --with-docs to generate the stubs in docs/apps/
    ```
-3. Preencha os arquivos gerados em `env/<instancia>.example.env` e copie-os para `env/local/` conforme descrito no [guia de variáveis](../env/README.md#como-gerar-arquivos-locais).
+3. Fill in the generated files at `env/<instance>.example.env` and copy them to `env/local/` as described in the [variable guide](../env/README.md#how-to-generate-local-files).
 
-> Quando apenas reutilizar instâncias existentes do template, copie manualmente os modelos `env/*.example.env` para `env/local/` e atualize os valores sensíveis seguindo o mesmo guia.
+> When reusing existing instances from the template, manually copy the `env/*.example.env` templates to `env/local/` and update the sensitive values following the same guide.
 
-## 3. Configure o ambiente Python
+## 3. Set up the Python environment
 
-Instale as dependências de desenvolvimento necessárias para executar as validações locais:
+Install the development dependencies required to run local validations:
 
 ```bash
 pip install -r requirements-dev.txt
 ```
 
-## 4. Rode as validações consolidadas
+## 4. Run the consolidated validations
 
-Com os `.env` locais criados e as dependências instaladas, execute:
+With the local `.env` files ready and dependencies installed, execute:
 
 ```bash
 scripts/check_all.sh
 ```
 
-O agregador `scripts/check_all.sh` executa, na ordem abaixo, as validações estruturais essenciais do template e encerra imediatamente quando alguma delas falha:
+The `scripts/check_all.sh` aggregator runs the template’s essential structural validations in the order below and stops immediately when any of them fails:
 
-- `scripts/check_structure.sh` – confirma se diretórios e arquivos obrigatórios continuam presentes.
-- `scripts/check_env_sync.sh` – verifica se manifests Compose e arquivos `env/*.example.env` permanecem sincronizados (wrapper Docker com fallback para `scripts/check_env_sync.py`).
-  - Utilize `--instance <nome>` (repetível) quando quiser validar apenas um subconjunto de instâncias durante ajustes locais.
-- `scripts/validate_compose.sh` – valida as combinações padrão de manifests para os perfis ativos.
+- `scripts/check_structure.sh` – confirms required directories and files are still present.
+- `scripts/check_env_sync.sh` – verifies that Compose manifests and `env/*.example.env` files remain in sync (Docker wrapper with fallback to `scripts/check_env_sync.py`).
+  - Use `--instance <name>` (repeatable) when you want to validate only a subset of instances during local adjustments.
+- `scripts/validate_compose.sh` – validates the default manifest combinations for the active profiles.
 
-Utilize `scripts/run_quality_checks.sh` quando quiser rodar rapidamente a bateria base de qualidade sem percorrer todas as validações — o helper encadeia `pytest`, `shfmt`, `shellcheck` e `checkbashisms`. Acrescente `--no-lint` caso deseje apenas executar `pytest`.
+Use `scripts/run_quality_checks.sh` when you want to quickly run the base quality battery without going through every validation — the helper chains `pytest`, `shfmt`, `shellcheck`, and `checkbashisms`. Add `--no-lint` if you only want to run `pytest`.
 
-## 5. Próximos passos
+## 5. Next steps
 
-- Revise o [índice completo de documentação](./README.md) para localizar runbooks e guias específicos.
-- Utilize [`docs/TEMPLATE_BEST_PRACTICES.md`](./TEMPLATE_BEST_PRACTICES.md) como referência ao adaptar o template.
-- Centralize informações particulares do seu fork em [`docs/local/`](./local/README.md).
+- Review the [full documentation index](./README.md) to find specific runbooks and guides.
+- Use [`docs/TEMPLATE_BEST_PRACTICES.md`](./TEMPLATE_BEST_PRACTICES.md) as a reference when adapting the template.
+- Centralize fork-specific information in [`docs/local/`](./local/README.md).
 
-Seguir este roteiro garante que o repositório derivado começa com as convenções mínimas alinhadas ao template oficial.
+Following this playbook ensures the derived repository starts with the minimum conventions aligned with the official template.

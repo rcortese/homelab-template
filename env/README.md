@@ -1,92 +1,92 @@
-# Guia de variáveis de ambiente
+# Environment variables guide
 
-Este diretório armazena modelos (`*.example.env`) e instruções para gerar arquivos locais em `env/local/`. Repositórios derivados devem adaptar estes exemplos ao seu conjunto de serviços, mantendo a documentação atualizada.
+This directory stores templates (`*.example.env`) and instructions for generating local files in `env/local/`. Derived repositories should adapt these examples to their service set while keeping the documentation up to date.
 
-## Como gerar arquivos locais
+## How to generate local files
 
-1. Crie o diretório ignorado pelo Git:
+1. Create the Git-ignored directory:
    ```bash
    mkdir -p env/local
    ```
-2. Copie o modelo compartilhado para servir como base global:
+2. Copy the shared template to serve as the global base:
    ```bash
    cp env/common.example.env env/local/common.env
    ```
-3. Copie os modelos específicos de cada instância que será utilizada:
+3. Copy the templates specific to each instance you will use:
    ```bash
-   cp env/<alvo>.example.env env/local/<alvo>.env
+   cp env/<target>.example.env env/local/<target>.env
    ```
-4. Preencha os valores conforme o ambiente (desenvolvimento, laboratório, produção, etc.).
+4. Fill in the values according to the environment (development, lab, production, etc.).
 
-> **Dica:** as variáveis definidas em `env/local/common.env` são carregadas antes das instâncias (ex.: `env/local/core.env`). Utilize esse arquivo para consolidar credenciais compartilhadas, fuso horário, UID/GID de volumes e demais defaults globais.
+> **Tip:** variables defined in `env/local/common.env` load before the instances (e.g., `env/local/core.env`). Use this file to consolidate shared credentials, timezone, volume UID/GID, and other global defaults.
 
-## Mapeamento das variáveis
+## Variable mapping
 
 ### `env/common.example.env`
 
-#### Variáveis do template base
+#### Base template variables
 
-| Variável | Obrigatória? | Uso | Referência |
+| Variable | Required? | Usage | Reference |
 | --- | --- | --- | --- |
-| `TZ` | Sim | Define timezone para logs e agendamentos. | `compose/apps/app/base.yml`. |
-| `APP_DATA_DIR`/`APP_DATA_DIR_MOUNT` | Opcional | Define o diretório persistente relativo (`data/<instância>/<app>`) ou um caminho absoluto alternativo — nunca use ambos ao mesmo tempo. | `scripts/deploy_instance.sh`, `scripts/compose.sh`, `scripts/backup.sh`, `scripts/fix_permission_issues.sh`. |
-| `APP_DATA_UID`/`APP_DATA_GID` | Opcional | Ajusta o proprietário padrão dos volumes persistentes. | `scripts/deploy_instance.sh`, `scripts/backup.sh`, `scripts/fix_permission_issues.sh`. |
-| `APP_NETWORK_NAME` | Opcional | Nome lógico da rede compartilhada entre as aplicações. | `compose/base.yml`. |
-| `APP_NETWORK_DRIVER` | Opcional | Driver utilizado ao criar a rede compartilhada (ex.: `bridge`, `macvlan`). | `compose/base.yml`. |
-| `APP_NETWORK_SUBNET` | Opcional | Sub-rede reservada para os serviços internos. | `compose/base.yml`. |
-| `APP_NETWORK_GATEWAY` | Opcional | Gateway disponibilizado aos contêineres na sub-rede acima. | `compose/base.yml`. |
-| `APP_SHARED_DATA_VOLUME_NAME` | Opcional | Personaliza o volume persistente compartilhado entre aplicações. | `compose/base.yml`. |
+| `TZ` | Yes | Sets timezone for logs and schedules. | `compose/apps/app/base.yml`. |
+| `APP_DATA_DIR`/`APP_DATA_DIR_MOUNT` | Optional | Defines the relative persistent directory (`data/<instance>/<app>`) or an alternative absolute path—never use both at the same time. | `scripts/deploy_instance.sh`, `scripts/compose.sh`, `scripts/backup.sh`, `scripts/fix_permission_issues.sh`. |
+| `APP_DATA_UID`/`APP_DATA_GID` | Optional | Adjusts the default owner of persistent volumes. | `scripts/deploy_instance.sh`, `scripts/backup.sh`, `scripts/fix_permission_issues.sh`. |
+| `APP_NETWORK_NAME` | Optional | Logical name of the network shared among applications. | `compose/base.yml`. |
+| `APP_NETWORK_DRIVER` | Optional | Driver used when creating the shared network (e.g., `bridge`, `macvlan`). | `compose/base.yml`. |
+| `APP_NETWORK_SUBNET` | Optional | Subnet reserved for internal services. | `compose/base.yml`. |
+| `APP_NETWORK_GATEWAY` | Optional | Gateway available to containers in the subnet above. | `compose/base.yml`. |
+| `APP_SHARED_DATA_VOLUME_NAME` | Optional | Customizes the persistent volume shared between applications. | `compose/base.yml`. |
 
 <a id="placeholders-app-worker"></a>
 
-#### Placeholders das aplicações de exemplo (`app`/`worker`)
+#### Example application placeholders (`app`/`worker`)
 
-| Variável | Obrigatória? | Uso | Referência |
+| Variable | Required? | Usage | Reference |
 | --- | --- | --- | --- |
-| `APP_SECRET` | Sim | Chave utilizada para criptografar dados sensíveis. | `compose/apps/app/base.yml`. |
-| `APP_RETENTION_HOURS` | Opcional | Controla a retenção de registros/processos. | `compose/apps/app/base.yml` e runbooks. |
-| `WORKER_QUEUE_URL` | Opcional | Origem da fila de tarefas processada pelos workers de exemplo. | `compose/apps/worker/base.yml`. |
+| `APP_SECRET` | Yes | Key used to encrypt sensitive data. | `compose/apps/app/base.yml`. |
+| `APP_RETENTION_HOURS` | Optional | Controls retention of records/processes. | `compose/apps/app/base.yml` and runbooks. |
+| `WORKER_QUEUE_URL` | Optional | Source queue processed by the example workers. | `compose/apps/worker/base.yml`. |
 
-> Ao adaptar a stack, renomeie ou remova esses placeholders para refletir o nome real das suas aplicações e ajuste os manifests correspondentes (`compose/apps/<sua-app>/` e `compose/apps/worker/`). Manter os nomes genéricos `APP_*` facilita entender o template, mas os forks devem alinhar a nomenclatura com o domínio do projeto (por exemplo, `PORTAL_SECRET`, `PORTAL_RETENTION_HOURS`, `PAYMENTS_QUEUE_URL`).
+> When adapting the stack, rename or remove these placeholders to reflect your applications’ real names and adjust the corresponding manifests (`compose/apps/<your-app>/` and `compose/apps/worker/`). Keeping the generic `APP_*` names helps explain the template, but forks should align naming with the project domain (for example, `PORTAL_SECRET`, `PORTAL_RETENTION_HOURS`, `PAYMENTS_QUEUE_URL`).
 
-Monte uma tabela semelhante à abaixo para cada arquivo `env/<alvo>.example.env`:
+Create a table similar to the one below for each `env/<target>.example.env` file:
 
-| Variável | Obrigatória? | Uso | Referência |
+| Variable | Required? | Usage | Reference |
 | --- | --- | --- | --- |
-| `APP_PUBLIC_URL` | Opcional | Define URL pública para links e cookies. | `compose/apps/<app>/<instância>.yml` (ex.: `compose/apps/app/core.yml`). |
-| `COMPOSE_EXTRA_FILES` | Opcional | Lista overlays adicionais aplicados após o override da instância (separados por espaço ou vírgula). | `scripts/deploy_instance.sh`, `scripts/validate_compose.sh`, `scripts/lib/compose_defaults.sh`. |
+| `APP_PUBLIC_URL` | Optional | Sets the public URL for links and cookies. | `compose/apps/<app>/<instance>.yml` (e.g., `compose/apps/app/core.yml`). |
+| `COMPOSE_EXTRA_FILES` | Optional | Lists additional overlays applied after the instance override (space- or comma-separated). | `scripts/deploy_instance.sh`, `scripts/validate_compose.sh`, `scripts/lib/compose_defaults.sh`. |
 
-> Substitua a tabela pelos campos reais da sua stack. Utilize a coluna **Referência** para apontar onde a variável é consumida (manifests, scripts, infraestrutura externa, etc.).
+> Replace the table with the real fields in your stack. Use the **Reference** column to point where the variable is consumed (manifests, scripts, external infrastructure, etc.).
 
-Os modelos de instância incluem placeholders ilustrativos que devem ser renomeados conforme o serviço real de cada fork. Utilize a lista a seguir como guia ao revisar `env/core.example.env` e `env/media.example.env`:
+The instance templates include illustrative placeholders that should be renamed according to each fork’s real service. Use the following list as a guide when reviewing `env/core.example.env` and `env/media.example.env`:
 
-- `APP_PUBLIC_URL` e `APP_WEBHOOK_URL` — URLs injetadas na aplicação principal (`compose/apps/app/core.yml`).
-- `APP_CORE_PORT` e `APP_MEDIA_PORT` — mapeamentos de porta expostos pelos manifests específicos da instância (`compose/apps/app/core.yml` e `compose/apps/app/media.yml`).
-- `APP_NETWORK_IPV4` — endereço estático utilizado pelo serviço principal nas redes internas (`compose/apps/app/base.yml`).
-- `MONITORING_NETWORK_IPV4` — IP reservado para o serviço de monitoramento de exemplo (`compose/apps/monitoring/base.yml` e `compose/apps/monitoring/core.yml`).
-- `WORKER_CORE_CONCURRENCY`, `WORKER_MEDIA_CONCURRENCY`, `WORKER_CORE_NETWORK_IPV4` e `WORKER_MEDIA_NETWORK_IPV4` — variáveis consumidas pelos manifests dos workers (`compose/apps/worker/core.yml` e `compose/apps/worker/media.yml`).
-- `CORE_PROXY_NETWORK_NAME`, `CORE_PROXY_IPV4` e `CORE_LOGS_VOLUME_NAME` — recursos compartilhados definidos na instância `core` (`compose/core.yml`).
-- `MEDIA_HOST_PATH` e `MEDIA_CACHE_VOLUME_NAME` — montagens e volumes específicos da instância `media` (`compose/apps/app/media.yml` e `compose/media.yml`).
+- `APP_PUBLIC_URL` and `APP_WEBHOOK_URL` — URLs injected into the main application (`compose/apps/app/core.yml`).
+- `APP_CORE_PORT` and `APP_MEDIA_PORT` — port mappings exposed by the instance-specific manifests (`compose/apps/app/core.yml` and `compose/apps/app/media.yml`).
+- `APP_NETWORK_IPV4` — static address used by the main service on internal networks (`compose/apps/app/base.yml`).
+- `MONITORING_NETWORK_IPV4` — IP reserved for the example monitoring service (`compose/apps/monitoring/base.yml` and `compose/apps/monitoring/core.yml`).
+- `WORKER_CORE_CONCURRENCY`, `WORKER_MEDIA_CONCURRENCY`, `WORKER_CORE_NETWORK_IPV4`, and `WORKER_MEDIA_NETWORK_IPV4` — variables consumed by the worker manifests (`compose/apps/worker/core.yml` and `compose/apps/worker/media.yml`).
+- `CORE_PROXY_NETWORK_NAME`, `CORE_PROXY_IPV4`, and `CORE_LOGS_VOLUME_NAME` — shared resources defined in the `core` instance (`compose/core.yml`).
+- `MEDIA_HOST_PATH` and `MEDIA_CACHE_VOLUME_NAME` — mounts and volumes specific to the `media` instance (`compose/apps/app/media.yml` and `compose/media.yml`).
 
-Renomeie esses identificadores para termos alinhados ao seu domínio (por exemplo, `PORTAL_PUBLIC_URL`, `PORTAL_NETWORK_IPV4`, `ACME_PROXY_NETWORK_NAME`) e atualize os manifests associados para evitar resíduos do exemplo padrão.
+Rename these identifiers to terms aligned with your domain (for example, `PORTAL_PUBLIC_URL`, `PORTAL_NETWORK_IPV4`, `ACME_PROXY_NETWORK_NAME`) and update the associated manifests to avoid leftover default values.
 
-> **Nota:** o diretório persistente principal segue a convenção `data/<instância>/<app>`, considerando a aplicação principal (primeira da lista em `COMPOSE_INSTANCE_APP_NAMES`). Deixe `APP_DATA_DIR` e `APP_DATA_DIR_MOUNT` em branco para usar automaticamente esse fallback relativo. Informe **apenas um** deles quando precisar personalizar o caminho (relativo ou absoluto, respectivamente); os scripts retornam erro se ambos estiverem definidos ao mesmo tempo. Ajuste `APP_DATA_UID` e `APP_DATA_GID` para alinhar permissões.
+> **Note:** the main persistent directory follows the `data/<instance>/<app>` convention, considering the primary application (first in `COMPOSE_INSTANCE_APP_NAMES`). Leave `APP_DATA_DIR` and `APP_DATA_DIR_MOUNT` blank to automatically use this relative fallback. Provide **only one** of them when you need to customize the path (relative or absolute, respectively); the scripts error out if both are set at the same time. Adjust `APP_DATA_UID` and `APP_DATA_GID` to align permissions.
 
-> **Novo fluxo (`LOCAL_INSTANCE`)**: os wrappers (`scripts/compose.sh`, `scripts/deploy_instance.sh`, etc.) exportam automaticamente `LOCAL_INSTANCE` com base no arquivo `.env` da instância ativa (ex.: `core`, `media`). Essa variável injeta o segmento da instância no fallback `data/<instância>/<app>` usado pelos manifests. Ao executar `docker compose` diretamente, exporte `LOCAL_INSTANCE=<instância>` antes do comando ou reutilize os scripts para evitar divergências de diretórios.
+> **New flow (`LOCAL_INSTANCE`)**: the wrappers (`scripts/compose.sh`, `scripts/deploy_instance.sh`, etc.) automatically export `LOCAL_INSTANCE` based on the `.env` file for the active instance (e.g., `core`, `media`). This variable injects the instance segment into the fallback `data/<instance>/<app>` used by the manifests. When running `docker compose` directly, export `LOCAL_INSTANCE=<instance>` before the command or reuse the scripts to avoid directory mismatches.
 
-## Boas práticas
+## Best practices
 
-- **Padronize nomes**: utilize prefixos (`APP_`, `DB_`, `CACHE_`) para agrupar responsabilidades.
-- **Documente defaults seguros**: indique valores recomendados ou formatos esperados (ex.: URLs completas, chaves com tamanho mínimo).
-- **Evite segredo no Git**: mantenha apenas modelos e documentação. Os arquivos em `env/local/` devem estar listados no `.gitignore`.
-- **Sincronize com ADRs**: se novas variáveis forem introduzidas por decisões arquiteturais, referencie o ADR correspondente na tabela.
+- **Standardize names:** use prefixes (`APP_`, `DB_`, `CACHE_`) to group responsibilities.
+- **Document safe defaults:** indicate recommended values or expected formats (e.g., full URLs, keys with minimum length).
+- **Keep secrets out of Git:** store only templates and documentation. Files in `env/local/` should be listed in `.gitignore`.
+- **Sync with ADRs:** when new variables come from architectural decisions, reference the corresponding ADR in the table.
 
-## Integração com scripts
+## Integration with scripts
 
-Os scripts fornecidos pelo template aceitam `COMPOSE_ENV_FILES` (ou o legado `COMPOSE_ENV_FILE`) para selecionar quais arquivos `.env` serão utilizados. Documente, no runbook correspondente, como combinar variáveis e manifests para cada ambiente. Quando precisar ativar overlays específicos sem modificar scripts, adicione no `.env` algo como:
+Template scripts accept `COMPOSE_ENV_FILES` (or the legacy `COMPOSE_ENV_FILE`) to select which `.env` files will be used. Document in the relevant runbook how to combine variables and manifests for each environment. When you need to enable specific overlays without changing scripts, add something like this to the `.env`:
 
 ```env
 COMPOSE_EXTRA_FILES=compose/overlays/observability.yml compose/overlays/metrics.yml
 ```
 
-Esse padrão mantém as diferenças entre template e fork confinadas aos arquivos de configuração. Quando múltiplos arquivos `.env` são carregados (globais + específicos), os valores definidos por último prevalecem.
+This pattern keeps differences between the template and the fork confined to configuration files. When multiple `.env` files are loaded (global + specific), the values defined last take precedence.

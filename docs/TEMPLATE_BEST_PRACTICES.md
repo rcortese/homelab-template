@@ -1,35 +1,35 @@
-# Boas práticas para herdeiros do template
+# Best practices for template inheritors
 
-Este guia orienta equipes que criam repositórios derivados a manter consistência com o template original e facilitar atualizações futuras.
+This guide helps teams creating derived repositories stay consistent with the original template and simplify future updates.
 
-## Organização da documentação local
+## Organizing local documentation
 
-- **Centralize o índice**: atualize `docs/README.md` com links para guias específicos do projeto e mantenha-o genérico.
-- **Runbooks atualizados**: mantenha `docs/core.md` e `docs/media.md` (ou equivalentes) alinhados com as operações reais.
-- **Histórico de decisões**: registre escolhas arquiteturais em `docs/ADR/`, utilizando a convenção `AAAA-sequência-titulo.md`.
-- **Customizações explícitas**: use `docs/local/` para documentar desvios do template (ex.: diretórios adicionais, scripts substituídos) e referencie-os a partir desta página.
+- **Centralize the index**: update `docs/README.md` with links to project-specific guides while keeping it generic.
+- **Up-to-date runbooks**: keep `docs/core.md` and `docs/media.md` (or equivalents) aligned with real operations.
+- **Decision history**: record architectural choices in `docs/ADR/` using the `YYYY-sequence-title.md` convention.
+- **Explicit customizations**: use `docs/local/` to document deviations from the template (for example, extra directories or replaced scripts) and reference them from this page.
 
-## Rastreamento de customizações
+## Tracking customizations
 
-1. Liste adaptações relevantes logo após a criação do repositório derivado (ex.: variáveis extras, remoção de scripts, pipelines específicos) no índice de `docs/local/`.
-2. Inclua referências cruzadas para PRs, issues e ADRs que justificam cada customização.
-3. Atualize o `README.md` do projeto derivado com contexto suficiente para novos contribuidores.
+1. List relevant adaptations right after creating the derived repository (for example, extra variables, removed scripts, or project-specific pipelines) in the `docs/local/` index.
+2. Include cross-references to PRs, issues, and ADRs that justify each customization.
+3. Update the derived project’s `README.md` with enough context for new contributors.
 
-## Mantendo alinhamento com o template
+## Staying aligned with the template
 
-- **Sincronização periódica**: agende revisões (trimestrais ou semestrais) para comparar o repositório derivado com o template.
-- **Script de atualização upstream**: utilize `scripts/update_from_template.sh` para reaplicar os commits locais sobre o branch do template. Execute primeiro com `--dry-run`, confirme o remote/commits utilizados e só então aplique a atualização completa.
-- **Checklist de atualização**:
-  1. Buscar alterações do template (pull/fetch).
-  2. Executar o script de merge ou aplicar patches manualmente.
-  3. Resolver conflitos mantendo as customizações locais documentadas e priorizando o conteúdo de `docs/local/`.
-  4. Rodar validações (`scripts/check_structure.sh`, testes, linters).
-  5. Atualizar esta página ou `docs/local/CHANGELOG.md` com a data da sincronização e observações.
+- **Periodic synchronization**: schedule quarterly or semiannual reviews to compare the derived repository against the template.
+- **Upstream update script**: use `scripts/update_from_template.sh` to reapply local commits on top of the template branch. Run it first with `--dry-run`, confirm the remotes/commits used, and only then apply the full update.
+- **Update checklist**:
+  1. Fetch changes from the template (pull/fetch).
+  2. Run the merge script or apply patches manually.
+  3. Resolve conflicts while keeping documented local customizations and prioritizing the contents of `docs/local/`.
+  4. Run validations (`scripts/check_structure.sh`, tests, linters).
+  5. Update this page or `docs/local/CHANGELOG.md` with the sync date and notes.
 
-## Comunicação e governança
+## Communication and governance
 
-- Defina responsáveis pelo repositório derivado e pela revisão de atualizações upstream.
-- Documente canais de comunicação (Slack, e-mail, issues) para tratar dúvidas ou incidentes.
-- Incentive PRs que melhorem o template a partir de lições aprendidas nos projetos filhos.
+- Define owners for the derived repository and reviewers for upstream updates.
+- Document communication channels (Slack, email, issues) to handle questions or incidents.
+- Encourage PRs that improve the template based on lessons learned in child projects.
 
-Mantenha este documento visível para novas equipes a fim de promover uma cultura de documentação viva e alinhamento contínuo.
+Keep this document visible to new teams to promote a culture of living documentation and ongoing alignment.

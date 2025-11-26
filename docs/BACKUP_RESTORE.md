@@ -1,50 +1,50 @@
-# Backup & restauração genéricos
+# Generic backup & restore
 
-> Ajuste este documento para refletir os artefatos e ferramentas utilizados pela sua stack. Utilize-o em conjunto com os runbooks dos ambientes.
+> Adjust this document to reflect the artifacts and tooling used by your stack. Pair it with the environment runbooks.
 
-## Estratégia recomendada
+## Recommended strategy
 
-1. **Catálogo de artefatos** — liste tudo que precisa ser preservado (bases de dados, exports, volumes, manifests).
-2. **Frequência** — defina políticas para cada artefato (ex.: diário para dados críticos, semanal para configurações).
-3. **Armazenamento** — documente onde os backups ficam (local, nuvem, storage externo) e como acessar.
-4. **Testes de restauração** — planeje execuções periódicas para garantir que os artefatos funcionam.
+1. **Artifact catalog** — list everything that must be preserved (databases, exports, volumes, manifests).
+2. **Frequency** — define policies for each artifact (e.g., daily for critical data, weekly for configuration).
+3. **Storage** — document where backups live (local, cloud, external storage) and how to access them.
+4. **Restore tests** — schedule regular runs to ensure the artifacts work.
 
-## Processo de backup
+## Backup process
 
-- Identifique o comando/script responsável pela extração (ex.: `scripts/export_*.sh`, `pg_dump`, `restic`).
-- Utilize `scripts/backup.sh <instancia>` para pausar a stack, copiar os dados persistidos para `backups/` e retomá-la ao final.
-- Documente parâmetros obrigatórios (alvos, datas, diretórios temporários).
-- Registre como versionar ou etiquetar os artefatos resultantes.
-- Explique onde arquivar os relatórios de sucesso/erro.
+- Identify the command/script responsible for extraction (e.g., `scripts/export_*.sh`, `pg_dump`, `restic`).
+- Use `scripts/backup.sh <instance>` to pause the stack, copy persisted data to `backups/`, and resume it afterwards.
+- Document required parameters (targets, dates, temporary directories).
+- Record how to version or tag the resulting artifacts.
+- Explain where to archive success/error reports.
 
-### Script de backup automatizado
+### Automated backup script
 
-O `scripts/backup.sh` encapsula a sequência padrão de **parar ➜ copiar dados ➜ religar**. Alguns pontos de atenção:
+`scripts/backup.sh` encapsulates the standard **stop ➜ copy data ➜ restart** sequence. Keep in mind:
 
-- Pré-requisitos: `env/local/<instancia>.env` configurado, diretórios de dados acessíveis e espaço livre em `backups/`.
-- O diretório final seguirá o padrão `backups/<instancia>-<YYYYMMDD-HHMMSS>`. Utilize `date` com `TZ` apropriado se precisar gerar snapshots em fusos distintos.
-- Logs são emitidos na saída padrão/erro; redirecione para arquivos quando integrar a automações (ex.: `scripts/backup.sh core >> logs/backup.log 2>&1`).
-- Para cenários com dados adicionais, exporte-os antes de executar o script (ex.: dumps de banco) e mova os artefatos para dentro do diretório gerado.
-- Antes de interromper a stack, o script lista os serviços em execução chamando `docker compose ps --status running --services` via `scripts/compose.sh`. Os nomes retornados são combinados com o `deploy_context` para preservar a ordem esperada ao religar.
-- Apenas os serviços identificados como ativos no início são religados ao final. Se nenhum serviço estava em execução antes do backup, o script finaliza sem subir novos serviços, mantendo o estado da stack.
+- Prerequisites: `env/local/<instance>.env` configured, data directories accessible, and free space in `backups/`.
+- The final directory follows `backups/<instance>-<YYYYMMDD-HHMMSS>`. Use `date` with the appropriate `TZ` if you need snapshots in different time zones.
+- Logs go to stdout/stderr; redirect them when integrating with automations (e.g., `scripts/backup.sh core > logs/backup.log 2>&1`).
+- For scenarios with extra data, export it before running the script (e.g., database dumps) and move the artifacts into the generated directory.
+- Before stopping the stack, the script lists running services by calling `docker compose ps --status running --services` via `scripts/compose.sh`. The returned names are combined with `deploy_context` to preserve the expected restart order.
+- Only services detected as active at the start are restarted. If no service was running before the backup, the script exits without bringing new services up, keeping the stack state intact.
 
-#### Testando o fluxo
+#### Testing the flow
 
-- Lint do script: `shfmt -d scripts/backup.sh` e `shellcheck scripts/backup.sh`.
-- Testes automatizados que validam a parada, cópia e religamento: `pytest tests/backup_script -q`.
-- Inclua checagens de restauração com frequência definida (ex.: mensal) copiando o snapshot para um ambiente isolado.
+- Lint the script with `shfmt -d scripts/backup.sh` and `shellcheck scripts/backup.sh`.
+- Automated tests that validate stop/copy/restart: `pytest tests/backup_script -q`.
+- Add restore checks on a defined cadence (e.g., monthly) by copying the snapshot to an isolated environment.
 
-## Processo de restauração
+## Restore process
 
-1. Valide a integridade do artefato (checksums, assinaturas, versões de schema).
-2. Restaure em ambiente controlado utilizando os mesmos manifests/variáveis do ambiente principal.
-3. Documente etapas manuais (migrações, reindexações, invalidação de caches) e responsáveis.
-4. Após o sucesso, atualize o runbook correspondente com data, origem do backup e observações.
+1. Validate artifact integrity (checksums, signatures, schema versions).
+2. Restore in a controlled environment using the same manifests/variables as the primary environment.
+3. Document manual steps (migrations, reindexing, cache invalidation) and owners.
+4. After success, update the corresponding runbook with the date, backup source, and notes.
 
-## Referências cruzadas
+## Cross-references
 
-- `docs/core.md` e `docs/media.md` (ou equivalentes) devem apontar para os backups relevantes por ambiente.
-- ADRs podem registrar decisões de retenção, criptografia ou ferramentas adotadas.
-- Scripts específicos devem linkar para esta página explicando os argumentos aceitos e pré-requisitos.
+- `docs/core.md` and `docs/media.md` (or equivalents) should point to the relevant backups per environment.
+- ADRs can record decisions on retention, encryption, or adopted tools.
+- Specific scripts should link to this page explaining accepted arguments and prerequisites.
 
-Mantenha o documento atualizado conforme novos serviços forem incorporados ao projeto derivado.
+Keep the document updated as new services are added to the derived project.

@@ -1,39 +1,39 @@
-# Integração com infraestrutura externa
+# Integration with external infrastructure
 
-> Utilize este documento para descrever como a stack derivada interage com componentes fora do repositório (rede, autenticação, observabilidade, etc.).
+> Use this document to describe how the derived stack interacts with components outside the repository (network, authentication, observability, etc.).
 
-## Como documentar dependências
+## How to document dependencies
 
-1. **Componentes externos** — liste serviços terceiros (reverse proxies, DNS, túneis, fila de mensagens, storage) responsáveis por expor ou suportar a stack.
-2. **Responsáveis** — identifique times ou repositórios que mantêm cada componente.
-3. **Contratos** — descreva endpoints, portas, domínios, chaves de API e requisitos de autenticação.
-4. **Checklists de sincronização** — detalhe etapas obrigatórias sempre que uma mudança afetar os componentes externos.
+1. **External components** — list third-party services (reverse proxies, DNS, tunnels, message queues, storage) responsible for exposing or supporting the stack.
+2. **Owners** — identify the teams or repositories that maintain each component.
+3. **Contracts** — describe endpoints, ports, domains, API keys, and authentication requirements.
+4. **Sync checklists** — detail mandatory steps whenever a change affects the external components.
 
-## Exemplo de tabela
+## Example table
 
-| Componente | Responsável | Responsabilidades | Entradas/Saídas |
+| Component | Owner | Responsibilities | Inputs/Outputs |
 | --- | --- | --- | --- |
-| Proxy reverso | Equipe de plataforma | Terminação TLS, roteamento de hostnames, headers de segurança. | Recebe tráfego público → encaminha para os manifests `compose/base.yml` (quando existir) + [`compose/<instância>.yml`](../compose/core.yml) *(quando existir)* + `compose/apps/<app>/<instância>.yml`. |
-| DNS interno | Time de rede | Publica registros para ambientes internos/externos. | Atualizar registros `A`/`CNAME` após mudanças de host. |
-| Observabilidade | SRE | Coleta métricas e logs, gera alertas. | Dashboards e alertas que monitoram health-checks documentados no runbook. |
+| Reverse proxy | Platform team | TLS termination, hostname routing, security headers. | Receives public traffic → forwards to `compose/base.yml` (when present) + [`compose/<instance>.yml`](../compose/core.yml) *(when present)* + `compose/apps/<app>/<instance>.yml`. |
+| Internal DNS | Network team | Publishes records for internal/external environments. | Update `A`/`CNAME` records after host changes. |
+| Observability | SRE | Collects metrics and logs, generates alerts. | Dashboards and alerts that monitor runbook-documented health checks. |
 
-Substitua a tabela acima pelos componentes reais da sua infraestrutura.
+Replace the table above with the real components in your infrastructure.
 
-## Fluxo recomendado para mudanças
+## Recommended change flow
 
-1. Abra tickets ou PRs nos repositórios responsáveis pelos componentes afetados.
-2. Atualize variáveis de ambiente e manifests neste repositório para refletir os novos valores (domínios, portas, credenciais).
-3. Execute scripts de validação e siga os runbooks para aplicar o change.
-4. Documente resultados (logs de implantação, validações externas) e referencie-os aqui.
+1. Open tickets or PRs in the repositories responsible for the affected components.
+2. Update environment variables and manifests in this repository to reflect new values (domains, ports, credentials).
+3. Run validation scripts and follow runbooks to apply the change.
+4. Document results (deployment logs, external validations) and reference them here.
 
-## Incidentes e troubleshooting
+## Incidents and troubleshooting
 
-- Registre como acionar equipes responsáveis por cada componente externo.
-- Documente comandos úteis (ex.: `dig`, `curl`, `traceroute`, ferramentas de observabilidade).
-- Mantenha um histórico de incidentes relevantes com links para post-mortems ou ADRs que tenham ajustado a integração.
+- Record how to reach the teams responsible for each external component.
+- Document useful commands (e.g., `dig`, `curl`, `traceroute`, observability tools).
+- Keep a history of relevant incidents with links to post-mortems or ADRs that adjusted the integration.
 
-## Documentos relacionados
+## Related documents
 
-- Runbooks de ambientes (`docs/core.md`, `docs/media.md` ou equivalentes)
-- Guia de variáveis (`env/README.md`)
-- ADRs que formalizam integrações críticas
+- Environment runbooks (`docs/core.md`, `docs/media.md`, or equivalents)
+- Variables guide (`env/README.md`)
+- ADRs that formalize critical integrations

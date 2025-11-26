@@ -1,40 +1,40 @@
-# Modelo de runbook: ambiente primário
+# Runbook template: primary environment
 
-> Adapte este documento para representar o ambiente principal do seu serviço (produção, controle, etc.). Use-o como checklist operacional compartilhado entre as equipes.
+> Adapt this document to represent your service’s main environment (production, control, etc.). Use it as a shared operational checklist across teams.
 
-## Contexto do ambiente
+## Environment context
 
-- **Função:** descreva o papel do ambiente (ex.: plano de controle, produção, workload crítico).
-- **Dependências externas:** liste serviços, bancos ou integrações obrigatórias.
-- **Criticidade:** detalhe objetivos de disponibilidade, RTO/RPO e contatos de escalonamento.
+- **Function:** describe the environment’s role (for example, control plane, production, critical workload).
+- **External dependencies:** list required services, databases, or integrations.
+- **Criticality:** detail availability objectives, RTO/RPO, and escalation contacts.
 
-## Checklist de deploy e pós-deploy
+## Deploy and post-deploy checklist
 
-Siga o [checklist genérico](./OPERATIONS.md#checklist-generico-deploy-pos) e, para o ambiente primário, complemente com:
+Follow the [generic checklist](./OPERATIONS.md#generic-deploy-and-post-deploy-checklist) and, for the primary environment, add:
 
-- **Preparação reforçada:** gere `scripts/describe_instance.sh <ambiente> --format json` e arquive o relatório no sistema de auditoria antes de iniciar o change.
-- **Evidências de execução:** ao aplicar `scripts/deploy_instance.sh <ambiente>`, capture hash de imagens, IDs de pipelines e aprovações formais, anexando-os ao registro de change management.
-- **Pós-deploy crítico:** após `scripts/check_health.sh <ambiente>`, valide dashboards de disponibilidade e confirme com o responsável de SRE que alertas prioritários permaneceram estáveis.
+- **Hardened preparation:** generate `scripts/describe_instance.sh <environment> --format json` and archive the report in the audit system before starting the change.
+- **Execution evidence:** when running `scripts/deploy_instance.sh <environment>`, capture image hashes, pipeline IDs, and formal approvals, attaching them to the change-management record.
+- **Critical post-deploy:** after `scripts/check_health.sh <environment>`, validate availability dashboards and confirm with the SRE owner that priority alerts remained stable.
 
-> Substitua `<ambiente>` pelo identificador real utilizado no projeto.
+> Replace `<environment>` with the real identifier used in the project.
 
-## Checklist de recuperação
+## Recovery checklist
 
-1. Garanta acesso aos artefatos de backup/documentados em [`docs/BACKUP_RESTORE.md`](./BACKUP_RESTORE.md).
-2. Restaure serviços seguindo os comandos oficiais (documente passo a passo aqui).
-3. Valide endpoints, filas ou rotinas críticas.
-4. Atualize incident tickets com horários, responsáveis e status final.
+1. Ensure access to backup artifacts documented in [`docs/BACKUP_RESTORE.md`](./BACKUP_RESTORE.md).
+2. Restore services using the official commands (document them step by step here).
+3. Validate critical endpoints, queues, or routines.
+4. Update incident tickets with timelines, owners, and final status.
 
-## Operações recorrentes
+## Recurring operations
 
-- **Verificação de saúde:** descreva comandos/dashboards usados diariamente.
-- **Rotinas de limpeza:** defina tarefas programadas (limpeza de logs, rotação de backups, etc.).
-- **Auditorias:** liste revisões periódicas (segurança, conformidade, upgrades planejados).
+- **Health checks:** describe commands/dashboards used daily.
+- **Cleanup routines:** define scheduled tasks (log cleanup, backup rotation, etc.).
+- **Audits:** list periodic reviews (security, compliance, planned upgrades).
 
-## Referências
+## References
 
-- (`compose/base.yml`, quando existir) + (`compose/<ambiente>.yml`, quando existir) + `compose/apps/<app>/<ambiente>.yml`
-- [Guia de combinações do Docker Compose](./COMPOSE_GUIDE.md#stacks-com-múltiplas-aplicações) para orientar a ativação/desativação de aplicações.
-- `env/<ambiente>.example.env`
-- ADRs relacionados à criação/manutenção deste ambiente
-- Scripts personalizados e dashboards principais
+- (`compose/base.yml`, when present) + (`compose/<environment>.yml`, when present) + `compose/apps/<app>/<environment>.yml`
+- [Docker Compose combination guide](./COMPOSE_GUIDE.md#stacks-with-multiple-applications) to guide application enablement/disablement.
+- `env/<environment>.example.env`
+- ADRs related to the creation/maintenance of this environment
+- Custom scripts and key dashboards

@@ -1,21 +1,21 @@
-# Visão Geral
+# Overview
 
-> Parte do [índice da documentação](./README.md). Utilize em conjunto com [Operação](./OPERATIONS.md) e com o guia de [Integração de Rede](./NETWORKING_INTEGRATION.md) para aplicar as decisões descritas aqui e conectar-se a integrações externas.
+> Part of the [documentation index](./README.md). Use it alongside the [Operations](./OPERATIONS.md) and [Network Integration](./NETWORKING_INTEGRATION.md) guides to apply the decisions described here and to wire external dependencies.
 
-## Topologia
+## Topology
 
-- **Core (<core-host>)**: plano de controle do serviço principal (APIs, agendadores e integrações críticas). Exposição externa via túnel/proxy dedicado (ex.: Cloudflared → `app.domain.com`). Cada repositório derivado deve substituir `<core-host>` pelo hostname correspondente e ajustar as configurações de rede em [NETWORKING_INTEGRATION.md](./NETWORKING_INTEGRATION.md).
-- **Media (<media-host>)**: workloads pesados e tarefas de dados. Sem exposição pública direta. Foco em processamento local. Cada repositório derivado deve substituir `<media-host>` pelo hostname correspondente e revisar as regras de proxy/documentação cruzada em [NETWORKING_INTEGRATION.md](./NETWORKING_INTEGRATION.md).
-  - Use o manifest da aplicação principal correspondente à instância media (por exemplo, `compose/apps/<sua-app>/media.yml` — caminho ilustrativo que deve ser ajustado ao renomear o diretório da aplicação no fork); o manifest padrão monta `${MEDIA_HOST_PATH:-/mnt/data}` como `/srv/media` dentro do contêiner. Consulte o passo 3 de [Como iniciar um projeto derivado](../README.md#como-iniciar-um-projeto-derivado) para alinhar os manifests em `compose/` com a sua stack.
-  - Projetos baseados em Unraid (ou plataformas similares) devem sobrepor `MEDIA_HOST_PATH` nos seus `.env` customizados (por exemplo, apontando para `/mnt/user`) para refletir o layout de armazenamento local.
+- **Core (<core-host>)**: control plane of the main service (APIs, schedulers, and critical integrations). External exposure through a dedicated tunnel/proxy (e.g., Cloudflared → `app.domain.com`). Each derived repository must replace `<core-host>` with the corresponding hostname and adjust networking settings in [NETWORKING_INTEGRATION.md](./NETWORKING_INTEGRATION.md).
+- **Media (<media-host>)**: heavy workloads and data tasks. No direct public exposure. Focus on local processing. Each derived repository must replace `<media-host>` with the corresponding hostname and review proxy/cross-documentation rules in [NETWORKING_INTEGRATION.md](./NETWORKING_INTEGRATION.md).
+  - Use the main application manifest for the media instance (for example, `compose/apps/<your-app>/media.yml` — illustrative path that should be adjusted when renaming the application directory in your fork); the default manifest mounts `${MEDIA_HOST_PATH:-/mnt/data}` as `/srv/media` inside the container. See step 3 of [How to start a derived project](../README.md#how-to-start-a-derived-project) to align the manifests under `compose/` with your stack.
+  - Unraid-based projects (or similar platforms) should override `MEDIA_HOST_PATH` in their customized `.env` files (for example, pointing to `/mnt/user`) to reflect the local storage layout.
 
-## Comunicação entre instâncias
+## Communication between instances
 
-- **Recomendado:** MQTT (pub/sub) ou Webhooks internos.
-- **Não trafegar binários** entre instâncias; passar **paths/metadados** e executar na instância media via SSH/CLI.
+- **Recommended:** MQTT (pub/sub) or internal webhooks.
+- **Do not transfer binaries** between instances; pass **paths/metadata** and execute on the media instance via SSH/CLI.
 
-## Padrões
+## Standards
 
-- `correlation_id` em todos os fluxos e logs.
-- Idempotência: consumidores devem ignorar mensagens repetidas.
-- Retenção: `APP_RETENTION_HOURS` para limitar histórico e economizar armazenamento.
+- `correlation_id` in every flow and log entry.
+- Idempotency: consumers should ignore repeated messages.
+- Retention: use `APP_RETENTION_HOURS` to cap history and save storage.
