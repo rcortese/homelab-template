@@ -1,27 +1,25 @@
-# Apontamentos locais da stack
+# Local stack notes
 
-> Este diretório é reservado para documentar adaptações específicas de repositórios derivados.
+> This directory is reserved for documenting adaptations specific to derived repositories.
 >
-> Alterar estes arquivos não deve causar conflitos significativos ao sincronizar com o template, desde que os mantenedores do
-> template evitem modificá-los após a criação inicial.
+> Changing these files should not cause significant conflicts when syncing with the template, as long as template maintainers avoid modifying them after initial creation.
 
-Use este espaço para centralizar informações que fogem ao escopo genérico do template:
+Use this space to centralize information that falls outside the template’s generic scope:
 
-- Descrições da stack, contexto de negócio e objetivos do serviço.
-- Runbooks particulares (incident response, deploys alternativos, integrações exclusivas).
-- Dependências opcionais ou ferramentas adicionais presentes apenas no repositório derivado.
-- Registro rápido de customizações aplicadas (com links para ADRs, issues ou PRs relevantes).
+- Stack descriptions, business context, and service goals.
+- Custom runbooks (incident response, alternate deploys, exclusive integrations).
+- Optional dependencies or extra tooling present only in the derived repository.
+- Quick record of applied customizations (with links to ADRs, issues, or relevant PRs).
 
-## Sugestões de organização
+## Organization suggestions
 
-1. Crie subpastas para separar ambientes (`producao/`, `homolog/`) ou domínios funcionais.
-2. Use um arquivo `CHANGELOG.md` local para listar sincronizações com o template e ajustes relevantes.
-3. Aponte para estes documentos a partir do `README.md` específico do projeto derivado, evitando duplicar conteúdo.
+1. Create subfolders to separate environments (`production/`, `staging/`) or functional domains.
+2. Use a local `CHANGELOG.md` to list template syncs and relevant adjustments.
+3. Point to these documents from the derived project’s `README.md`, avoiding duplicated content.
 
-## Convenções de merge
+## Merge conventions
 
-- O arquivo `.gitattributes` do template configura `merge=ours` para manter suas alterações em `docs/local/` durante updates.
-- Ainda assim, revise diffs após rodar `scripts/update_from_template.sh` para garantir que nenhum apontamento essencial foi perdido.
+- The template’s `.gitattributes` file sets `merge=ours` to keep your changes in `docs/local/` during updates.
+- Still, review diffs after running `scripts/update_from_template.sh` to ensure no essential notes were lost.
 
-Sinta-se livre para reorganizar este diretório conforme necessário — apenas mantenha um índice claro neste `README.md` ou no
-arquivo equivalente que você escolher.
+Feel free to reorganize this directory as needed — just keep a clear index in this `README.md` or an equivalent file you choose.

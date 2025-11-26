@@ -1,178 +1,125 @@
-# Guia de combinações do Docker Compose
+# Docker Compose combination guide
 
-> Parte do [índice da documentação](./README.md). Leia a [Visão Geral](./OVERVIEW.md) para entender os papéis das instâncias e alinhe checklists com os runbooks da [core](./core.md) e da [media](./media.md).
+> Part of the [documentation index](./README.md). Read the [Overview](./OVERVIEW.md) to understand the role of each instance and align checklists with the runbooks for [core](./core.md) and [media](./media.md).
 
-Este guia documenta como montar o manifesto do Docker Compose usando apenas o
-arquivo base, o override global da instância e os manifests específicos de
-cada aplicação. Para uma visão resumida da ordem de carregamento, consulte o
-[README de `compose/`](../compose/README.md). Siga estas instruções antes de
-executar `docker compose`.
+This guide documents how to build the Docker Compose plan using only the base file, the instance-wide override, and the manifests for each application. For a short view of the load order, see the [`compose/` README](../compose/README.md). Follow these instructions before running `docker compose`.
 
-> **Atenção para forks:** todos os caminhos `compose/...` mostrados aqui são
-> exemplos. Ajuste nomes de diretórios, arquivos e serviços conforme o passo 3
-> de [Como iniciar um projeto derivado](../README.md#como-iniciar-um-projeto-derivado)
-> ao adaptar o template para a sua stack.
+> **Attention for forks:** all `compose/...` paths here are examples. Adjust directory, file, and service names according to step 3 of [How to start a derived project](../README.md#how-to-start-a-derived-project) when adapting the template to your stack.
 
-## Estrutura dos manifests
+## Manifest structure
 
-| Tipo de arquivo | Localização | Papel |
+| File type | Location | Role |
 | --------------- | ----------- | ----- |
-| **Base** | `compose/base.yml` (opcional) | Mantém apenas anchors e volumes compartilhados reutilizados pelas aplicações. É carregado automaticamente quando existir; se estiver ausente, o plano começa diretamente pelos manifests da instância. |
-| **Instância (global)** | `compose/<instância>.yml` (ex.: [`compose/core.yml`](../compose/core.yml), [`compose/media.yml`](../compose/media.yml)) *(opcional)* | Reúne ajustes compartilhados por todas as aplicações daquela instância (ex.: redes extras, volumes padrão ou labels globais). Quando o arquivo existir, ele é aplicado imediatamente após o manifesto base para que os recursos sejam sobrescritos antes dos manifests das aplicações. |
-| **Aplicação** | `compose/apps/<app>/base.yml` | Declara os serviços adicionais que compõem uma aplicação (ex.: `app`). Usa os anchors definidos em `compose/base.yml`. Substitua `<app>` pelo diretório da sua aplicação principal (ex.: `compose/apps/<sua-app>/base.yml`). É incluído automaticamente para todas as instâncias **quando o arquivo existir**. |
-| **Overrides da aplicação** | `compose/apps/<app>/<instância>.yml` | Especializa os serviços da aplicação para cada ambiente (nome do container, portas, variáveis específicas como `APP_PUBLIC_URL` ou `MEDIA_ROOT`). Cada instância possui um arquivo por aplicação (ex.: `compose/apps/<sua-app>/core.yml`). |
+| **Base** | `compose/base.yml` (optional) | Holds only anchors and shared volumes reused by applications. It is loaded automatically when present; if absent, the plan starts directly with the instance manifests. |
+| **Instance (global)** | `compose/<instance>.yml` (e.g., [`compose/core.yml`](../compose/core.yml), [`compose/media.yml`](../compose/media.yml)) *(optional)* | Collects adjustments shared by every application in that instance (e.g., extra networks, default volumes, or global labels). When the file exists, it is applied immediately after the base manifest so resources are overridden before the application manifests. |
+| **Application** | `compose/apps/<app>/base.yml` | Declares the additional services that compose an application (e.g., `app`). Uses anchors defined in `compose/base.yml`. Replace `<app>` with your main application directory (e.g., `compose/apps/<your-app>/base.yml`). It is included automatically for all instances **when the file exists**. |
+| **Application overrides** | `compose/apps/<app>/<instance>.yml` | Specializes the application services per environment (container name, ports, instance-specific variables such as `APP_PUBLIC_URL` or `MEDIA_ROOT`). Each instance has one file per application (e.g., `compose/apps/<your-app>/core.yml`). |
 
-> **Observação:** aplicações que têm apenas `base.yml` são carregadas automaticamente em **todas** as instâncias, incluindo aquelas que ainda não receberam um override dedicado mesmo que outras instâncias já tenham overrides próprios. Para restringir a execução a um subconjunto específico, crie um override por instância (mesmo que o conteúdo seja apenas `profiles` ou `deploy.replicas: 0`) ou mova os manifests para um diretório override-only.
+> **Note:** applications with only `base.yml` are automatically loaded in **all** instances, including those without a dedicated override even if other instances already have their own overrides. To restrict execution to a specific subset, create an override per instance (even if the contents are just `profiles` or `deploy.replicas: 0`) or move the manifests into an override-only directory.
 
-Exemplo de stub para desativar uma aplicação na instância `media`:
+Example stub to disable an application on the `media` instance:
 
-1. Crie o arquivo `compose/apps/<app>/media.yml` (substitua `<app>` pelo diretório real da aplicação).
-2. Insira apenas os campos necessários para ajustar o serviço alvo, como no exemplo abaixo, definindo `deploy.replicas: 0`:
+1. Create the file `compose/apps/<app>/media.yml` (replace `<app>` with the application directory).
+2. Insert only the fields needed to adjust the target service, as in the example below, setting `deploy.replicas: 0`:
 
 ```yaml
 # compose/apps/<app>/media.yml
 services:
-  <serviço-principal>:
+  <main-service>:
     deploy:
       replicas: 0
 ```
 
-> Ajuste `<serviço-principal>` para o nome do serviço declarado em `compose/apps/<app>/base.yml`. Esse stub mantém o serviço ativo nas demais instâncias (com override próprio) e o desativa apenas em `media`.
+> Adjust `<main-service>` to the service name declared in `compose/apps/<app>/base.yml`. This stub keeps the service active in the other instances (with their own overrides) and disables it only in `media`.
 
-### Exemplos incluídos no template
+### Examples included in the template
 
-- Quando presente, [`compose/core.yml`](../compose/core.yml) documenta como adicionar labels para um proxy reverso, conectar os serviços da instância a uma rede externa (`core_proxy`) e declarar volumes nomeados (`core_logs`).
-- Quando presente, [`compose/media.yml`](../compose/media.yml) mostra como compartilhar montagens de mídia (`MEDIA_HOST_PATH`) entre serviços e como definir um volume comum para caches de transcodificação (`media_cache`).
+- When present, [`compose/core.yml`](../compose/core.yml) documents how to add reverse proxy labels, connect instance services to an external network (`core_proxy`), and declare named volumes (`core_logs`).
+- When present, [`compose/media.yml`](../compose/media.yml) shows how to share media mounts (`MEDIA_HOST_PATH`) between services and how to define a common volume for transcoding caches (`media_cache`).
 
-### Aplicações compostas apenas por overrides
+### Applications composed only of overrides
 
-Nem toda aplicação precisa de um `base.yml`. Algumas stacks reutilizam serviços
-existentes e aplicam apenas ajustes específicos por instância (por exemplo,
-adicionando rótulos, redes extras ou variáveis). Nestes casos, o diretório da
-aplicação é considerado **override-only**.
+Not every application needs a `base.yml`. Some stacks reuse existing services and apply only instance-specific adjustments (for example, adding labels, extra networks, or variables). In these cases, the application directory is considered **override-only**.
 
-#### Como preparar o diretório
+#### How to prepare the directory
 
-1. Crie o diretório `compose/apps/<app>/` normalmente.
-2. Adicione pelo menos um arquivo `compose/apps/<app>/<instância>.yml` com os
-   serviços e ajustes específicos daquela instância.
-3. Omitir `compose/apps/<app>/base.yml` é aceitável. Sempre que o diretório não
-   contiver esse arquivo, os scripts assumem automaticamente que a aplicação é
-   override-only e não tentam anexar um manifest inexistente ao plano.
+1. Create the directory `compose/apps/<app>/` as usual.
+2. Add at least one file `compose/apps/<app>/<instance>.yml` with the services and adjustments for that instance.
+3. Omitting `compose/apps/<app>/base.yml` is fine. Whenever the directory lacks that file, the scripts automatically treat the application as override-only and do not try to attach a missing manifest to the plan.
 
-#### Geração automática com `bootstrap_instance`
+#### Automatic generation with `bootstrap_instance`
 
-Use `scripts/bootstrap_instance.sh <app> <instância> --override-only` para
-gerar apenas o override e o arquivo de variáveis quando estiver montando uma
-aplicação sem `base.yml`. Se o diretório da aplicação já existir sem um arquivo
-base, o script detecta o modo override-only automaticamente ao adicionar novas
-instâncias, evitando a criação de artefatos redundantes.
+Use `scripts/bootstrap_instance.sh <app> <instance> --override-only` to generate only the override and variable file when building an application without `base.yml`. If the application directory already exists without a base file, the script detects override-only mode automatically when adding new instances, avoiding redundant artifacts.
 
-#### Como os scripts tratam overrides puros
+#### How the scripts handle pure overrides
 
-- `scripts/lib/compose_discovery.sh` identifica diretórios override-only e
-  registra somente os arquivos `<instância>.yml` existentes.
-- Durante a geração do plano (`scripts/lib/compose_plan.sh`), apenas esses
-  overrides são encadeados após `compose/base.yml` (quando presente) e os ajustes globais da
-  instância, preservando a ordem dos demais manifests.
-- O mapa `COMPOSE_APP_BASE_FILES`, exportado por
-  `scripts/lib/compose_instances.sh`, mantém apenas aplicações com `base.yml`
-  real. Diretórios override-only ficam fora desse mapa e, portanto, não
-  introduzem referências quebradas nas validações ou comandos `docker compose`.
+- `scripts/lib/compose_discovery.sh` identifies override-only directories and records only the existing `<instance>.yml` files.
+- During plan generation (`scripts/lib/compose_plan.sh`), only those overrides are chained after `compose/base.yml` (when present) and the instance-wide adjustments, preserving the order of the other manifests.
+- The map `COMPOSE_APP_BASE_FILES`, exported by `scripts/lib/compose_instances.sh`, keeps only applications with a real `base.yml`. Override-only directories stay out of this map and therefore do not introduce broken references in validations or `docker compose` commands.
 
-## Stacks com múltiplas aplicações
+## Stacks with multiple applications
 
-Ao combinar diversas aplicações, carregue os manifests em blocos (`base.yml`, `base.yml` da aplicação e override da instância) na ordem mostrada abaixo. Isso garante que anchors e variáveis fiquem disponíveis antes dos serviços que os consomem.
+When combining several applications, load the manifests in blocks (`base.yml`, application `base.yml`, and the instance override) in the order shown below. This ensures anchors and variables are available before the services that consume them.
 
-| Ordem | Arquivo | Função |
+| Order | File | Purpose |
 | ----- | ------- | ------ |
-| 1 | `compose/base.yml` (quando existir) | Estrutura fundacional com anchors compartilhados. |
-| 2 | `compose/<instância>.yml` (ex.: `compose/core.yml`, `compose/media.yml`) *(quando existir)* | Ajustes globais da instância (labels, redes extras, políticas padrões). |
-| 3 | `compose/apps/<app-principal>/base.yml` (ex.: `compose/apps/app/base.yml`) | Define serviços da aplicação principal. |
-| 4 | `compose/apps/<app-principal>/<instância>.yml` (ex.: `compose/apps/app/core.yml`) | Ajusta a aplicação principal para a instância alvo. |
-| 5 | `compose/apps/<app-auxiliar>/base.yml` (ex.: `compose/apps/monitoring/base.yml`) | Declara serviços auxiliares (ex.: observabilidade). |
-| 6 | `compose/apps/<app-auxiliar>/<instância>.yml` (ex.: `compose/apps/monitoring/core.yml`) | Personaliza os serviços auxiliares para a instância. |
-| 7 | `compose/apps/<outro-app>/base.yml` (ex.: `compose/apps/worker/base.yml`) | Introduz workers assíncronos que dependem da aplicação principal. |
-| 8 | `compose/apps/<outro-app>/<instância>.yml` (ex.: `compose/apps/worker/core.yml`) | Ajusta nome/concurrência dos workers por instância. |
-| 9 | `compose/apps/<outra-app>/...` | Repita o padrão para cada aplicação extra adicionada. |
+| 1 | `compose/base.yml` (when present) | Foundational structure with shared anchors. |
+| 2 | `compose/<instance>.yml` (e.g., `compose/core.yml`, `compose/media.yml`) *(when present)* | Global adjustments for the instance (labels, extra networks, default policies). |
+| 3 | `compose/apps/<main-app>/base.yml` (e.g., `compose/apps/app/base.yml`) | Defines the main application services. |
+| 4 | `compose/apps/<main-app>/<instance>.yml` (e.g., `compose/apps/app/core.yml`) | Adjusts the main application for the target instance. |
+| 5 | `compose/apps/<aux-app>/base.yml` (e.g., `compose/apps/monitoring/base.yml`) | Declares auxiliary services (e.g., observability). |
+| 6 | `compose/apps/<aux-app>/<instance>.yml` (e.g., `compose/apps/monitoring/core.yml`) | Customizes auxiliary services for the instance. |
+| 7 | `compose/apps/<other-app>/base.yml` (e.g., `compose/apps/worker/base.yml`) | Introduces asynchronous workers that depend on the main application. |
+| 8 | `compose/apps/<other-app>/<instance>.yml` (e.g., `compose/apps/worker/core.yml`) | Adjusts worker name/concurrency per instance. |
+| 9 | `compose/apps/<another-app>/...` | Repeat the pattern for each extra application. |
 
-> Se uma aplicação não tiver `base.yml`, pule o passo correspondente e mantenha
-> apenas o override (`compose/apps/<app>/<instância>.yml`). Os scripts do
-> template fazem esse ajuste automaticamente ao gerar o plano.
+> If an application does not have `base.yml`, skip the corresponding step and keep only the override (`compose/apps/<app>/<instance>.yml`). The template scripts make this adjustment automatically when generating the plan.
 
-> **Substitua os placeholders:** `app`, `monitoring`, `worker` e quaisquer
-> outros nomes usados nas tabelas e exemplos representam apenas diretórios
-> ilustrativos. Ajuste cada ocorrência ao nome real da sua aplicação seguindo o
-> passo 3 de [Como iniciar um projeto derivado](../README.md#como-iniciar-um-projeto-derivado).
+> **Replace the placeholders:** `app`, `monitoring`, `worker`, and any other names used in the tables and examples are merely illustrative directory names. Align each occurrence with the real application name following step 3 of [How to start a derived project](../README.md#how-to-start-a-derived-project).
 
-### Snippet base para combinar manifests
+### Base snippet to combine manifests
 
-Use o esqueleto abaixo em qualquer instância, preenchendo o placeholder
-`<instância>` e adicionando apenas as aplicações desejadas. Quando precisar de
-overlays extras (ex.: `compose/overlays/metrics.yml`), liste-os na variável
-`COMPOSE_EXTRA_FILES` separados por espaço antes de executar o comando. O
-snippet converte automaticamente cada entrada em um novo `-f`.
+Use the skeleton below for any instance, filling in the `<instance>` placeholder and adding only the desired applications. When you need extra overlays (e.g., `compose/overlays/metrics.yml`), list them in the `COMPOSE_EXTRA_FILES` variable separated by spaces before running the command. The snippet automatically converts each entry into a new `-f`.
 
 ```bash
 docker compose \
   --env-file env/local/common.env \
-  --env-file env/local/<instância>.env \
-  -f compose/base.yml \  # Inclua somente se o arquivo existir
-  -f compose/<instância>.yml \ # Inclua somente se o arquivo existir (ex.: compose/core.yml)
-  -f compose/apps/<app-principal>/base.yml \
-  -f compose/apps/<app-principal>/<instância>.yml \
-  # Opcional: adicione pares base/instância para cada aplicação auxiliar habilitada
-  -f compose/apps/<aplicação-opcional>/base.yml \
-  -f compose/apps/<aplicação-opcional>/<instância>.yml \
+  --env-file env/local/<instance>.env \
+  -f compose/base.yml \  # Include only if the file exists
+  -f compose/<instance>.yml \ # Include only if the file exists (e.g., compose/core.yml)
+  -f compose/apps/<main-app>/base.yml \
+  -f compose/apps/<main-app>/<instance>.yml \
+  # Optional: add base/instance pairs for each enabled auxiliary application
+  -f compose/apps/<optional-app>/base.yml \
+  -f compose/apps/<optional-app>/<instance>.yml \
   $(for file in ${COMPOSE_EXTRA_FILES:-}; do printf ' -f %s' "$file"; done) \
   up -d
 ```
 
-> Exemplo: substitua `<app-principal>` pelo diretório real da sua aplicação
-> (como `compose/apps/app/`). Sincronize nomes e caminhos conforme o passo 3 de
-> [Como iniciar um projeto derivado](../README.md#como-iniciar-um-projeto-derivado).
+> Example: replace `<main-app>` with your real application directory (such as `compose/apps/app/`). Keep names and paths in sync with step 3 of [How to start a derived project](../README.md#how-to-start-a-derived-project) to avoid stale references after renaming services.
 
-> `COMPOSE_EXTRA_FILES` deve conter overlays adicionais (ex.: arquivos em
-> `compose/overlays/`) listados em ordem. Defina a variável com `export` ou
-> inline (`COMPOSE_EXTRA_FILES="compose/overlays/metrics.yml" docker compose ...`)
-> para anexar os manifests extras à pilha.
+> `COMPOSE_EXTRA_FILES` should contain additional overlays (e.g., files under `compose/overlays/`) listed in order. Set the variable with `export` or inline (`COMPOSE_EXTRA_FILES="compose/overlays/metrics.yml" docker compose ...`) to attach the extra manifests to the stack.
 
-#### Como habilitar ou desativar aplicações auxiliares
+#### How to enable or disable auxiliary applications
 
-- **Manter ativa**: preserve o par `base.yml`/`<instância>.yml` correspondente no
-  snippet (ex.: `monitoring` → `-f compose/apps/monitoring/base.yml` +
-  `-f compose/apps/monitoring/<instância>.yml`).
-- **Desativar seletivamente**: mantenha um override explícito para cada instância
-  onde o serviço deve ser desligado (ex.: `compose/apps/monitoring/media.yml`
-  com `deploy.replicas: 0` ou `profiles` específicos). Essa abordagem garante
-  que os scripts continuem carregando a aplicação apenas onde ela estiver
-  habilitada e evita a ativação acidental em novas instâncias.
-- **Remover globalmente**: exclua o par de linhas quando a aplicação deixar de
-  fazer parte da stack em **todas** as instâncias.
-- **Adicionar outra aplicação**: replique as duas linhas substituindo
-  `<aplicação-opcional>` pelo diretório em `compose/apps/<app>/`.
+- **Keep enabled**: keep the matching `base.yml`/`<instance>.yml` pair in the snippet (e.g., `monitoring` → `-f compose/apps/monitoring/base.yml` + `-f compose/apps/monitoring/<instance>.yml`).
+- **Disable selectively**: keep an explicit override for each instance where the service should be off (e.g., `compose/apps/monitoring/media.yml` with `deploy.replicas: 0` or specific `profiles`). This approach ensures the scripts continue to load the application only where it is enabled and prevents accidental activation in new instances.
+- **Remove globally**: delete the pair of lines when the application no longer belongs in **any** instance.
+- **Add another application**: duplicate the two lines, replacing `<optional-app>` with the directory under `compose/apps/<app>/`.
 
-> **Importante:** ao executar o Compose manualmente, replique a mesma cadeia de
-> arquivos `.env` usada pelos scripts (`env/local/common.env` seguido de
-> `env/local/<instância>.env`). Consulte o passo a passo em
-> [`env/README.md#como-gerar-arquivos-locais`](../env/README.md#como-gerar-arquivos-locais)
-> para garantir que variáveis globais obrigatórias não sejam omitidas. Além
-> disso, exporte `LOCAL_INSTANCE=<instância>` (o wrapper faz isso automaticamente)
-> antes de chamar `docker compose` para preservar o caminho `data/<instância>/<app>`
-> nos volumes.
+> **Important:** when running Compose manually, mirror the same chain of `.env` files used by the scripts (`env/local/common.env` followed by `env/local/<instance>.env`). See the walkthrough in [`env/README.md#como-gerar-arquivos-locais`](../env/README.md#como-gerar-arquivos-locais) to ensure required global variables are not omitted. Also, export `LOCAL_INSTANCE=<instance>` (the wrapper does this automatically) before calling `docker compose` to preserve the `data/<instance>/<app>` path in the volumes.
 
-As diferenças entre as instâncias principais ficam concentradas nos arquivos
-carregados e nas variáveis apontadas pelo comando acima:
+The differences between the main instances are concentrated in the files loaded and the variables referenced by the command above:
 
-| Cenário | `--env-file` (ordem) | Overrides obrigatórios (`-f`) | Overlays adicionais | Observações |
+| Scenario | `--env-file` (order) | Required overrides (`-f`) | Additional overlays | Notes |
 | ------- | -------------------- | ----------------------------- | ------------------- | ----------- |
-| **core** | `env/local/common.env` → `env/local/core.env` | `compose/core.yml` (quando existir), `compose/apps/<app-principal>/core.yml` (ex.: `compose/apps/app/core.yml`) | — | Sem overlays obrigatórios. Utilize apenas quando a stack demandar arquivos extras. |
-| **media** | `env/local/common.env` → `env/local/media.env` | `compose/media.yml` (quando existir), `compose/apps/<app-principal>/media.yml` (ex.: `compose/apps/app/media.yml`) | Opcional: `compose/overlays/<overlay>.yml` (ex.: armazenamento de mídia) | Adicione overlays específicos da instância listando-os em `COMPOSE_EXTRA_FILES` antes de executar o comando. |
+| **core** | `env/local/common.env` → `env/local/core.env` | `compose/core.yml` (when present), `compose/apps/<main-app>/core.yml` (e.g., `compose/apps/app/core.yml`) | — | No required overlays. Use them only when the stack demands extra files. |
+| **media** | `env/local/common.env` → `env/local/media.env` | `compose/media.yml` (when present), `compose/apps/<main-app>/media.yml` (e.g., `compose/apps/app/media.yml`) | Optional: `compose/overlays/<overlay>.yml` (e.g., media storage) | Add instance-specific overlays by listing them in `COMPOSE_EXTRA_FILES` before running the command. |
 
-### Combinação ad-hoc com `COMPOSE_FILES`
+### Ad-hoc combination with `COMPOSE_FILES`
 
 ```bash
-export COMPOSE_FILES="compose/base.yml compose/media.yml compose/apps/<app-principal>/base.yml compose/apps/<app-principal>/media.yml" # Remova entradas inexistentes
+export COMPOSE_FILES="compose/base.yml compose/media.yml compose/apps/<main-app>/base.yml compose/apps/<main-app>/media.yml" # Remove missing entries
 docker compose \
   --env-file env/local/common.env \
   --env-file env/local/media.env \
@@ -180,16 +127,11 @@ docker compose \
   up -d
 ```
 
-> Ajuste `<app-principal>` para o diretório da sua aplicação (ex.: `compose/apps/app/`).
-> O alinhamento dos manifests com o passo 3 de [Como iniciar um projeto derivado](../README.md#como-iniciar-um-projeto-derivado)
-> evita caminhos desatualizados após renomear serviços.
+> Adjust `<main-app>` to your application directory (e.g., `compose/apps/app/`). Aligning manifests with step 3 of [How to start a derived project](../README.md#how-to-start-a-derived-project) avoids outdated paths after renaming services.
 
-### Gerando um resumo da instância
+### Generating an instance summary
 
-Use `scripts/describe_instance.sh` para inspecionar rapidamente os manifests aplicados,
-serviços resultantes, portas publicadas e volumes montados. O script reutiliza o mesmo
-planejamento de `-f` dos fluxos de deploy e validação e marca overlays adicionais carregados
-via `COMPOSE_EXTRA_FILES`.
+Use `scripts/describe_instance.sh` to quickly inspect the applied manifests, resulting services, published ports, and mounted volumes. The script reuses the same `-f` planning as the deploy and validation flows and marks additional overlays loaded via `COMPOSE_EXTRA_FILES`.
 
 ```bash
 scripts/describe_instance.sh core
@@ -197,45 +139,40 @@ scripts/describe_instance.sh core
 scripts/describe_instance.sh media --format json
 ```
 
-O formato `table` (padrão) facilita revisões manuais, enquanto `--format json` é ideal
-para gerar documentação automatizada ou alimentar dashboards.
+The default `table` format helps manual reviews, while `--format json` is ideal for automated documentation or feeding dashboards.
 
-Exemplo (formato `table`):
+Example (`table` format):
 
-> O diretório `compose/apps/app/` abaixo é ilustrativo. Adapte para o nome da
-> sua aplicação principal e valide os manifests conforme o passo 3 de [Como
-> iniciar um projeto derivado](../README.md#como-iniciar-um-projeto-derivado).
+> The `compose/apps/app/` directory below is illustrative. Adapt it to the name of your main application and validate the manifests according to step 3 of [How to start a derived project](../README.md#how-to-start-a-derived-project).
 
 ```
-Instância: core
+Instance: core
 
-Arquivos Compose (-f):
+Compose files (-f):
   • compose/base.yml
   • compose/core.yml
   • compose/apps/app/base.yml
   • compose/apps/app/core.yml
-  • compose/overlays/metrics.yml (overlay extra)
+  • compose/overlays/metrics.yml (extra overlay)
 
-Overlays extras aplicados:
+Extra overlays applied:
   • compose/overlays/metrics.yml
 
-Serviços:
+Services:
   - app
-      Portas publicadas:
+      Published ports:
         • 8080 -> 80/tcp
-      Volumes montados:
+      Mounted volumes:
         • /srv/app/data -> /data/app (type=bind)
 ```
 
-## Boas práticas
+## Best practices
 
-> Alinhe qualquer caminho `compose/...` citado abaixo com o passo 3 de [Como
-> iniciar um projeto derivado](../README.md#como-iniciar-um-projeto-derivado)
-> sempre que renomear aplicações ou instâncias no seu fork.
+> Align any `compose/...` path mentioned below with step 3 of [How to start a derived project](../README.md#how-to-start-a-derived-project) whenever you rename applications or instances in your fork.
 
-- Sempre carregue `compose/base.yml` em primeiro lugar.
-- Quando existir, aplique `compose/<instância>.yml` logo após o arquivo base.
-- Inclua os arquivos `compose/apps/<app>/base.yml` antes dos overrides por instância **quando existirem**.
-- Combine o override `compose/apps/<app>/<instância>.yml` correspondente logo após o `base.yml` da aplicação.
-- Sincronize a combinação de arquivos com a cadeia de variáveis de ambiente (`env/local/common.env` → `env/local/<instância>.env`).
-- Revalide as combinações com [`scripts/validate_compose.sh`](./OPERATIONS.md#scriptsvalidate_compose.sh) ao alterar qualquer arquivo em `compose/`.
+- Always load `compose/base.yml` first.
+- When it exists, apply `compose/<instance>.yml` immediately after the base file.
+- Include `compose/apps/<app>/base.yml` before the per-instance overrides **when they exist**.
+- Chain the override `compose/apps/<app>/<instance>.yml` right after the application's `base.yml`.
+- Keep the file combination in sync with the environment variable chain (`env/local/common.env` → `env/local/<instance>.env`).
+- Re-validate combinations with [`scripts/validate_compose.sh`](./OPERATIONS.md#scriptsvalidate_compose.sh) when any file in `compose/` changes.

@@ -1,37 +1,36 @@
 # Homelab service template
 
-Este repositório serve como **template reutilizável** para stacks autocontidas. Ele reúne infraestrutura como código, scripts de operação e documentação sob uma mesma convenção para facilitar forks ou projetos derivados.
+This repository is a **reusable template** for self-contained stacks. It bundles infrastructure as code, operation scripts, and documentation under a single convention to make forks or derivative projects easier to maintain.
 
-Se você acabou de derivar o template, comece pelo [guia de onboarding](docs/ONBOARDING.md) para seguir o fluxo inicial recomendado. Em seguida, utilize a seção [Documentação e customização local](#documentacao-e-customizacao-local) deste arquivo para se orientar na organização dos materiais.
+If you just forked or templated the project, start with the [onboarding guide](docs/ONBOARDING.md) to follow the recommended initial flow. Then use the [Local documentation and customization](#local-documentation-and-customization) section of this file to organize your materials.
 
-Mantemos este arquivo genérico para facilitar a sincronização com novas versões do template. Informações específicas da sua stack devem ser descritas nos apontamentos locais indicados em [Documentação e customização local](#documentacao-e-customizacao-local).
+We keep this file generic to simplify syncing with new template versions. Stack-specific information should live in the local notes indicated in [Local documentation and customization](#local-documentation-and-customization).
 
-## Pré-requisitos
+## Prerequisites
 
-Antes de começar, confira a seção de dependências no [guia de onboarding](docs/ONBOARDING.md). Lá mantemos a lista completa e
-sempre atualizada de ferramentas necessárias (incluindo versões mínimas e alternativas compatíveis) para preparar o ambiente.
+Before getting started, review the dependencies section in the [onboarding guide](docs/ONBOARDING.md). It contains the complete, always up-to-date list of tools (including minimum versions and compatible alternatives) needed to prepare the environment.
 
-### Checklist rápido
+### Quick checklist
 
-Execute o passo a passo do [guia de onboarding](docs/ONBOARDING.md) para preparar ambiente e validações.
+Follow the step-by-step instructions in the [onboarding guide](docs/ONBOARDING.md) to prepare the environment and validations.
 
-> Quando criar um guia de onboarding específico da stack, replique esta sequência para manter as instruções alinhadas entre os documentos.
+> When you create a stack-specific onboarding guide, mirror this sequence to keep the instructions aligned across documents.
 
-## Conteúdo obrigatório
+## Required contents
 
-Todo repositório derivado deve manter o conjunto mínimo de diretórios descrito no template. Para a relação completa — fonte única de verdade — consulte a [tabela de diretórios obrigatórios em `docs/STRUCTURE.md`](docs/STRUCTURE.md#diretórios-obrigatórios). Ela detalha finalidades, exemplos de conteúdo e serve como referência central para atualizações estruturais.
+Every derived repository must keep the minimum set of directories described in the template. For the complete list—the single source of truth—see the [table of required directories in `docs/STRUCTURE.md`](docs/STRUCTURE.md#required-directories). It details purposes, content examples, and serves as the central reference for structural updates.
 
-Pipelines de CI/CD, testes e scripts adicionais podem ser adicionados, mas os diretórios listados na tabela devem ser mantidos para preservar a compatibilidade com os utilitários do template.
+CI/CD pipelines, tests, and additional scripts can be added, but the directories listed in the table must remain to preserve compatibility with the template utilities.
 
-## Como iniciar um projeto derivado
+## How to start a derived project
 
-1. Clique em **Use this template** (ou faça um fork) para gerar um novo repositório.
-2. Atualize o nome do projeto e os metadados no `README.md` recém-criado com o contexto da sua stack.
-3. Revise os arquivos de [`compose/`](docs/COMPOSE_GUIDE.md) e [`env/`](env/README.md) para alinhar serviços, portas e variáveis às suas necessidades.
-4. Ajuste a documentação em `docs/` seguindo as orientações descritas na seção [Documentação e customização local](#documentacao-e-customizacao-local) deste template.
-5. Execute o fluxo de validação (`scripts/check_all.sh`) antes do primeiro commit.
+1. Click **Use this template** (or fork it) to create a new repository.
+2. Update the project name and metadata in the newly created `README.md` with your stack’s context.
+3. Review [`compose/`](docs/COMPOSE_GUIDE.md) and [`env/`](env/README.md) files to align services, ports, and variables with your needs.
+4. Adjust documentation in `docs/` following the guidance in the [Local documentation and customization](#local-documentation-and-customization) section of this template.
+5. Run the validation flow (`scripts/check_all.sh`) before the first commit.
 
-Após o bootstrap, você já pode validar a stack localmente para garantir que os serviços iniciais sobem conforme o esperado.
+After bootstrapping, you can validate the stack locally to ensure the initial services start as expected.
 
 ```bash
 scripts/bootstrap_instance.sh app core
@@ -39,55 +38,48 @@ scripts/compose.sh core up -d
 scripts/check_health.sh core
 ```
 
-Lembre-se de ajustar os valores `<app>`/`core` para refletir os perfis do seu fork e consulte [`docs/OPERATIONS.md`](docs/OPERATIONS.md) para instruções detalhadas.
+Remember to adjust `<app>`/`core` to match your fork’s profiles, and refer to [`docs/OPERATIONS.md`](docs/OPERATIONS.md) for detailed instructions.
 
-## Fluxo sugerido para novos repositórios
+## Suggested flow for new repositories
 
-1. **Modelagem** – registre objetivos, requisitos e decisões iniciais nos ADRs (`docs/ADR/`).
-2. **Infraestrutura** – crie os manifests em `compose/` e modele as variáveis correspondentes em `env/`.
-3. **Automação** – adapte os scripts existentes para a nova stack e documente o uso em `docs/OPERATIONS.md`.
-4. **Runbooks** – personalize os guias operacionais (`docs/core.md`, `docs/media.md`, etc.) para refletir ambientes reais.
-5. **Qualidade** – mantenha `.github/workflows/` com `template-quality.yml` intacto e adicione workflows extras conforme necessário, documentando ajustes seguros em [`docs/ci-overrides.md`](docs/ci-overrides.md). Consulte também [`tests/README.md`](tests/README.md) para conhecer a suíte de testes padrão do template.
+1. **Modeling** – record goals, requirements, and initial decisions in ADRs (`docs/ADR/`).
+2. **Infrastructure** – create manifests in `compose/` and map the corresponding variables in `env/`.
+3. **Automation** – adapt existing scripts to the new stack and document usage in `docs/OPERATIONS.md`.
+4. **Runbooks** – customize operational guides (`docs/core.md`, `docs/media.md`, etc.) to reflect real environments.
+5. **Quality** – keep `.github/workflows/` with `template-quality.yml` intact and add extra workflows as needed, documenting safe adjustments in [`docs/ci-overrides.md`](docs/ci-overrides.md). See also [`tests/README.md`](tests/README.md) to learn about the template’s default test suite.
 
-<a id="documentacao-e-customizacao-local"></a>
-## Documentação e customização local
+<a id="local-documentation-and-customization"></a>
+## Local documentation and customization
 
-Centralize sua navegação pelo [índice em `docs/README.md`](docs/README.md), que organiza o ciclo de vida da stack e indica quando aprofundar cada tópico. Quando precisar registrar runbooks, decisões ou dependências específicas, utilize o diretório [`docs/local/`](docs/local/README.md) como ponto de entrada para os materiais particulares da sua stack.
+Navigate via the [index in `docs/README.md`](docs/README.md), which organizes the stack lifecycle and indicates when to dive deeper into each topic. When you need to record runbooks, decisions, or stack-specific dependencies, use [`docs/local/`](docs/local/README.md) as the entry point for materials unique to your stack.
 
-Ao concentrar as personalizações nesses materiais você obtém:
-- menos conflitos durante rebases ou merges a partir do template;
-- um local dedicado onde encontrar detalhes exclusivos do repositório;
-- menos edições neste `README.md`, que permanece alinhado às instruções gerais do template.
+By concentrating customizations in these materials you get:
+- fewer conflicts during rebases or merges from the template;
+- a dedicated place to find repository-specific details;
+- fewer edits to this `README.md`, keeping it aligned with the template’s general guidance.
 
-Assim, o restante do template continua servindo como referência e só exige ajustes pontuais quando necessário.
+The rest of the template then remains a reference and only needs occasional tweaks when necessary.
 
-## Atualizando a partir do template original
+## Updating from the original template
 
-Esta seção é a referência canônica para o fluxo de atualização do template. Qualquer resumo em outros documentos
-aponta de volta para estas instruções.
+This section is the canonical reference for the template update flow. Any summary in other documents points back to these instructions.
 
-Repositórios derivados podem reaplicar suas customizações sobre a versão mais recente do template usando
-`scripts/update_from_template.sh`. O fluxo sugerido é:
+Derived repositories can reapply their customizations on top of the latest template version using `scripts/update_from_template.sh`. The suggested flow is:
 
-1. Configure o remote que aponta para o template, por exemplo `git remote add template git@github.com:org/template.git`.
-2. Identifique o commit do template usado como base inicial (`ORIGINAL_COMMIT_ID`) e o primeiro commit local exclusivo
-   (`FIRST_COMMIT_ID`). Utilize `scripts/detect_template_commits.sh` para calcular automaticamente esses valores e
-   persistir o resultado em `env/local/template_commits.env` (o script cria o diretório caso não exista).
-3. Execute uma simulação informando os parâmetros via flags:
+1. Configure the remote pointing to the template, for example `git remote add template git@github.com:org/template.git`.
+2. Identify the template commit used as the initial base (`ORIGINAL_COMMIT_ID`) and the first unique local commit (`FIRST_COMMIT_ID`). Use `scripts/detect_template_commits.sh` to calculate these values automatically and persist the result in `env/local/template_commits.env` (the script creates the directory if it does not exist).
+3. Run a simulation by passing the parameters as flags:
 
    ```bash
    scripts/update_from_template.sh \
      --remote template \
-     --original-commit <hash-do-template-inicial> \
-     --first-local-commit <hash-do-primeiro-commit-local> \
+     --original-commit <initial-template-hash> \
+     --first-local-commit <first-unique-local-hash> \
      --target-branch main \
      --dry-run
    ```
 
-4. Remova `--dry-run` para aplicar o rebase e resolva possíveis conflitos antes de abrir um PR.
-5. Finalize rodando os testes da stack (por exemplo, `python -m pytest` e `scripts/check_structure.sh`; adapte conforme
-   descrito em [`docs/OPERATIONS.md`](docs/OPERATIONS.md)).
+4. Remove `--dry-run` to apply the rebase and resolve any conflicts before opening a PR.
+5. Finish by running the stack tests (for example, `python -m pytest` and `scripts/check_structure.sh`; adjust as described in [`docs/OPERATIONS.md`](docs/OPERATIONS.md)).
 
-O script exibe mensagens claras sobre os comandos executados (`git fetch` seguido de `git rebase --onto`) e falha cedo caso
-os commits informados não pertençam à branch atual.
-
+The script prints clear messages about the commands executed (`git fetch` followed by `git rebase --onto`) and fails early if the provided commits do not belong to the current branch.

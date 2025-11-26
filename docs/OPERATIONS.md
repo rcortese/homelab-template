@@ -1,275 +1,269 @@
-# Operações padrão do template
+# Template standard operations
 
-> Consulte o [índice geral](./README.md) e personalize este guia para refletir a sua stack.
+> See the [documentation index](./README.md) and adapt this guide to reflect your stack.
 
-Este documento apresenta um ponto de partida para descrever processos operacionais e o uso dos scripts fornecidos pelo template. Ao derivar um repositório, adapte os exemplos abaixo com comandos concretos do seu serviço.
+This document offers a starting point for describing operational processes and how to use the scripts shipped with the template. When deriving a repository, adapt the examples below with concrete commands for your service.
 
-> Procurando apenas um mapa rápido dos scripts disponíveis? Consulte [`scripts/README.md`](../scripts/README.md) para ver o catálogo agrupado por categoria e localizar rapidamente o helper desejado.
+> Looking only for a quick map of available scripts? See [`scripts/README.md`](../scripts/README.md) for the catalog grouped by category and to quickly find the desired helper.
 
-| Script | Objetivo | Comando básico | Gatilhos recomendados |
+| Script | Purpose | Basic command | Recommended triggers |
 | --- | --- | --- | --- |
-| [`scripts/check_all.sh`](#scriptscheck_allsh) | Agregar validações de estrutura, `.env` e Compose em um único comando. | `scripts/check_all.sh` | Antes de abrir PRs ou rodar pipelines locais completos. |
-| [`scripts/check_structure.sh`](#scriptscheck_structuresh) | Confirmar diretórios/arquivos obrigatórios. | `scripts/check_structure.sh` | Antes de PRs ou pipelines que reorganizam arquivos. |
-| [`scripts/check_env_sync.sh`](#scriptscheck_env_syncsh) | Verificar sincronização entre Compose e `env/*.example.env`. | `scripts/check_env_sync.sh` | Após editar Compose ou templates `.env`; em validações locais/CI. |
-| [`scripts/run_quality_checks.sh`](#scriptsrun_quality_checkssh) | Executar `pytest`, `shfmt`, `shellcheck` e `checkbashisms` em uma única chamada. | `scripts/run_quality_checks.sh` | Após alterações em código Python ou shell. |
-| [`scripts/bootstrap_instance.sh`](#scriptsbootstrap_instancesh) | Criar estrutura inicial de aplicação/instância. | `scripts/bootstrap_instance.sh <app> <instancia>` | Ao iniciar novos serviços ou ambientes. |
-| [`scripts/validate_compose.sh`](#scriptsvalidate_composesh) | Validar combinações padrão de Docker Compose. | `scripts/validate_compose.sh` | Após ajustes em manifests; etapas de CI. |
-| [`scripts/deploy_instance.sh`](#scriptsdeploy_instancesh) | Orquestrar deploy guiado de instâncias. | `scripts/deploy_instance.sh <alvo>` | Deploys manuais ou automatizados. |
-| [`scripts/fix_permission_issues.sh`](#scriptsfix_permission_issuessh) | Ajustar permissões de diretórios persistentes. | `scripts/fix_permission_issues.sh <instancia>` | Antes de subir serviços que usam armazenamento compartilhado. |
-| [`scripts/backup.sh`](#scriptsbackupsh) | Gerar snapshot versionado da instância. | `scripts/backup.sh <instancia>` | Rotinas de backup e pré-mudanças invasivas. |
-| [`scripts/compose.sh`](#scriptscomposesh) | Padronizar chamadas ao `docker compose`. | `scripts/compose.sh <instancia> <subcomando>` | Operações Compose locais ou em CI. |
-| [`scripts/describe_instance.sh`](#scriptsdescribe_instancesh) | Resumir serviços, portas e volumes de uma instância. | `scripts/describe_instance.sh <instancia>` | Auditorias rápidas ou geração de runbooks. |
-| [`scripts/check_health.sh`](#scriptscheck_healthsh) | Conferir status dos serviços após mudanças. | `scripts/check_health.sh <instancia>` | Pós-deploy, pós-restore ou troubleshooting. |
-| [`scripts/check_db_integrity.sh`](#scriptscheck_db_integritysh) | Validar integridade de bancos SQLite com pausa controlada. | `scripts/check_db_integrity.sh <instancia>` | Manutenções programadas ou investigação de falhas. |
-| [`scripts/detect_template_commits.sh`](#scriptsdetect_template_commitssh) | Identificar o commit base do template e o primeiro commit exclusivo do fork. | `scripts/detect_template_commits.sh` | Antes de seguir o fluxo de [atualização a partir do template original](../README.md#atualizando-a-partir-do-template-original) ou revisar divergências locais. |
-| [`scripts/update_from_template.sh`](#scriptsupdate_from_templatesh) | Reaplicar customizações após atualizar o template. | Consulte o [guia canônico](../README.md#atualizando-a-partir-do-template-original). | Ao sincronizar forks com o upstream. |
+| [`scripts/check_all.sh`](#scriptscheck_allsh) | Aggregate structure, `.env`, and Compose validations in a single command. | `scripts/check_all.sh` | Before opening PRs or running full local pipelines. |
+| [`scripts/check_structure.sh`](#scriptscheck_structuresh) | Confirm required directories/files. | `scripts/check_structure.sh` | Before PRs or pipelines that reorganize files. |
+| [`scripts/check_env_sync.sh`](#scriptscheck_env_syncsh) | Verify synchronization between Compose and `env/*.example.env`. | `scripts/check_env_sync.sh` | After editing Compose or `.env` templates; in local/CI validations. |
+| [`scripts/run_quality_checks.sh`](#scriptsrun_quality_checkssh) | Run `pytest`, `shfmt`, `shellcheck`, and `checkbashisms` in one go. | `scripts/run_quality_checks.sh` | After changes to Python or shell code. |
+| [`scripts/bootstrap_instance.sh`](#scriptsbootstrap_instancesh) | Create initial application/instance structure. | `scripts/bootstrap_instance.sh <app> <instance>` | When starting new services or environments. |
+| [`scripts/validate_compose.sh`](#scriptsvalidate_composesh) | Validate standard Docker Compose combinations. | `scripts/validate_compose.sh` | After adjusting manifests; CI stages. |
+| [`scripts/deploy_instance.sh`](#scriptsdeploy_instancesh) | Orchestrate guided instance deployment. | `scripts/deploy_instance.sh <target>` | Manual or automated deployments. |
+| [`scripts/fix_permission_issues.sh`](#scriptsfix_permission_issuessh) | Adjust permissions for persistent directories. | `scripts/fix_permission_issues.sh <instance>` | Before starting services that share storage. |
+| [`scripts/backup.sh`](#scriptsbackupsh) | Generate a versioned snapshot of the instance. | `scripts/backup.sh <instance>` | Backup routines and pre-invasive changes. |
+| [`scripts/compose.sh`](#scriptscomposesh) | Standardize `docker compose` calls. | `scripts/compose.sh <instance> <subcommand>` | Local or CI Compose operations. |
+| [`scripts/describe_instance.sh`](#scriptsdescribe_instancesh) | Summarize services, ports, and volumes of an instance. | `scripts/describe_instance.sh <instance>` | Quick audits or runbook generation. |
+| [`scripts/check_health.sh`](#scriptscheck_healthsh) | Check service status after changes. | `scripts/check_health.sh <instance>` | Post-deploy, post-restore, or troubleshooting. |
+| [`scripts/check_db_integrity.sh`](#scriptscheck_db_integritysh) | Validate SQLite integrity with controlled pause. | `scripts/check_db_integrity.sh <instance>` | Scheduled maintenance or failure investigation. |
+| [`scripts/detect_template_commits.sh`](#scriptsdetect_template_commitssh) | Identify the template base commit and the first fork-exclusive commit. | `scripts/detect_template_commits.sh` | Before following the [update from the original template](../README.md#updating-from-the-original-template) flow or reviewing local divergences. |
+| [`scripts/update_from_template.sh`](#scriptsupdate_from_templatesh) | Reapply customizations after updating the template. | See the [canonical guide](../README.md#updating-from-the-original-template). | When syncing forks with upstream. |
 
-## Antes de começar
+## Before you start
 
-- Garanta que os arquivos `.env` locais foram gerados a partir dos modelos descritos em [`env/README.md`](../env/README.md).
-- Revise as combinações de manifests (incluindo `compose/base.yml` quando existir, `compose/<instância>.yml` quando existir e os overrides) que serão utilizadas pelos scripts. Os modelos [`compose/core.yml`](../compose/core.yml) e [`compose/media.yml`](../compose/media.yml) documentam como aplicar ajustes globais por instância antes dos manifests das aplicações.
-- Execute `scripts/check_all.sh` para validar estrutura, sincronização de variáveis e manifests Compose antes de abrir PRs ou publicar mudanças locais.
-- Execute `scripts/check_env_sync.sh` isoladamente sempre que editar manifests ou templates `.env` para garantir que as variáveis continuam sincronizadas.
-- Documente dependências extras (CLI, credenciais, acesso a registries) em seções adicionais.
+- Ensure local `.env` files were generated from the models described in [`env/README.md`](../env/README.md).
+- Review the manifest combinations (including `compose/base.yml` when present, `compose/<instance>.yml` when present, and overrides) the scripts will use. The sample [`compose/core.yml`](../compose/core.yml) and [`compose/media.yml`](../compose/media.yml) files document how to apply global per-instance adjustments before the application manifests.
+- Run `scripts/check_all.sh` to validate structure, variable synchronization, and Compose manifests before opening PRs or publishing local changes.
+- Run `scripts/check_env_sync.sh` whenever you edit manifests or `.env` templates to ensure variables stay synchronized.
+- Document extra dependencies (CLIs, credentials, registry access) in additional sections.
 
-<a id="checklist-generico-deploy-pos"></a>
-## Checklist genérico de deploy e pós-deploy
+<a id="generic-deploy-and-post-deploy-checklist"></a>
+## Generic deploy and post-deploy checklist
 
-> Utilize este checklist como base comum para todos os ambientes derivados deste template.
+> Use this checklist as a common baseline for all environments derived from this template.
 
-### Preparação
+### Preparation
 
-1. Atualize `env/local/<instancia>.env` com as variáveis mais recentes antes de gerar ou aplicar manifests.
-2. Revise a seção [Stacks com múltiplas aplicações](./COMPOSE_GUIDE.md#stacks-com-múltiplas-aplicações) para confirmar quais serviços devem ser ativados ou desativados no ciclo atual.
-3. Valide os manifests com `scripts/validate_compose.sh` (ou comando equivalente) para garantir que a combinação de arquivos continua consistente.
-4. Gere um resumo com `scripts/describe_instance.sh <instancia>`; quando precisar de trilha de auditoria ou material de apoio, salve também a saída `--format json` junto ao checklist do deploy.
+1. Update `env/local/<instance>.env` with the latest variables before generating or applying manifests.
+2. Review [Stacks with multiple applications](./COMPOSE_GUIDE.md#stacks-with-multiple-applications) to confirm which services should be enabled or disabled for the current cycle.
+3. Validate manifests with `scripts/validate_compose.sh` (or equivalent) to ensure the combination of files remains consistent.
+4. Generate a summary with `scripts/describe_instance.sh <instance>`; when you need audit trail or supporting material, also save the `--format json` output alongside the deployment checklist.
 
-### Execução
+### Execution
 
-1. Rode o fluxo guiado de deploy:
+1. Run the guided deployment flow:
    ```bash
-   scripts/deploy_instance.sh <instancia>
+   scripts/deploy_instance.sh <instance>
    ```
-2. Registre outputs relevantes (hash de imagens utilizadas, versão de pipelines ou artefatos aplicados) para referência posterior.
+2. Record relevant outputs (image hashes used, pipeline or artifact versions applied) for future reference.
 
-### Pós-deploy
+### Post-deploy
 
-1. Execute `scripts/check_health.sh <instancia>` — ou verificação equivalente — para validar o estado dos serviços recém-publicados.
-2. Revise dashboards, alertas críticos e integrações que dependem da instância, garantindo que métricas e notificações retornaram ao comportamento esperado.
+1. Run `scripts/check_health.sh <instance>` — or an equivalent check — to validate the state of the newly deployed services.
+2. Review dashboards, critical alerts, and integrations that depend on the instance, ensuring metrics and notifications return to expected behavior.
 
-### Configurando a rede interna compartilhada
+### Configuring the shared internal network
 
-- Utilize os placeholders definidos em `env/common.example.env` para nome, driver, sub-rede e gateway da rede (`APP_NETWORK_NAME`, `APP_NETWORK_DRIVER`, `APP_NETWORK_SUBNET`, `APP_NETWORK_GATEWAY`). Ajuste-os conforme a topologia do seu ambiente antes de gerar os arquivos reais em `env/local/`.
-- Cada instância deve reservar endereços IPv4 exclusivos para os serviços. Os modelos `env/core.example.env` e `env/media.example.env` ilustram como separar os IPs do serviço `app` (`APP_NETWORK_IPV4`), do serviço `monitoring` (`MONITORING_NETWORK_IPV4`) e do serviço `worker` (`WORKER_CORE_NETWORK_IPV4` e `WORKER_MEDIA_NETWORK_IPV4`). Quando presente, o arquivo [`compose/core.yml`](../compose/core.yml) mostra como conectar o serviço `app` a uma rede externa (`core_proxy`) usando `CORE_PROXY_NETWORK_NAME` e `CORE_PROXY_IPV4` como placeholders.
-- Ao criar novas instâncias ou serviços adicionais, replique o padrão: declare variáveis `*_NETWORK_IPV4` específicas no template `.env` correspondente e conecte o serviço à rede `homelab_internal` (ou ao nome definido em `APP_NETWORK_NAME`) dentro do manifest Compose.
-- Depois de ajustar os IPs, execute `scripts/validate_compose.sh` ou `docker compose config -q` para validar se não há sobreposições ou lacunas na configuração.
+- Use the placeholders defined in `env/common.example.env` for the network name, driver, subnet, and gateway (`APP_NETWORK_NAME`, `APP_NETWORK_DRIVER`, `APP_NETWORK_SUBNET`, `APP_NETWORK_GATEWAY`). Adjust them to your environment topology before generating the real files under `env/local/`.
+- Each instance should reserve unique IPv4 addresses for the services. The `env/core.example.env` and `env/media.example.env` models illustrate how to split IPs for the `app` service (`APP_NETWORK_IPV4`), the `monitoring` service (`MONITORING_NETWORK_IPV4`), and the worker service (`WORKER_CORE_NETWORK_IPV4` and `WORKER_MEDIA_NETWORK_IPV4`). When present, [`compose/core.yml`](../compose/core.yml) shows how to connect the `app` service to an external network (`core_proxy`) using `CORE_PROXY_NETWORK_NAME` and `CORE_PROXY_IPV4` as placeholders.
+- When creating new instances or additional services, replicate the pattern: declare instance-specific `*_NETWORK_IPV4` variables in the corresponding `.env` template and connect the service to the `homelab_internal` network (or the name defined in `APP_NETWORK_NAME`) inside the Compose manifest.
+- After adjusting the IPs, run `scripts/validate_compose.sh` or `docker compose config -q` to confirm there are no overlaps or gaps in the configuration.
 
 ## scripts/check_all.sh
 
-- **Ordem das verificações:**
-  1. `scripts/check_structure.sh` — garante que diretórios e arquivos obrigatórios estão presentes.
-  2. `scripts/check_env_sync.sh` — valida a sincronização entre os manifests Compose e os arquivos `env/*.example.env`.
-  3. `scripts/validate_compose.sh` — confirma se as combinações de Compose permanecem válidas para os perfis suportados.
-- **Comportamento em caso de falha:** o script é executado com `set -euo pipefail` e encerra imediatamente na primeira verificação que retornar código diferente de zero, propagando a mensagem do helper que falhou.
-- **Variáveis e flags relevantes:** não possui parâmetros próprios; respeita as variáveis aceitas pelos scripts internos (`COMPOSE_INSTANCES`, `COMPOSE_EXTRA_FILES`, `DOCKER_COMPOSE_BIN`, entre outras). Exporte-as antes da chamada quando precisar personalizar o encadeamento.
-- **Orientações de uso:** priorize `scripts/check_all.sh` em ciclos de validação completos antes de abrir PRs, sincronizar forks ou iniciar pipelines manuais. Utilize os scripts individuais apenas durante ajustes focados (por exemplo, rodar `scripts/check_env_sync.sh` após editar um `.env`). Reproduza a chamada em pipelines de CI que representem o fluxo local de validações, mantendo paridade entre ambientes.
+- **Order of checks:**
+  1. `scripts/check_structure.sh` — ensures required directories and files are present.
+  2. `scripts/check_env_sync.sh` — validates synchronization between Compose manifests and `env/*.example.env` files.
+  3. `scripts/validate_compose.sh` — confirms Compose combinations remain valid for supported profiles.
+- **Failure behavior:** the script runs with `set -euo pipefail` and stops at the first check that returns a non-zero exit code, propagating the message from the helper that failed.
+- **Relevant variables and flags:** it has no dedicated parameters; it respects the variables accepted by internal scripts (`COMPOSE_INSTANCES`, `COMPOSE_EXTRA_FILES`, `DOCKER_COMPOSE_BIN`, among others). Export them before invoking when you need to customize the chain.
+- **Usage guidance:** prioritize `scripts/check_all.sh` in full validation cycles before opening PRs, syncing forks, or starting manual pipelines. Use the individual scripts only during focused adjustments (for example, running `scripts/check_env_sync.sh` after editing a `.env`). Reproduce the call in CI pipelines that mirror the local validation flow to keep parity across environments.
 
 ## scripts/check_structure.sh
 
-Consulte o resumo na tabela acima. Inclua `scripts/check_env_sync.sh` nas execuções locais ou de CI para manter manifests e variáveis sincronizados.
+See the summary in the table above. Include `scripts/check_env_sync.sh` in local or CI runs to keep manifests and variables aligned.
 
 ## scripts/check_env_sync.sh
 
-- **Objetivo:** comparar os manifests (`compose/base.yml`, quando presente, + overrides detectados) com os arquivos `env/*.example.env` correspondentes e sinalizar divergências. O wrapper shell (`scripts/check_env_sync.sh`) prioriza a execução via Docker (`python:3.11-slim`) e recorre ao Python local apenas como fallback, utilizando `scripts/check_env_sync.py` como módulo principal.
-- **Uso típico:**
+- **Purpose:** compare the manifests (`compose/base.yml`, when present, plus detected overrides) with the corresponding `env/*.example.env` files and flag divergences. The shell wrapper (`scripts/check_env_sync.sh`) prefers running via Docker (`python:3.11-slim`) and falls back to local Python only when necessary, using `scripts/check_env_sync.py` as the main module.
+- **Typical usage:**
   ```bash
   scripts/check_env_sync.sh
-  scripts/check_env_sync.sh --repo-root /caminho/alternativo
+  scripts/check_env_sync.sh --repo-root /alternate/path
   scripts/check_env_sync.sh --instance core --instance media
   ```
-- **Saída:** lista variáveis ausentes, obsoletas ou instâncias sem template, retornando código de saída diferente de zero quando encontrar problemas — ideal para CI.
-- **Filtragem por instância:** utilize a flag repetível `--instance` para focar a validação em um subconjunto específico sem precisar exportar variáveis globais. Combine-a com os demais parâmetros quando quiser comparar apenas um conjunto reduzido durante ajustes iterativos.
-- **Boas práticas:** execute o script após mudanças em Compose ou nos arquivos `.env` de exemplo e inclua-o no pipeline de validação local antes de abrir PRs.
-  > **Alerta:** rodar a verificação antes de abrir PRs evita que variáveis órfãs avancem para revisão.
+- **Output:** lists missing or obsolete variables and instances without a template, returning a non-zero exit code when issues are found — ideal for CI.
+- **Filtering by instance:** use the repeatable `--instance` flag to focus validation on a specific subset without exporting global variables. Combine it with the other parameters when you want to compare only a reduced set during iterative adjustments.
+- **Best practices:** run the script after changes to Compose or example `.env` files and include it in the local validation pipeline before opening PRs.
+  > **Warning:** running the verification before opening PRs prevents orphan variables from reaching review.
 
 ## scripts/run_quality_checks.sh
 
-- **Objetivo:** concentrar a suíte base de qualidade (`python -m pytest`, `shfmt`, `shellcheck` e `checkbashisms` nos scripts do repositório) em um único comando.
-- **Uso típico:**
+- **Purpose:** concentrate the base quality suite (`python -m pytest`, `shfmt`, `shellcheck`, and `checkbashisms` across repository scripts) into a single command.
+- **Typical usage:**
   ```bash
   scripts/run_quality_checks.sh
   scripts/run_quality_checks.sh --no-lint
   ```
-- **Personalização:** defina `PYTHON_RUNTIME_IMAGE`/`PYTHON_RUNTIME_REQUIREMENTS_FILE` para customizar a execução em container ou `PYTHON_RUNTIME_SKIP_REQUIREMENTS=1` para reutilizar dependências já instaladas localmente. Ajuste também `SHFMT_BIN`, `SHELLCHECK_BIN` ou `CHECKBASHISMS_BIN` para apontar binários alternativos quando necessário, e passe `--no-lint` quando quiser apenas rodar a suíte de testes Python.
-- **Boas práticas:** execute o helper durante ciclos iterativos em código Python ou shell para detectar regressões rapidamente e replique a chamada em pipelines locais antes de rodar `scripts/check_all.sh`.
+- **Customization:** set `PYTHON_RUNTIME_IMAGE`/`PYTHON_RUNTIME_REQUIREMENTS_FILE` to customize container execution or `PYTHON_RUNTIME_SKIP_REQUIREMENTS=1` to reuse dependencies already installed locally. You can also adjust `SHFMT_BIN`, `SHELLCHECK_BIN`, or `CHECKBASHISMS_BIN` to point to alternative binaries when needed, and pass `--no-lint` when you only want to run the Python test suite.
+- **Best practices:** run the helper during iterative cycles on Python or shell code to quickly catch regressions and mirror the call in local pipelines before running `scripts/check_all.sh`.
 
 ## scripts/bootstrap_instance.sh
 
-Use `--base-dir`, `--with-docs` e `--override-only` para declarar explicitamente diretórios alternativos, gerar documentação inicial e limitar o bootstrap a arquivos de override. Após o bootstrap, ajuste overrides (`compose/apps/<app>/<instancia>.yml`), preencha `env/<instancia>.example.env` e complemente `docs/apps/<app>.md`.
+Use `--base-dir`, `--with-docs`, and `--override-only` to explicitly declare alternate directories, generate initial documentation, and limit the bootstrap to override files. After bootstrapping, adjust overrides (`compose/apps/<app>/<instance>.yml`), fill in `env/<instance>.example.env`, and extend `docs/apps/<app>.md`.
 
-- **Quando usar `--override-only`:** aplicações sem `compose/apps/<app>/base.yml` podem utilizar somente overrides (`compose/apps/<app>/<instancia>.yml`). O script detecta automaticamente a ausência do `base.yml`, mas a flag garante o comportamento em execuções não interativas ou quando quiser enfatizar o cenário.
-- **Exemplo rápido:**
+- **When to use `--override-only`:** applications without `compose/apps/<app>/base.yml` can use only overrides (`compose/apps/<app>/<instance>.yml`). The script automatically detects when `base.yml` is missing, but the flag enforces the behavior in non-interactive runs or when you want to emphasize the scenario.
+- **Quick example:**
   ```bash
-  scripts/bootstrap_instance.sh minha-app prod --override-only --with-docs
+  scripts/bootstrap_instance.sh my-app prod --override-only --with-docs
   ```
-  Para mais detalhes sobre stacks formadas apenas por overrides, consulte [`docs/COMPOSE_GUIDE.md#aplicações-compostas-apenas-por-overrides`](./COMPOSE_GUIDE.md#aplicações-compostas-apenas-por-overrides).
+  For more details on stacks composed only of overrides, see [`docs/COMPOSE_GUIDE.md#applications-composed-only-of-overrides`](./COMPOSE_GUIDE.md#applications-composed-only-of-overrides).
 
 <a id="scriptsvalidate_compose.sh"></a>
 ## scripts/validate_compose.sh
 
-- **Parâmetros úteis:**
-  - `COMPOSE_INSTANCES` — lista de ambientes a validar (separados por espaço ou vírgula).
-  - `DOCKER_COMPOSE_BIN` — caminho alternativo para o binário.
-  - `COMPOSE_EXTRA_FILES` — lista opcional de overlays extras aplicados após o override padrão (aceita espaços ou vírgulas).
-- **Exemplos práticos:**
-  - Execução padrão, usando apenas os manifests base e override configurados:
+- **Useful parameters:**
+  - `COMPOSE_INSTANCES` — list of environments to validate (space- or comma-separated).
+  - `DOCKER_COMPOSE_BIN` — alternate path to the binary.
+  - `COMPOSE_EXTRA_FILES` — optional list of extra overlays applied after the standard override (accepts spaces or commas).
+- **Practical examples:**
+  - Default run using only the configured base and override manifests:
     ```bash
     scripts/validate_compose.sh
     ```
-  - Validação simultânea de múltiplas instâncias definidas em `COMPOSE_INSTANCES`:
+  - Simultaneous validation of multiple instances defined in `COMPOSE_INSTANCES`:
     ```bash
     COMPOSE_INSTANCES="prod staging" scripts/validate_compose.sh
     ```
-  - Aplicação de overlays extras listados em `COMPOSE_EXTRA_FILES`:
+  - Applying extra overlays listed in `COMPOSE_EXTRA_FILES`:
     ```bash
     COMPOSE_EXTRA_FILES="compose/overlays/metrics.yml" scripts/validate_compose.sh
     ```
 
-  > Diretórios de aplicações que fornecem apenas overrides (`compose/apps/<app>/<instância>.yml`) são aceitos. O helper de
-  > planejamento ignora automaticamente `compose/apps/<app>/base.yml` quando o arquivo não existir, mantendo a lista de `-f`
-  > consistente com os manifests disponíveis.
+  > Application directories that provide only overrides (`compose/apps/<app>/<instance>.yml`) are supported. The planning helper automatically ignores `compose/apps/<app>/base.yml` when the file does not exist, keeping the list of `-f` entries consistent with available manifests.
 
-  > As variáveis podem ser exportadas previamente (`export COMPOSE_INSTANCES=...`) ou prefixadas ao comando, mantendo o fluxo simples.
-  > **Alerta:** use a validação para confirmar se as combinações padrão de Compose permanecem compatíveis com os perfis ativos antes de implantações ou PRs.
+  > Variables can be pre-exported (`export COMPOSE_INSTANCES=...`) or prefixed to the command, keeping the flow simple.
+  > **Warning:** use validation to confirm that the standard Compose combinations remain compatible with active profiles before deployments or PRs.
 
 ## scripts/deploy_instance.sh
 
-Além das flags principais (`--force`, `--skip-structure`, `--skip-validate`, `--skip-health`), personalize prompts e combinações de arquivos para refletir ambientes reais. Defina `COMPOSE_EXTRA_FILES` no `.env` quando precisar de overlays adicionais. O script calcula o diretório persistente a partir de `APP_DATA_DIR` (caminho relativo) ou `APP_DATA_DIR_MOUNT` (caminho absoluto) — deixe ambos vazios para usar o fallback `data/<instância>/<app>` e nunca habilite as duas variáveis ao mesmo tempo, pois a rotina aborta com erro.
+Beyond the main flags (`--force`, `--skip-structure`, `--skip-validate`, `--skip-health`), customize prompts and file combinations to reflect real environments. Set `COMPOSE_EXTRA_FILES` in `.env` when additional overlays are needed. The script calculates the persistent directory from `APP_DATA_DIR` (relative path) or `APP_DATA_DIR_MOUNT` (absolute path) — leave both empty to fall back to `data/<instance>/<app>` and never enable both variables simultaneously, as the routine aborts with an error.
 
 ## scripts/fix_permission_issues.sh
 
-O script depende de `scripts/lib/deploy_context.sh` para calcular `APP_DATA_DIR` ou `APP_DATA_DIR_MOUNT`, além de `APP_DATA_UID` e `APP_DATA_GID`. Em ambientes compartilhados, combine a execução com `--dry-run` para revisar alterações antes de aplicar `chown`. Documente exceções ao padrão relativo `data/<instância>/<app>` e lembre-se de que apenas uma das variáveis (`APP_DATA_DIR` ou `APP_DATA_DIR_MOUNT`) pode estar definida.
+The script relies on `scripts/lib/deploy_context.sh` to calculate `APP_DATA_DIR` or `APP_DATA_DIR_MOUNT`, plus `APP_DATA_UID` and `APP_DATA_GID`. In shared environments, combine execution with `--dry-run` to review changes before applying `chown`. Document exceptions to the `data/<instance>/<app>` relative pattern, and remember that only one of the variables (`APP_DATA_DIR` or `APP_DATA_DIR_MOUNT`) can be defined.
 
 ## scripts/backup.sh
 
-- **Dependências:**
-  - o `.env` da instância deve estar atualizado para que `scripts/lib/deploy_context.sh` identifique `APP_DATA_DIR`, `COMPOSE_FILES` e demais variáveis utilizadas na montagem da stack;
-  - o diretório `backups/` precisa estar acessível para gravação (o script cria subpastas automaticamente, mas respeita permissões do host);
-  - recomenda-se garantir que o `.env` esteja carregado (`source env/<instancia>.env`) quando houver exports adicionais exigidos pelos serviços.
-- O comando padrão (`scripts/backup.sh core`) gera um snapshot completo da instância e informa o local do artefato ao final. Consulte [`docs/BACKUP_RESTORE.md`](./BACKUP_RESTORE.md) para práticas de retenção e restauração.
-- **Dicas de personalização para forks:**
-  - Exporte variáveis complementares (por exemplo, `EXTRA_BACKUP_PATHS` ou credenciais de repositórios externos) antes de chamar o script, permitindo que wrappers locais incluam diretórios extras ou enviem os artefatos para armazenamento remoto.
-  - Ajuste o `.env` da instância para apontar `APP_DATA_DIR` (relativo) ou `APP_DATA_DIR_MOUNT` (absoluto) quando o layout de dados divergir do padrão `data/<instância>/<app>` — nunca habilite os dois ao mesmo tempo.
-  - Amplie o fluxo em wrappers externos adicionando hooks pré/pós-backup (scripts auxiliares, notificações ou compressão) mantendo a lógica central de parada/cópia/restart encapsulada aqui.
+- **Dependencies:**
+  - The instance `.env` must be up to date so that `scripts/lib/deploy_context.sh` can identify `APP_DATA_DIR`, `COMPOSE_FILES`, and other variables used to assemble the stack;
+  - The `backups/` directory must be writable (the script creates subfolders automatically but respects host permissions);
+  - It is recommended to ensure the `.env` is sourced (`source env/<instance>.env`) when there are extra exports required by services.
+- The default command (`scripts/backup.sh core`) generates a full snapshot of the instance and reports the artifact location at the end. See [`docs/BACKUP_RESTORE.md`](./BACKUP_RESTORE.md) for retention and restore practices.
+- **Customization tips for forks:**
+  - Export complementary variables (for example, `EXTRA_BACKUP_PATHS` or credentials for external repositories) before calling the script, allowing local wrappers to include extra directories or send artifacts to remote storage.
+  - Adjust the instance `.env` to set `APP_DATA_DIR` (relative) or `APP_DATA_DIR_MOUNT` (absolute) when the data layout differs from the `data/<instance>/<app>` default — never enable both at the same time.
+  - Extend the flow in external wrappers by adding pre/post-backup hooks (helper scripts, notifications, or compression) while keeping the stop/copy/restart logic encapsulated here.
 
 ## scripts/compose.sh
 
-- **Formato básico:** `scripts/compose.sh <instancia> <subcomando> [argumentos...]`. A instância define quais manifests (`compose/base.yml`, quando existir, além dos overlays de app e overrides da instância) e cadeias de `.env` serão carregados antes de encaminhar o subcomando ao `docker compose`.
-- **Variáveis derivadas:** o wrapper exporta `LOCAL_INSTANCE` a partir do `.env` final aplicado (ex.: `core`, `media`). Quem invocar `docker compose` diretamente deve exportar essa variável manualmente para preservar o segmento da instância nas montagens `data/<instância>/<app>`.
-- **Sem instância:** utilize `--` para separar os argumentos quando quiser apenas reutilizar o wrapper sem carregar metadados (ex.: `scripts/compose.sh -- config`).
-- **Variáveis úteis:** `DOCKER_COMPOSE_BIN` sobrescreve o binário invocado; `COMPOSE_FILES` e `COMPOSE_ENV_FILE` (ou `COMPOSE_ENV_FILES`) forçam combinações personalizadas sem depender dos manifests/`.env` padrão; `APP_DATA_DIR` (relativo) e `APP_DATA_DIR_MOUNT` (absoluto) são opcionais e devem ser usados de forma exclusiva — deixe ambos vazios para adotar o fallback `data/<instância>/<app>` calculado automaticamente.
-- **Ajuda integrada:** `scripts/compose.sh --help` descreve todas as opções suportadas e exemplos adicionais (`scripts/compose.sh core up -d`, `scripts/compose.sh media logs app`, `scripts/compose.sh core -- down app`).
+- **Basic format:** `scripts/compose.sh <instance> <subcommand> [arguments...]`. The instance defines which manifests (`compose/base.yml`, when present, plus app overlays and instance overrides) and `.env` chains are loaded before forwarding the subcommand to `docker compose`.
+- **Derived variables:** the wrapper exports `LOCAL_INSTANCE` from the final applied `.env` (e.g., `core`, `media`). Those invoking `docker compose` directly should export this variable manually to preserve the instance segment in `data/<instance>/<app>` mounts.
+- **No instance:** use `--` to separate arguments when you only want to reuse the wrapper without loading metadata (e.g., `scripts/compose.sh -- config`).
+- **Useful variables:** `DOCKER_COMPOSE_BIN` overrides the invoked binary; `COMPOSE_FILES` and `COMPOSE_ENV_FILE` (or `COMPOSE_ENV_FILES`) force custom combinations without relying on the standard manifests/`.env`; `APP_DATA_DIR` (relative) and `APP_DATA_DIR_MOUNT` (absolute) are optional and must be used exclusively — leave both empty to adopt the automatically calculated `data/<instance>/<app>` fallback.
+- **Built-in help:** `scripts/compose.sh --help` describes all supported options and additional examples (`scripts/compose.sh core up -d`, `scripts/compose.sh media logs app`, `scripts/compose.sh core -- down app`).
 
 ## scripts/describe_instance.sh
 
-- **Descobrir instâncias disponíveis:** execute `scripts/describe_instance.sh --list` para validar quais combinações o template expõe antes de solicitar um resumo específico.
-- **Formatações disponíveis:**
-  - `table` (padrão) — ideal para revisões rápidas em terminais ou runbooks.
-  - `json` — voltado para integrações automatizadas e geração de documentação.
-- A saída em `table` facilita revisões rápidas. Com `--format json`, campos como `compose_files`, `extra_overlays` e `services` podem alimentar geradores de runbooks ou páginas de status.
-- Destaque: o relatório aponta overlays adicionais vindos de `COMPOSE_EXTRA_FILES`, facilitando auditorias sobre customizações temporárias.
+- **Discover available instances:** run `scripts/describe_instance.sh --list` to confirm which combinations the template exposes before requesting a specific summary.
+- **Available formats:**
+  - `table` (default) — ideal for quick terminal or runbook reviews.
+  - `json` — aimed at automated integrations and documentation generation.
+- The `table` output helps quick reviews. With `--format json`, fields such as `compose_files`, `extra_overlays`, and `services` can feed runbook generators or status pages.
+- Highlight: the report surfaces additional overlays coming from `COMPOSE_EXTRA_FILES`, making it easier to audit temporary customizations.
 
 ## scripts/check_health.sh
 
-- **Argumentos e variáveis suportadas:**
-  - `HEALTH_SERVICES` — lista de serviços a inspecionar (separada por espaços ou vírgulas). Quando definido, limita a execução apenas aos serviços desejados.
-  - `COMPOSE_ENV_FILE` — caminho para um arquivo `.env` alternativo a ser carregado antes de consultar o `docker compose`.
-- O script complementa automaticamente a lista de serviços executando `docker compose config --services`. Caso nenhum serviço seja encontrado, a execução aborta com erro para evitar supressão silenciosa de logs.
-- **Formatos de saída:**
-  - `text` (padrão) — replica o comportamento histórico imprimindo o resultado de `docker compose ps` seguido dos logs recentes.
-  - `json` — serializa o status dos contêineres (incluindo `docker compose ps --format json`, quando disponível) e os logs de cada serviço monitorado para consumo por pipelines ou páginas de status.
-- **Persistência da saída:** use `--output <arquivo>` para gravar o relatório em disco sem abrir mão da saída padrão, facilitando integrações que versionam ou distribuem o resultado.
+- **Supported arguments and variables:**
+  - `HEALTH_SERVICES` — list of services to inspect (space- or comma-separated). When set, execution is limited to the desired services only.
+  - `COMPOSE_ENV_FILE` — path to an alternate `.env` file to load before querying `docker compose`.
+- The script automatically supplements the service list by running `docker compose config --services`. If no services are found, execution aborts with an error to avoid silently suppressing logs.
+- **Output formats:**
+  - `text` (default) — mirrors the historical behavior by printing `docker compose ps` followed by recent logs.
+  - `json` — serializes container status (including `docker compose ps --format json`, when available) and logs for each monitored service for consumption by pipelines or status pages.
+- **Persisting output:** use `--output <file>` to write the report to disk while still printing to stdout, making it easier to version or distribute the result.
 
-Exemplos práticos:
+Practical examples:
 
 ```bash
-# Saída tradicional em texto
+# Traditional text output
 scripts/check_health.sh core
 
-# Coleta estruturada para pipelines (ex.: GitHub Actions + jq)
+# Structured collection for pipelines (e.g., GitHub Actions + jq)
 scripts/check_health.sh --format json core | jq '.logs.failed'
 
-# Gera arquivo JSON para publicar em uma página de status
+# Generate a JSON file to publish on a status page
 scripts/check_health.sh --format json --output status/core.json core
 
-# Usa HEALTH_SERVICES para restringir a coleta a serviços críticos
+# Use HEALTH_SERVICES to limit collection to critical services
 HEALTH_SERVICES="api worker" scripts/check_health.sh --format json media | jq '.compose.raw'
 ```
 
-> **Dica:** combine o modo `json` com ferramentas como `jq`, `yq` ou clientes HTTP (`curl`, `gh api`) para alimentar dashboards e notificações. O campo `logs.entries[].log` traz o conteúdo em texto, enquanto `logs.entries[].log_b64` preserva os dados em Base64 para reprocessamento seguro.
+> **Tip:** combine `json` mode with tools like `jq`, `yq`, or HTTP clients (`curl`, `gh api`) to feed dashboards and notifications. The `logs.entries[].log` field carries the text content, while `logs.entries[].log_b64` preserves Base64 data for safe reprocessing.
 
 ## scripts/check_db_integrity.sh
 
-- **Parâmetros úteis:**
-  - `--data-dir` — diretório raiz onde os arquivos `.db` serão buscados.
-  - `--format` — alterna entre saídas `text` (padrão) e `json` para integrações automatizadas.
-  - `--no-resume` — evita retomar automaticamente os serviços ao final da verificação (útil em investigações manuais).
-  - `--output` — grava o resumo final (em texto ou JSON, conforme o formato escolhido) no caminho indicado.
-  - `SQLITE3_MODE` — define o backend (`container`, `binary` ou `auto`; padrão `container`).
-  - `SQLITE3_CONTAINER_RUNTIME` — runtime utilizado para executar o contêiner (padrão `docker`).
-  - `SQLITE3_CONTAINER_IMAGE` — imagem utilizada para o comando `sqlite3` (padrão `keinos/sqlite3:latest`).
-  - `SQLITE3_BIN` — caminho para um binário local usado em modo `binary` ou como fallback.
-- **Observações operacionais:**
-  - Backups com sufixo `.bak` são gerados automaticamente antes de sobrescrever um banco recuperado.
-  - Sempre que uma inconsistência é detectada (mesmo após recuperação), alertas são emitidos na saída de erro padrão para facilitar integrações com sistemas de monitoramento.
-  - Combine com janelas de manutenção curtas, pois os serviços permanecem pausados durante toda a inspeção.
+- **Useful parameters:**
+  - `--data-dir` — root directory where `.db` files will be searched.
+  - `--format` — switches between `text` (default) and `json` outputs for automated integrations.
+  - `--no-resume` — prevents automatically resuming services at the end of the check (useful for manual investigations).
+  - `--output` — writes the final summary (text or JSON, according to the chosen format) to the given path.
+  - `SQLITE3_MODE` — sets the backend (`container`, `binary`, or `auto`; default `container`).
+  - `SQLITE3_CONTAINER_RUNTIME` — runtime used to execute the container (default `docker`).
+  - `SQLITE3_CONTAINER_IMAGE` — image used for the `sqlite3` command (default `keinos/sqlite3:latest`).
+  - `SQLITE3_BIN` — path to a local binary used in `binary` mode or as a fallback.
+- **Operational notes:**
+  - Backups with the `.bak` suffix are automatically generated before overwriting a recovered database.
+  - Whenever an inconsistency is detected (even after recovery), alerts are emitted to stderr to ease integration with monitoring systems.
+  - Combine with short maintenance windows because services stay paused during the entire inspection.
 
 ## scripts/update_from_template.sh
 
-Este documento mantém apenas um resumo: utilize `scripts/update_from_template.sh` para reaplicar customizações
-após sincronizar o fork com o template. Para o passo a passo detalhado, parâmetros explicados e exemplos de
-execução, consulte a seção ["Atualizando a partir do template original"](../README.md#atualizando-a-partir-do-template-original)
-no `README.md`, que é a fonte única de verdade para esse fluxo. Registre aqui apenas adaptações locais que não
-entrem em conflito com o guia principal.
+This document keeps only a summary: use `scripts/update_from_template.sh` to reapply customizations after syncing the fork with the template. For the detailed walkthrough, explained parameters, and execution examples, see the ["Updating from the original template"](../README.md#updating-from-the-original-template) section in `README.md`, which is the single source of truth for this flow. Record here only local adaptations that do not conflict with the main guide.
 
 ## scripts/detect_template_commits.sh
 
-- **Parâmetros principais:**
-  - `--remote` — define explicitamente o remote que aponta para o template; é detectado automaticamente quando possível.
-  - `--target-branch` — informa a branch do template usada como referência; quando omitida, o script tenta descobrir o HEAD padrão (`main`/`master`).
-  - `--output` — sobrescreve o caminho padrão `env/local/template_commits.env` ao salvar os hashes calculados.
-  - `--no-fetch` — evita executar `git fetch --prune` antes dos cálculos, útil quando o espelho local já está atualizado.
-- **Saída gerada:** cria (ou atualiza) `env/local/template_commits.env` com `ORIGINAL_COMMIT_ID` e `FIRST_COMMIT_ID`, permitindo reutilizar os valores no passo seguinte do fluxo de ["Atualizando a partir do template original"](../README.md#atualizando-a-partir-do-template-original).
-- **Exemplos alinhados ao fluxo padrão:**
-  - Detecção automática antes de rodar `scripts/update_from_template.sh`:
+- **Main parameters:**
+  - `--remote` — explicitly sets the remote pointing to the template; detected automatically when possible.
+  - `--target-branch` — provides the template branch used as reference; when omitted, the script attempts to discover the default HEAD (`main`/`master`).
+  - `--output` — overrides the default `env/local/template_commits.env` path when saving the calculated hashes.
+  - `--no-fetch` — avoids running `git fetch --prune` before calculations, useful when the local mirror is already up to date.
+- **Generated output:** creates (or updates) `env/local/template_commits.env` with `ORIGINAL_COMMIT_ID` and `FIRST_COMMIT_ID`, allowing reuse of the values in the next step of the ["Updating from the original template"](../README.md#updating-from-the-original-template) flow.
+- **Examples aligned with the standard flow:**
+  - Automatic detection before running `scripts/update_from_template.sh`:
     ```bash
     scripts/detect_template_commits.sh
     ```
-  - Forçando o remote, branch de origem e reaproveitando a saída sugerida pelo README:
+  - Forcing remote, source branch, and reusing the README-suggested output:
     ```bash
     scripts/detect_template_commits.sh \
       --remote template \
       --target-branch main \
       --output env/local/template_commits.env
     ```
-  - Em pipelines que já atualizaram os refs do template, combine com `--no-fetch` para agilizar o processo:
+  - In pipelines that already updated the template refs, combine with `--no-fetch` to speed up the process:
     ```bash
     scripts/detect_template_commits.sh --no-fetch
     ```
 
-## Personalizações sugeridas
+## Suggested customizations
 
-- **Novo serviço:** utilize `scripts/bootstrap_instance.sh <app> <instância>` como ponto de partida; em seguida personalize compose, `.env` e documentação antes de prosseguir com validações.
-- **Diretórios persistentes:** o caminho `data/<instância>/<app>` é calculado automaticamente; utilize `APP_DATA_DIR` (relativo) **ou** `APP_DATA_DIR_MOUNT` (absoluto) quando precisar personalizar o destino e ajuste `APP_DATA_UID`/`APP_DATA_GID` no `.env` para alinhar permissões.
-- **Serviços monitorados:** defina `HEALTH_SERVICES` nos arquivos `.env` para que `scripts/check_health.sh` use os alvos corretos de log.
-- **Volumes extras:** utilize overrides específicos (`compose/apps/<app>/<instância>.yml`) para montar diretórios adicionais ou expor portas distintas por ambiente. Quando presente, veja também [`compose/media.yml`](../compose/media.yml) para um exemplo de volume nomeado compartilhado (`media_cache`) entre serviços da instância.
-- **Overlays por configuração:** registre overlays opcionais em `compose/overlays/*.yml` e habilite-os por ambiente via `COMPOSE_EXTRA_FILES`. Isso mantém diffs de templates restritos a arquivos de configuração, sem editar scripts.
+- **New service:** use `scripts/bootstrap_instance.sh <app> <instance>` as a starting point; then customize Compose, `.env`, and documentation before proceeding with validations.
+- **Persistent directories:** the `data/<instance>/<app>` path is calculated automatically; use `APP_DATA_DIR` (relative) **or** `APP_DATA_DIR_MOUNT` (absolute) when you need to customize the destination and adjust `APP_DATA_UID`/`APP_DATA_GID` in `.env` to align permissions.
+- **Monitored services:** set `HEALTH_SERVICES` in `.env` files so `scripts/check_health.sh` targets the correct logs.
+- **Extra volumes:** use instance-specific overrides (`compose/apps/<app>/<instance>.yml`) to mount additional directories or expose different ports per environment. When present, see also [`compose/media.yml`](../compose/media.yml) for an example of a named volume shared (`media_cache`) between services in the instance.
+- **Configurable overlays:** register optional overlays under `compose/overlays/*.yml` and enable them per environment via `COMPOSE_EXTRA_FILES`. This keeps template diffs confined to configuration files without editing scripts.
 
-## Fluxos operacionais sugeridos
+## Suggested operational flows
 
-1. **Deploys regulares:** descreva o passo a passo (pré-validações, comando de deploy, pós-checks) para cada ambiente.
-2. **Atualizações:** documente como aplicar upgrades de imagens, dependências ou configurações.
-3. **Backups & restores:** integre este guia com [`docs/BACKUP_RESTORE.md`](./BACKUP_RESTORE.md) e detalhe onde os artefatos ficam armazenados.
-4. **Troubleshooting:** liste comandos rápidos para coletar logs, métricas ou reiniciar serviços.
+1. **Regular deployments:** describe the step-by-step (pre-validations, deployment command, post-checks) for each environment.
+2. **Updates:** document how to apply image, dependency, or configuration upgrades.
+3. **Backups & restores:** integrate this guide with [`docs/BACKUP_RESTORE.md`](./BACKUP_RESTORE.md) and detail where artifacts are stored.
+4. **Troubleshooting:** list quick commands to collect logs, metrics, or restart services.
 
-Atualize ou substitua seções inteiras conforme necessário para representar fielmente o ciclo de vida operacional do projeto derivado.
+Update or replace entire sections as needed to accurately represent the operational lifecycle of the derived project.

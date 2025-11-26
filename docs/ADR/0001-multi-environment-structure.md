@@ -1,22 +1,22 @@
-# ADR 0001 — Estrutura multiambiente para serviços derivados
+# ADR 0001 — Multi-environment structure for derived services
 
 ## Status
 
-Aceito
+Accepted
 
-## Contexto
+## Context
 
-Ao reutilizar este template, é comum dividir responsabilidades em múltiplos ambientes (por exemplo: produção vs. processamento pesado, controle vs. laboratório). Precisamos de uma convenção inicial que sirva de referência para documentar essas divisões e orientar scripts/runbooks.
+When reusing this template, it is common to split responsibilities across multiple environments (for example, production vs. heavy processing, control vs. lab). We need an initial convention that serves as a reference to document these splits and guide scripts/runbooks.
 
-## Decisão
+## Decision
 
-- Manter pelo menos dois ambientes nomeados (`<ambiente-primario>` e `<ambiente-auxiliar>`) ao iniciar um projeto derivado.
-- Registrar runbooks separados em `docs/core.md` e `docs/media.md` (ou renomeações equivalentes) contendo checklists de deploy, recuperação e operações recorrentes.
-- Definir variáveis de ambiente e manifests específicos para cada ambiente, mantendo os modelos em `env/` e `compose/`.
-- Documentar dependências externas compartilhadas em [`docs/NETWORKING_INTEGRATION.md`](../NETWORKING_INTEGRATION.md), garantindo que impactos sejam mapeados por ambiente.
+- Keep at least two named environments (`<primary-environment>` and `<auxiliary-environment>`) when starting a derived project.
+- Record separate runbooks in `docs/core.md` and `docs/media.md` (or equivalent renamings) covering deploy, recovery, and recurring operations checklists.
+- Define environment-specific variables and manifests for each environment, keeping the templates in `env/` and `compose/`.
+- Document shared external dependencies in [`docs/NETWORKING_INTEGRATION.md`](../NETWORKING_INTEGRATION.md) to ensure impacts are mapped by environment.
 
-## Consequências
+## Consequences
 
-- Projetos derivados possuem um ponto de partida claro para separar cargas de trabalho, o que facilita escalabilidade e isolamento.
-- Scripts e validações do template podem ser reutilizados sem alterações profundas, bastando informar o nome do ambiente desejado.
-- Caso um projeto precise de apenas um ambiente, a equipe deve registrar um novo ADR explicando a alteração e atualizar a documentação correspondente.
+- Derived projects have a clear starting point to split workloads, which facilitates scalability and isolation.
+- Template scripts and validations can be reused without deep changes, requiring only the desired environment name.
+- If a project needs only one environment, the team must record a new ADR explaining the change and update the corresponding documentation.

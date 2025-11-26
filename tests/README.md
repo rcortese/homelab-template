@@ -1,24 +1,11 @@
-# Testes do template
+# Template tests
 
-Este diretório contém os testes que acompanham o template e devem permanecer
-intactos para facilitar atualizações futuras. Para adicionar testes específicos
-em projetos derivados, crie-os fora deste diretório e orquestre a execução por
-meio do workflow sobrescrito `.github/workflows/project-tests.yml`. Consulte
-`docs/ci-overrides.md` para o passo a passo completo.
+This directory contains the tests that ship with the template and must remain intact to simplify future updates. To add project-specific tests in derived repositories, create them outside this directory and orchestrate execution through the overridden workflow `.github/workflows/project-tests.yml`. See `docs/ci-overrides.md` for the full walkthrough.
 
-## Organização dos testes
+## Test organization
 
-Os casos que exercitam os comandos distribuídos em `scripts/` ficam centralizados
-em `tests/scripts/`. Cada subdiretório leva o nome do comando correspondente
-(por exemplo, `tests/scripts/check_all/` cobre o wrapper `scripts/check_all.sh`)
-e deve conter um `__init__.py` para permitir imports relativos entre os módulos
-de teste. Ao adicionar verificações para um novo comando, crie um diretório
-homônimo em `tests/scripts/`, mova/adicione os arquivos `test_*.py` dentro dele e
-consuma utilitários compartilhados via `tests/helpers/`.
+Test cases that exercise commands in `scripts/` are centralized in `tests/scripts/`. Each subdirectory is named after the corresponding command (for example, `tests/scripts/check_all/` covers the `scripts/check_all.sh` wrapper) and should contain an `__init__.py` to allow relative imports between test modules. When adding checks for a new command, create a directory with the same name in `tests/scripts/`, move/add the `test_*.py` files inside it, and consume shared utilities via `tests/helpers/`.
 
-## Como rodar
+## How to run
 
-Para validar rapidamente a suíte do template localmente, utilize `pytest -q` na
-raiz do repositório. Como alternativa mais abrangente, execute o script
-`scripts/run_quality_checks.sh`, que reproduz a sequência de verificações
-invocada pelo workflow `project-tests.yml` no GitHub Actions.
+To quickly validate the template suite locally, use `pytest -q` in the repository root. As a broader alternative, run the `scripts/run_quality_checks.sh` script, which reproduces the sequence of quality checks invoked by the `project-tests.yml` workflow in GitHub Actions.

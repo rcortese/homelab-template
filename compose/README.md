@@ -1,54 +1,40 @@
-# Guia rápido de manifests Compose
+# Compose manifests quick guide
 
-> Consulte também o [Guia de combinações do Docker Compose](../docs/COMPOSE_GUIDE.md) para instruções completas
-> e o panorama da [estrutura do template](../docs/STRUCTURE.md).
+> See also the [Docker Compose combinations guide](../docs/COMPOSE_GUIDE.md) for full instructions and the overview of the [template structure](../docs/STRUCTURE.md).
 
-## Ordem de carregamento recomendada
+## Recommended loading order
 
-Os manifests são encadeados em blocos. Cada passo herda anchors e variáveis do anterior.
+Manifests are chained in blocks. Each step inherits anchors and variables from the previous one.
 
-1. `compose/base.yml` *(opcional)* — define anchors, volumes nomeados e variáveis compartilhadas. É carregado automaticamente
-   quando existir.
-2. Manifesto da instância (`compose/<instância>.yml`, ex.: `compose/core.yml`) *(opcional)* — ativa redes, labels e volumes
-   globais quando presente.
-3. Aplicações habilitadas (`compose/apps/<app>/...`) — cada aplicação entra como um par `base.yml` + `<instância>.yml`.
+1. `compose/base.yml` *(optional)* — defines anchors, named volumes, and shared variables. It is loaded automatically when present.
+2. Instance manifest (`compose/<instance>.yml`, e.g., `compose/core.yml`) *(optional)* — enables networks, labels, and global volumes when present.
+3. Enabled applications (`compose/apps/<app>/...`) — each application comes in a `base.yml` + `<instance>.yml` pair.
 
 ```
-(base.yml) → core.yml|media.yml → compose/apps/app/base.yml → compose/apps/app/<instância>.yml → ...
+(base.yml) → core.yml|media.yml → compose/apps/app/base.yml → compose/apps/app/<instance>.yml → ...
 ```
 
-> Os scripts (`scripts/compose.sh`, `scripts/deploy_instance.sh`, etc.) respeitam automaticamente essa ordem ao montar o plano.
+> The scripts (`scripts/compose.sh`, `scripts/deploy_instance.sh`, etc.) automatically follow this order when building the plan.
 
-## Instâncias principais e aplicações opcionais
+## Main instances and optional applications
 
-- **Instâncias principais:** `core` e `media` são exemplos de perfis completos. Seus manifests (`compose/core.yml` e
-  `compose/media.yml`, quando existentes) carregam ajustes compartilhados por todas as aplicações daquela instância (labels de
-  proxy, redes externas, montagens de mídia, caches, etc.).
-- **Aplicação principal:** `compose/apps/app/` ilustra uma aplicação padrão. O arquivo `base.yml` introduz serviços e anchors que
-  serão especializados nos overrides `core.yml` e `media.yml`.
-- **Aplicações auxiliares:** diretórios como `compose/apps/monitoring/` e `compose/apps/worker/` mostram como habilitar componentes
-  opcionais. Basta incluir o par `base.yml` + `<instância>.yml` desejado após o manifesto da instância ativa. Serviços sem
-  `base.yml` são tratados como *override-only* e só são anexados às instâncias onde o arquivo existe.
+- **Main instances:** `core` and `media` are examples of full profiles. Their manifests (`compose/core.yml` and `compose/media.yml`, when present) load settings shared by all applications in that instance (proxy labels, external networks, media mounts, caches, etc.).
+- **Primary application:** `compose/apps/app/` illustrates a standard application. The `base.yml` file introduces services and anchors that will be specialized in the `core.yml` and `media.yml` overrides.
+- **Auxiliary applications:** directories such as `compose/apps/monitoring/` and `compose/apps/worker/` demonstrate how to enable optional components. Simply include the desired `base.yml` + `<instance>.yml` pair after the active instance manifest. Services without a `base.yml` are treated as *override-only* and are only attached to instances where the file exists.
 
-Ao montar a pilha, escolha quais blocos de aplicação anexar. A instância `core` pode rodar `app` + `monitoring`, enquanto `media`
-carrega apenas `app` + `worker`, por exemplo. Mantendo a ordem, anchors definidos em `compose/base.yml` (quando presente)
-permanecem disponíveis para qualquer combinação.
+When building the stack, choose which application blocks to attach. The `core` instance can run `app` + `monitoring`, while `media` loads only `app` + `worker`, for example. Keeping the order ensures anchors defined in `compose/base.yml` (when present) remain available to any combination.
 
-## Variáveis de ambiente essenciais
+## Essential environment variables
 
-| Variável | Onde definir | Finalidade | Referência |
+| Variable | Where to define | Purpose | Reference |
 | --- | --- | --- | --- |
-| `TZ` | `env/common.example.env` | Garante timezone consistente para logs e agendamentos. | [env/README.md](../env/README.md#envcommonexampleenv) |
-| `APP_DATA_DIR` / `APP_DATA_DIR_MOUNT` | `env/common.example.env` | Define o caminho persistente (relativo ou absoluto) utilizado pelos manifests. | [env/README.md](../env/README.md#envcommonexampleenv) |
-| `APP_SHARED_DATA_VOLUME_NAME` | `env/common.example.env` | Padroniza o volume compartilhado entre múltiplas aplicações. | [env/README.md](../env/README.md#envcommonexampleenv) |
-| `COMPOSE_EXTRA_FILES` | `env/<instância>.example.env` | Lista overlays adicionais aplicados após os manifests padrão. | [env/README.md](../env/README.md#como-gerar-arquivos-locais) |
+| `TZ` | `env/common.example.env` | Ensures a consistent timezone for logs and schedules. | [env/README.md](../env/README.md#envcommonexampleenv) |
+| `APP_DATA_DIR` / `APP_DATA_DIR_MOUNT` | `env/common.example.env` | Defines the persistent path (relative or absolute) used by the manifests. | [env/README.md](../env/README.md#envcommonexampleenv) |
+| `APP_SHARED_DATA_VOLUME_NAME` | `env/common.example.env` | Standardizes the shared volume across multiple applications. | [env/README.md](../env/README.md#envcommonexampleenv) |
+| `COMPOSE_EXTRA_FILES` | `env/<instance>.example.env` | Lists additional overlays applied after the default manifests. | [env/README.md](../env/README.md#como-gerar-arquivos-locais) |
 
-> Use o [guia completo de variáveis de ambiente](../env/README.md) para revisar a lista atualizada e documentar novos campos.
-> Placeholders do app e do worker de exemplo (como `APP_SECRET`, `APP_RETENTION_HOURS` e `WORKER_QUEUE_URL`) estão detalhados na seção correspondente do [README de `env/`](../env/README.md#placeholders-app-worker).
+> Use the [complete environment variables guide](../env/README.md) to review the latest list and document new fields. Example app and worker placeholders (such as `APP_SECRET`, `APP_RETENTION_HOURS`, and `WORKER_QUEUE_URL`) are detailed in the corresponding section of the [environment README](../env/README.md#placeholders-app-worker).
 
-## Ferramenta de inspeção
+## Inspection tool
 
-Execute `scripts/describe_instance.sh <instância>` para auditar os manifests carregados, serviços ativos, portas expostas e volumes
-resultantes a partir de `docker compose config`. A flag `--list` revela as instâncias disponíveis e `--format json` exporta os
-metadados para automação.
-
+Run `scripts/describe_instance.sh <instance>` to audit the loaded manifests, active services, exposed ports, and resulting volumes from `docker compose config`. The `--list` flag reveals available instances, and `--format json` exports the metadata for automation.

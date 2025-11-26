@@ -1,31 +1,17 @@
-# Diretrizes para sobrescrever testes de CI em projetos derivados
+# Guidelines for overriding CI tests in derived projects
 
-Para manter um fluxo simples de atualização quando este template receber novas
-versões, concentre as personalizações de CI nos arquivos indicados abaixo.
+To keep updates simple when this template ships new versions, concentrate CI customizations in the files below.
 
-## Fluxo recomendado
+## Recommended flow
 
-1. **Não modifique** `.github/workflows/template-quality.yml` nos projetos
-   derivados. Esse workflow cobre as verificações básicas fornecidas pelo
-   template (lint de shell, validações de infraestrutura e suíte de testes
-   principal).
-2. Crie ou atualize `.github/workflows/project-tests.yml` no projeto derivado
-   para adicionar jobs específicos (por exemplo, lint de código da aplicação,
-   smoke tests adicionais ou validações de infraestrutura próprias).
-3. Utilize o gatilho `workflow_call` do arquivo `project-tests.yml` para definir
-   os jobs necessários. O workflow pai já referencia esse arquivo através de um
-   `uses: ./.github/workflows/project-tests.yml`.
-4. Quando novas versões do template forem integradas, as personalizações
-   permanecerão isoladas no arquivo sobrescrito, reduzindo conflitos de merge.
+1. **Do not modify** `.github/workflows/template-quality.yml` in derived projects. This workflow covers the basic checks provided by the template (shell lint, infrastructure validations, and the main test suite).
+2. Create or update `.github/workflows/project-tests.yml` in the derived project to add specific jobs (for example, application code lint, extra smoke tests, or project-specific infrastructure validations).
+3. Use the `workflow_call` trigger in `project-tests.yml` to define the required jobs. The parent workflow already references this file through `uses: ./.github/workflows/project-tests.yml`.
+4. When new template versions are integrated, customizations remain isolated in the overridden file, reducing merge conflicts.
 
-## Onde criar novos testes
+## Where to create new tests
 
-- **Testes Python compartilhados:** continue adicionando no diretório
-  `tests/` dentro do template, desde que façam sentido para todos os derivados.
-- **Testes específicos do projeto derivado:** mantenha-os fora do template e
-  concentre a orquestração no arquivo sobrescrito
-  `.github/workflows/project-tests.yml`.
+- **Shared Python tests:** keep adding them to the `tests/` directory in the template, as long as they make sense for every derived project.
+- **Derived-project-specific tests:** keep them outside the template and focus orchestration in the overridden `.github/workflows/project-tests.yml`.
 
-> Dica: ao sobrescrever o workflow, preserve o nome do job principal (por
-> exemplo, `project-tests`) para manter a visualização do histórico consistente
-> com o template.
+> Tip: when overriding the workflow, preserve the main job name (for example, `project-tests`) to keep the history view consistent with the template.
