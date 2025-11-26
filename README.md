@@ -18,7 +18,7 @@ Follow the [onboarding guide](docs/ONBOARDING.md) step by step to prepare the en
 
 ## Required content
 
-Every derived repository must keep the minimum set of directories described in the template. For the full list—the single source of truth—see the [table of required directories in `docs/STRUCTURE.md`](docs/STRUCTURE.md#diretórios-obrigatórios). It details purposes, content examples, and serves as the central reference for structural updates.
+Every derived repository must keep the minimum set of directories described in the template. For the full list—the single source of truth—see the [table of required directories in `docs/STRUCTURE.md`](docs/STRUCTURE.md#required-directories). It details purposes, content examples, and serves as the central reference for structural updates.
 
 CI/CD pipelines, tests, and additional scripts can be added, but the directories listed in the table must be preserved to maintain compatibility with the template utilities.
 
