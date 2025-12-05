@@ -18,6 +18,7 @@ This document offers a starting point for describing operational processes and h
 | [`scripts/fix_permission_issues.sh`](#scriptsfix_permission_issuessh) | Adjust permissions for persistent directories. | `scripts/fix_permission_issues.sh <instance>` | Before starting services that share storage. |
 | [`scripts/backup.sh`](#scriptsbackupsh) | Generate a versioned snapshot of the instance. | `scripts/backup.sh <instance>` | Backup routines and pre-invasive changes. |
 | [`scripts/compose.sh`](#scriptscomposesh) | Standardize `docker compose` calls. | `scripts/compose.sh <instance> <subcommand>` | Local or CI Compose operations. |
+| [`scripts/build_compose_file.sh`](#scriptsbuild_compose_filesh) | Materialize the resolved Compose plan into a single file. | `scripts/build_compose_file.sh --instance <name>` | When caching Compose plans for reuse. |
 | [`scripts/describe_instance.sh`](#scriptsdescribe_instancesh) | Summarize services, ports, and volumes of an instance. | `scripts/describe_instance.sh <instance>` | Quick audits or runbook generation. |
 | [`scripts/check_health.sh`](#scriptscheck_healthsh) | Check service status after changes. | `scripts/check_health.sh <instance>` | Post-deploy, post-restore, or troubleshooting. |
 | [`scripts/check_db_integrity.sh`](#scriptscheck_db_integritysh) | Validate SQLite integrity with controlled pause. | `scripts/check_db_integrity.sh <instance>` | Scheduled maintenance or failure investigation. |
@@ -167,6 +168,26 @@ The script relies on `scripts/lib/deploy_context.sh` to calculate `APP_DATA_DIR`
 - **No instance:** use `--` to separate arguments when you only want to reuse the wrapper without loading metadata (e.g., `scripts/compose.sh -- config`).
 - **Useful variables:** `DOCKER_COMPOSE_BIN` overrides the invoked binary; `COMPOSE_FILES` and `COMPOSE_ENV_FILE` (or `COMPOSE_ENV_FILES`) force custom combinations without relying on the standard manifests/`.env`; `APP_DATA_DIR` (relative) and `APP_DATA_DIR_MOUNT` (absolute) are optional and must be used exclusively — leave both empty to adopt the automatically calculated `data/<instance>/<app>` fallback.
 - **Built-in help:** `scripts/compose.sh --help` describes all supported options and additional examples (`scripts/compose.sh core up -d`, `scripts/compose.sh media logs app`, `scripts/compose.sh core -- down app`).
+
+## scripts/build_compose_file.sh
+
+- **Goal:** materialize the resolved Compose plan into `docker-compose.yml` at the repository root, allowing other flows to reuse the merged file with `docker compose -f docker-compose.yml <subcommand>` or by exporting `COMPOSE_FILE=docker-compose.yml`.
+- **Inputs and overrides:**
+  - Accepts `--instance` to reuse the discovery chain documented for `scripts/compose.sh`, including the standard `compose/base.yml`, app manifests, and per-instance overrides;
+  - `--file` (repeatable) mirrors `COMPOSE_EXTRA_FILES`, appending overlays after the discovered plan; if `COMPOSE_FILES` is set, its value replaces the plan entirely before extras are appended;
+  - `--env-file` (repeatable) extends or replaces the `.env` chain (`COMPOSE_ENV_FILES`/`COMPOSE_ENV_FILE`), falling back to `env/local/<instance>.env` → `env/<instance>.example.env` and `env/common.example.env` when the explicit list is empty.
+- **Output validation:** after writing the merged file, the script runs `docker compose -f docker-compose.yml config -q` (reusing the same env chain) and fails when inconsistencies are detected.
+- **Examples:**
+  ```bash
+  # Generate the root docker-compose.yml for the core instance using defaults
+  scripts/build_compose_file.sh --instance core
+
+  # Append temporary overlays and a custom env chain while writing to a different path
+  scripts/build_compose_file.sh --instance media \
+    --file compose/apps/monitoring/debug.yml \
+    --env-file env/local/common.env --env-file env/local/media.env \
+    --output /tmp/media-merged-compose.yml
+  ```
 
 ## scripts/describe_instance.sh
 
