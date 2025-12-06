@@ -14,7 +14,7 @@ from .utils import REPO_ROOT
 def _select_manifest(repo_copy: Path) -> Path:
     instances = load_compose_instances_data(repo_copy)
     if not instances.instance_names:
-        raise AssertionError("Nenhuma instância Compose encontrada para o teste.")
+        raise AssertionError("No Compose instances found for the test.")
 
     apps_without_overrides = sorted(instances.apps_without_overrides())
     if apps_without_overrides:
@@ -32,7 +32,7 @@ def _select_manifest(repo_copy: Path) -> Path:
         if relative_path.parts[:2] == ("compose", "apps") and candidate.is_file():
             return candidate
 
-    raise AssertionError("Nenhum manifest de aplicativo encontrado para a instância selecionada.")
+    raise AssertionError("No application manifest found for the selected instance.")
 
 if TYPE_CHECKING:
     from ..conftest import DockerStub

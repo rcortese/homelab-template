@@ -3,11 +3,11 @@
 # Usage: scripts/validate_compose.sh
 #
 # Arguments:
-#   (nenhum) — o script valida as instâncias conhecidas usando somente base + override da instância.
+#   (none) — the script validates known instances using only the base file plus the instance override.
 # Environment:
-#   DOCKER_COMPOSE_BIN   Sobrescreve o binário usado (ex.: docker-compose).
-#   COMPOSE_INSTANCES    Lista de instâncias a validar (separadas por espaço ou vírgula). Default: todas.
-#   COMPOSE_EXTRA_FILES  Overlays extras aplicados após o arquivo override padrão (aceita espaços ou vírgulas).
+#   DOCKER_COMPOSE_BIN   Overrides the binary used (for example: docker-compose).
+#   COMPOSE_INSTANCES    List of instances to validate (space- or comma-separated). Default: all.
+#   COMPOSE_EXTRA_FILES  Extra overlays applied after the default override file (spaces or commas accepted).
 # Examples:
 #   scripts/validate_compose.sh
 #   COMPOSE_INSTANCES="media" scripts/validate_compose.sh
@@ -29,8 +29,8 @@ source "$SCRIPT_DIR/lib/validate_cli.sh"
 source "$SCRIPT_DIR/lib/validate_executor.sh"
 
 print_deprecation_notice() {
-  echo "[WARN] Modo legacy ativado: o suporte ao plano dinâmico -f será removido futuramente;" >&2
-  echo "       utilize o docker-compose.yml consolidado ou ajuste automações." >&2
+  echo "[WARN] Legacy mode enabled: support for the dynamic -f plan will be removed in a future release;" >&2
+  echo "       use the consolidated docker-compose.yml or adjust automations." >&2
 }
 
 POSITIONAL_ARGS=()
@@ -60,7 +60,7 @@ else
 fi
 
 if ! compose_metadata="$("$SCRIPT_DIR/lib/compose_instances.sh" "$REPO_ROOT")"; then
-  echo "Error: não foi possível carregar metadados das instâncias." >&2
+  echo "Error: unable to load instance metadata." >&2
   exit 1
 fi
 

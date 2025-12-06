@@ -164,7 +164,7 @@ def _discover_instance_metadata(repo_root: Path) -> tuple[InstanceMetadata, ...]
     compose_dir = repo_root / "compose"
     apps_dir = compose_dir / "apps"
     if not apps_dir.is_dir():  # pragma: no cover - defensive
-        raise FileNotFoundError(f"Diretório de aplicações não encontrado: {apps_dir}")
+        raise FileNotFoundError(f"Applications directory not found: {apps_dir}")
 
     instance_files: dict[str, list[Path]] = {}
     instance_app_names: dict[str, list[str]] = {}
@@ -232,7 +232,7 @@ def _discover_instance_metadata(repo_root: Path) -> tuple[InstanceMetadata, ...]
                 known_instances.add(name)
 
     if not known_instances:
-        raise ValueError("Nenhuma instância encontrada em compose/apps ou env.")
+        raise ValueError("No instances found in compose/apps or env.")
 
     instance_names = sorted(known_instances)
 

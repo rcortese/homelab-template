@@ -162,7 +162,7 @@ def test_logs_without_targets_and_no_services_reports_error(
     result = run_check_health(env=env)
 
     assert result.returncode != 0
-    assert "nenhum serviço foi encontrado" in result.stderr
+    assert "no services were found" in result.stderr
 
     calls = [
         _strip_env_and_file_flags(entry) for entry in docker_stub.read_calls()

@@ -26,7 +26,7 @@ def test_help_option_displays_usage_and_exits_successfully(flag: str) -> None:
         "  (none)",
         "",
         "Options:",
-        "  --legacy-plan      Usa a combinação dinâmica de -f (modo legado). Será removido futuramente.",
+        "  --legacy-plan      Uses the dynamic combination of -f (legacy mode). Will be removed in a future release.",
         "",
         "Relevant environment variables:",
         "  DOCKER_COMPOSE_BIN  Override the docker compose command (for example: docker-compose).",

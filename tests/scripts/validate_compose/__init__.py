@@ -1,1 +1,1 @@
-"""Testes que exercitam o comando 'validate_compose' do diretório scripts."""
+"""Tests covering the `validate_compose` command from the scripts directory."""

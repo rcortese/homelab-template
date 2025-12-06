@@ -1,19 +1,18 @@
 #!/usr/bin/env bash
 # shellcheck source-path=SCRIPTDIR
-# Usage: scripts/check_health.sh [--format text|json] [--output <arquivo>] [instancia]
+# Usage: scripts/check_health.sh [--format text|json] [--output <file>] [instance]
 #
 # Arguments:
-#   instancia (opcional): identificador usado nos manifests compose/apps/<app>/<instancia>.yml
-#                         carregados a partir de compose/base.yml. Quando informado, o script
-#                         procura também env/local/<instancia>.env.
+#   instance (optional): identifier used by compose/apps/<app>/<instance>.yml manifests loaded from compose/base.yml.
+#                        When provided, the script also searches for env/local/<instance>.env.
 # Options:
-#   --format text|json    Controla o formato da saída (padrão: text).
-#   --output <arquivo>    Caminho opcional para gravar a saída gerada.
+#   --format text|json    Controls the output format (default: text).
+#   --output <file>       Optional path to write the generated output.
 # Environment:
-#   COMPOSE_FILES        Lista de manifests Compose adicionais a serem aplicados (separados por espaço).
-#   COMPOSE_ENV_FILE     Caminho alternativo para o arquivo de variáveis do docker compose.
-#   HEALTH_SERVICES      Lista (separada por vírgula ou espaço) dos serviços para exibição de logs.
-#   CHECK_HEALTH_PLAN    Define o modo de plano ("legacy" mantém múltiplos -f). Padrão: consolidado.
+#   COMPOSE_FILES        Additional Compose manifests to apply (space-separated).
+#   COMPOSE_ENV_FILE     Alternate path to the docker compose environment file.
+#   HEALTH_SERVICES      List (comma- or space-separated) of services for log inspection.
+#   CHECK_HEALTH_PLAN    Plan mode ("legacy" keeps multiple -f entries). Default: consolidated.
 # Examples:
 #   scripts/check_health.sh core
 #   HEALTH_SERVICES="api worker" scripts/check_health.sh media
@@ -32,8 +31,8 @@ OUTPUT_FORMAT="text"
 OUTPUT_FILE=""
 
 print_legacy_notice() {
-  echo "[WARN] Modo legacy ativado: o plano dinâmico com múltiplos -f será removido." >&2
-  echo "       Prefira o docker-compose.yml consolidado." >&2
+  echo "[WARN] Legacy mode enabled: the dynamic multi- -f plan will be removed." >&2
+  echo "       Prefer the consolidated docker-compose.yml." >&2
 }
 
 if [[ "$ORIGINAL_PWD" != "$REPO_ROOT" ]]; then
@@ -60,24 +59,24 @@ source "$SCRIPT_DIR/lib/compose_instances.sh"
 
 print_help() {
   cat <<'EOF'
-Uso: scripts/check_health.sh [opções] [instancia]
+Usage: scripts/check_health.sh [options] [instance]
 
-Checa status básico da instância usando múltiplos compose files (via COMPOSE_FILES).
+Checks the basic status of an instance using multiple compose files (via COMPOSE_FILES).
 
-Argumentos posicionais:
-  instancia   Nome da instância (ex.: core). Determina quais arquivos compose/env serão carregados.
+Positional arguments:
+  instance   Instance name (for example: core). Determines which compose/env files are loaded.
 
-Opções:
-  --format {text,json}  Define o formato da saída (padrão: text).
-  --output <arquivo>    Grava a saída final no caminho informado além de exibi-la na saída padrão.
-  --legacy-plan         Mantém o plano dinâmico de múltiplos -f (modo legado).
+Options:
+  --format {text,json}  Defines the output format (default: text).
+  --output <file>       Writes the final output to the provided path in addition to stdout.
+  --legacy-plan         Keeps the dynamic multi- -f plan (legacy mode).
 
-Variáveis de ambiente relevantes:
-  COMPOSE_FILES     Sobrescreve os manifests Compose usados. Separe entradas com espaço.
-  COMPOSE_ENV_FILE  Define um arquivo .env alternativo para o docker compose.
-  HEALTH_SERVICES   Lista (separada por vírgula/ espaço) dos serviços para exibição de logs.
+Relevant environment variables:
+  COMPOSE_FILES     Overrides the Compose manifests used. Separate entries with spaces.
+  COMPOSE_ENV_FILE  Provides an alternate .env file for docker compose.
+  HEALTH_SERVICES   List (comma- or space-separated) of services for log inspection.
 
-Exemplos:
+Examples:
   scripts/check_health.sh core
   scripts/check_health.sh --format json core
   scripts/check_health.sh --format json --output status.json media
@@ -103,7 +102,7 @@ while [[ $# -gt 0 ]]; do
       OUTPUT_FORMAT="$format_value"
       ;;
     *)
-      echo "Error: valor inválido para --format: $format_value" >&2
+      echo "Error: invalid value for --format: $format_value" >&2
       exit 2
       ;;
     esac
@@ -117,7 +116,7 @@ while [[ $# -gt 0 ]]; do
       OUTPUT_FORMAT="$format_value"
       ;;
     *)
-      echo "Error: valor inválido para --format: $format_value" >&2
+      echo "Error: invalid value for --format: $format_value" >&2
       exit 2
       ;;
     esac
@@ -126,7 +125,7 @@ while [[ $# -gt 0 ]]; do
     ;;
   --output)
     if [[ $# -lt 2 ]]; then
-      echo "Error: --output requer um caminho válido." >&2
+      echo "Error: --output requires a valid path." >&2
       exit 2
     fi
     OUTPUT_FILE="$2"
@@ -153,7 +152,7 @@ while [[ $# -gt 0 ]]; do
     break
     ;;
   -*)
-    echo "Error: opção desconhecida: $1" >&2
+    echo "Error: unknown option: $1" >&2
     exit 2
     ;;
   *)
@@ -175,7 +174,7 @@ if compose_defaults_dump="$("$SCRIPT_DIR/lib/compose_defaults.sh" "$INSTANCE_NAM
   :
 else
   status=$?
-  echo "[!] Não foi possível preparar variáveis padrão do docker compose." >&2
+  echo "[!] Failed to prepare default docker compose variables." >&2
   exit $status
 fi
 
@@ -268,7 +267,7 @@ if [[ "$CHECK_HEALTH_PLAN" != "legacy" ]]; then
   fi
 
   if ! "${COMPOSE_CMD[@]}" config -q; then
-    echo "Error: docker-compose.yml consolidado inválido." >&2
+    echo "Error: invalid consolidated docker-compose.yml." >&2
     exit 1
   fi
 
@@ -325,7 +324,7 @@ if [[ -z "${HEALTH_SERVICES:-}" ]]; then
     fi
     if ((defaults_refreshed == 1)); then
       if ! compose_defaults_dump="$("$SCRIPT_DIR/lib/compose_defaults.sh" "$INSTANCE_NAME" ".")"; then
-        echo "[!] Não foi possível preparar variáveis padrão do docker compose." >&2
+        echo "[!] Failed to prepare default docker compose variables." >&2
         exit 1
       fi
 
@@ -421,8 +420,8 @@ if [[ ${#LOG_TARGETS[@]} -eq 0 ]]; then
     ALL_LOG_TARGETS=("${LOG_TARGETS[@]}")
     auto_targets=()
   else
-    echo "Error: nenhum serviço foi encontrado para coleta de logs." >&2
-    echo "       Configure HEALTH_SERVICES ou garanta que os manifests Compose declarem serviços válidos." >&2
+    echo "Error: no services were found for log collection." >&2
+    echo "       Configure HEALTH_SERVICES or ensure the Compose manifests declare valid services." >&2
     exit 1
   fi
 fi
@@ -444,7 +443,7 @@ if [[ "$OUTPUT_FORMAT" == "text" ]]; then
   echo "[*] Containers:"
   printf '%s\n' "$compose_ps_output"
   echo
-  echo "[*] Logs recentes dos serviços monitorados:"
+  echo "[*] Recent logs for monitored services:"
 fi
 
 log_success=false
