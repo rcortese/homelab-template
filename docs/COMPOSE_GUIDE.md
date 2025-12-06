@@ -2,7 +2,7 @@
 
 > Part of the [documentation index](./README.md). Read the [Overview](./OVERVIEW.md) to understand the role of each instance and align checklists with the runbooks for [core](./core.md) and [media](./media.md).
 
-This guide documents how to build the Docker Compose plan using only the base file, the instance-wide override, and the manifests for each application. For a short view of the load order, see the [`compose/` README](../compose/README.md). Follow these instructions before running `docker compose`.
+This guide documents how to build the Docker Compose plan using only the base file, the instance-wide override, and the manifests for each application. For a short view of the load order, see the [`compose/` README](../compose/README.md). Follow these instructions before running the generator that writes `docker-compose.yml` to the repository root.
 
 > **Attention for forks:** all `compose/...` paths here are examples. Adjust directory, file, and service names according to step 3 of [How to start a derived project](../README.md#how-to-start-a-derived-project) when adapting the template to your stack.
 
@@ -77,61 +77,44 @@ When combining several applications, load the manifests in blocks (`base.yml`, a
 
 > **Replace the placeholders:** `app`, `monitoring`, `worker`, and any other names used in the tables and examples are merely illustrative directory names. Align each occurrence with the real application name following step 3 of [How to start a derived project](../README.md#how-to-start-a-derived-project).
 
-### Base snippet to combine manifests
+### Default flow with the generated `docker-compose.yml`
 
-Use the skeleton below for any instance, filling in the `<instance>` placeholder and adding only the desired applications. When you need extra overlays (e.g., `compose/overlays/metrics.yml`), list them in the `COMPOSE_EXTRA_FILES` variable separated by spaces before running the command. The snippet automatically converts each entry into a new `-f`.
+1. Generate the consolidated file with the new generator:
 
-```bash
-docker compose \
-  --env-file env/local/common.env \
-  --env-file env/local/<instance>.env \
-  -f compose/base.yml \  # Include only if the file exists
-  -f compose/<instance>.yml \ # Include only if the file exists (e.g., compose/core.yml)
-  -f compose/apps/<main-app>/base.yml \
-  -f compose/apps/<main-app>/<instance>.yml \
-  # Optional: add base/instance pairs for each enabled auxiliary application
-  -f compose/apps/<optional-app>/base.yml \
-  -f compose/apps/<optional-app>/<instance>.yml \
-  $(for file in ${COMPOSE_EXTRA_FILES:-}; do printf ' -f %s' "$file"; done) \
-  up -d
-```
+   ```bash
+   scripts/build_compose_file.sh --instance <instance> \
+     --file compose/overlays/<overlay>.yml \      # optional, repeat if you need more than one
+     --env-file env/local/common.env \             # optional override for the default chain
+     --env-file env/local/<instance>.env           # optional instance override
+   ```
 
-> Example: replace `<main-app>` with your real application directory (such as `compose/apps/app/`). Keep names and paths in sync with step 3 of [How to start a derived project](../README.md#how-to-start-a-derived-project) to avoid stale references after renaming services.
+   - Additional `--file` flags replace the previous use of `COMPOSE_EXTRA_FILES` when appending temporary overlays.
+   - `--env-file` keeps the legacy order (`common` → `<instance>`) and accepts alternative chains when you need to test specific variables without touching the files under `env/local/`.
+   - Re-run the command whenever manifests (`compose/...`) or variables (`env/...`) change to refresh the root `docker-compose.yml`.
 
-> `COMPOSE_EXTRA_FILES` should contain additional overlays (e.g., files under `compose/overlays/`) listed in order. Set the variable with `export` or inline (`COMPOSE_EXTRA_FILES="compose/overlays/metrics.yml" docker compose ...`) to attach the extra manifests to the stack.
+2. Use the generated file directly to start or inspect services:
+
+   ```bash
+   docker compose up -d
+   docker compose ps
+   ```
+
+   The default command now targets the root `docker-compose.yml`, avoiding manual `-f` assembly and `--env-file` chains.
+
+> Set `<instance>` to `core`, `media`, or any other name defined in your fork. Replace `<overlay>` with real files under `compose/overlays/` whenever you need temporary or environment-specific adjustments.
 
 #### How to enable or disable auxiliary applications
 
-- **Keep enabled**: keep the matching `base.yml`/`<instance>.yml` pair in the snippet (e.g., `monitoring` → `-f compose/apps/monitoring/base.yml` + `-f compose/apps/monitoring/<instance>.yml`).
-- **Disable selectively**: keep an explicit override for each instance where the service should be off (e.g., `compose/apps/monitoring/media.yml` with `deploy.replicas: 0` or specific `profiles`). This approach ensures the scripts continue to load the application only where it is enabled and prevents accidental activation in new instances.
-- **Remove globally**: delete the pair of lines when the application no longer belongs in **any** instance.
-- **Add another application**: duplicate the two lines, replacing `<optional-app>` with the directory under `compose/apps/<app>/`.
+- **Keep enabled**: ensure the application directory includes the `base.yml`/`<instance>.yml` pair. The generator automatically builds the sequence in the correct order.
+- **Disable selectively**: keep an explicit override for each instance where the service must stay off (for example, `compose/apps/monitoring/media.yml` with `deploy.replicas: 0`). This prevents accidental activations when adding new instances.
+- **Remove globally**: delete the `base.yml`/`<instance>.yml` pair when the application is no longer part of **any** instance.
+- **Add another application**: create the manifest pairs under `compose/apps/<app>/`. The generator detects the directories and includes the files according to the discovered plan.
 
-> **Important:** when running Compose manually, mirror the same chain of `.env` files used by the scripts (`env/local/common.env` followed by `env/local/<instance>.env`). See the walkthrough in [`env/README.md#como-gerar-arquivos-locais`](../env/README.md#como-gerar-arquivos-locais) to ensure required global variables are not omitted. Also, export `LOCAL_INSTANCE=<instance>` (the wrapper does this automatically) before calling `docker compose` to preserve the `data/<instance>/<app>` path in the volumes.
-
-The differences between the main instances are concentrated in the files loaded and the variables referenced by the command above:
-
-| Scenario | `--env-file` (order) | Required overrides (`-f`) | Additional overlays | Notes |
-| ------- | -------------------- | ----------------------------- | ------------------- | ----------- |
-| **core** | `env/local/common.env` → `env/local/core.env` | `compose/core.yml` (when present), `compose/apps/<main-app>/core.yml` (e.g., `compose/apps/app/core.yml`) | — | No required overlays. Use them only when the stack demands extra files. |
-| **media** | `env/local/common.env` → `env/local/media.env` | `compose/media.yml` (when present), `compose/apps/<main-app>/media.yml` (e.g., `compose/apps/app/media.yml`) | Optional: `compose/overlays/<overlay>.yml` (e.g., media storage) | Add instance-specific overlays by listing them in `COMPOSE_EXTRA_FILES` before running the command. |
-
-### Ad-hoc combination with `COMPOSE_FILES`
-
-```bash
-export COMPOSE_FILES="compose/base.yml compose/media.yml compose/apps/<main-app>/base.yml compose/apps/<main-app>/media.yml" # Remove missing entries
-docker compose \
-  --env-file env/local/common.env \
-  --env-file env/local/media.env \
-  $(for file in $COMPOSE_FILES; do printf ' -f %s' "$file"; done) \
-  up -d
-```
-
-> Adjust `<main-app>` to your application directory (e.g., `compose/apps/app/`). Aligning manifests with step 3 of [How to start a derived project](../README.md#how-to-start-a-derived-project) avoids outdated paths after renaming services.
+> Whenever you update an application's manifests or the variable chain, regenerate `docker-compose.yml` before calling `docker compose up -d` to avoid divergence between the plan and the consolidated file.
 
 ### Generating an instance summary
 
-Use `scripts/describe_instance.sh` to quickly inspect the applied manifests, resulting services, published ports, and mounted volumes. The script reuses the same `-f` planning as the deploy and validation flows and marks additional overlays loaded via `COMPOSE_EXTRA_FILES`.
+Use `scripts/describe_instance.sh` to quickly inspect the applied manifests, resulting services, published ports, and mounted volumes. The script reuses the same planning chain as the deploy and validation flows and marks additional overlays loaded via `COMPOSE_EXTRA_FILES` or provided with `--file` in the generator.
 
 ```bash
 scripts/describe_instance.sh core
@@ -165,6 +148,10 @@ Services:
       Mounted volumes:
         • /srv/app/data -> /data/app (type=bind)
 ```
+
+### Legacy compatibility (`scripts/compose.sh` and `COMPOSE_FILES`)
+
+The recommended flow is to generate `docker-compose.yml` at the repository root and call `docker compose up -d` directly against it. The `COMPOSE_FILES` examples and the `scripts/compose.sh` wrapper remain only for compatibility with older automations or one-off runs that still depend on manual `-f` chaining. Whenever possible, migrate to the generator and prefer the `--file`/`--env-file` flags to control overlays and variable chains.
 
 ## Best practices
 
