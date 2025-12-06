@@ -427,14 +427,14 @@ validate_executor_run_instances() {
           status=1
         fi
       fi
-      else
-        local -a consolidated_plan=("${compose_cmd[@]}" "${env_args[@]}" "${compose_args[@]}")
-        if ((${#consolidated_plan[@]} == 0)); then
-          echo "[x] instance=\"$instance\" (compose command is empty; cannot prepare consolidated plan)" >&2
-          status=1
-          continue
-        fi
-        local consolidated_file="$repo_root/docker-compose.yml"
+    else
+      local -a consolidated_plan=("${compose_cmd[@]}" "${env_args[@]}" "${compose_args[@]}")
+      if ((${#consolidated_plan[@]} == 0)); then
+        echo "[x] instance=\"$instance\" (compose command is empty; cannot prepare consolidated plan)" >&2
+        status=1
+        continue
+      fi
+      local consolidated_file="$repo_root/docker-compose.yml"
 
       if compose_output_file=$(mktemp -t validate-compose-consolidated.XXXXXX 2>/dev/null); then
         if ! compose_generate_consolidated "$repo_root" consolidated_plan "$consolidated_file" derived_env \
