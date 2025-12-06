@@ -111,6 +111,15 @@ def expected_compose_call(
     return cmd
 
 
+def expected_consolidated_calls(
+    env_files: Path | Sequence[Path] | None, files: Iterable[Path], output_file: Path
+) -> list[list[str]]:
+    return [
+        expected_compose_call(env_files, files, "config", "--output", str(output_file)),
+        expected_compose_call(env_files, [output_file], "config", "-q"),
+    ]
+
+
 def load_app_data_from_deploy_context(repo_root: Path, instance: str) -> dict[str, str]:
     script = textwrap.dedent(
         f"""
@@ -312,6 +321,7 @@ __all__ = [
     "REPO_ROOT",
     "SCRIPT_PATH",
     "expected_compose_call",
+    "expected_consolidated_calls",
     "get_instance_metadata_map",
     "get_instance_names",
     "load_instance_metadata",

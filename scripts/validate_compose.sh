@@ -16,6 +16,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 ENV_LOADER="$SCRIPT_DIR/lib/env_loader.sh"
+VALIDATE_USE_LEGACY_PLAN=${VALIDATE_USE_LEGACY_PLAN:-false}
 
 # shellcheck source=lib/compose_command.sh
 source "$SCRIPT_DIR/lib/compose_command.sh"
@@ -26,6 +27,37 @@ source "$SCRIPT_DIR/lib/compose_file_utils.sh"
 source "$SCRIPT_DIR/lib/validate_cli.sh"
 # shellcheck source=lib/validate_executor.sh
 source "$SCRIPT_DIR/lib/validate_executor.sh"
+
+print_deprecation_notice() {
+  echo "[WARN] Modo legacy ativado: o suporte ao plano dinâmico -f será removido futuramente;" >&2
+  echo "       utilize o docker-compose.yml consolidado ou ajuste automações." >&2
+}
+
+POSITIONAL_ARGS=()
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+  --legacy-plan)
+    VALIDATE_USE_LEGACY_PLAN=true
+    print_deprecation_notice
+    shift
+    continue
+    ;;
+  -h | --help)
+    validate_cli_print_help
+    exit 0
+    ;;
+  *)
+    POSITIONAL_ARGS+=("$1")
+    shift
+    ;;
+  esac
+done
+
+if [[ ${#POSITIONAL_ARGS[@]} -gt 0 ]]; then
+  set -- "${POSITIONAL_ARGS[@]}"
+else
+  set --
+fi
 
 if ! compose_metadata="$("$SCRIPT_DIR/lib/compose_instances.sh" "$REPO_ROOT")"; then
   echo "Error: não foi possível carregar metadados das instâncias." >&2

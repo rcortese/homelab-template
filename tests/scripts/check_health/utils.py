@@ -36,9 +36,12 @@ from typing import Iterable
 
 
 def _expected_compose_call(
-    env_files: str | Iterable[str] | None, files: Iterable[str], *args: str
+    env_files: str | Iterable[str] | None,
+    files: Iterable[str],
+    *args: str,
+    base_cmd: list[str] | None = None,
 ) -> list[str]:
-    cmd = ["compose"]
+    cmd = list(base_cmd or ["compose"])
     if env_files:
         if isinstance(env_files, str):
             env_entries = [env_files]
@@ -50,3 +53,17 @@ def _expected_compose_call(
         cmd.extend(["-f", str(path)])
     cmd.extend(args)
     return cmd
+
+
+def expected_consolidated_plan_calls(
+    env_files: str | Iterable[str] | None,
+    files: Iterable[str],
+    output_file: Path,
+    base_cmd: list[str] | None = None,
+) -> list[list[str]]:
+    return [
+        _expected_compose_call(
+            env_files, files, "config", "--output", str(output_file), base_cmd=base_cmd
+        ),
+        _expected_compose_call(env_files, [output_file], "config", "-q", base_cmd=base_cmd),
+    ]

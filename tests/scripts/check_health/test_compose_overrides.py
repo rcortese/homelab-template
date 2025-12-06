@@ -4,7 +4,11 @@ from pathlib import Path
 
 from tests.conftest import DockerStub
 
-from .utils import _expected_compose_call, run_check_health
+from .utils import (
+    _expected_compose_call,
+    expected_consolidated_plan_calls,
+    run_check_health,
+)
 
 
 def test_invokes_ps_and_logs_with_custom_files(docker_stub: DockerStub) -> None:
@@ -20,17 +24,22 @@ def test_invokes_ps_and_logs_with_custom_files(docker_stub: DockerStub) -> None:
     calls = docker_stub.read_calls()
     repo_root = Path(__file__).resolve().parents[3]
     expected_env = str((repo_root / "env" / "custom.env").resolve())
+    consolidated_file = repo_root / "docker-compose.yml"
 
     compose_files = [
         (repo_root / "compose" / "base.yml").resolve(),
         (repo_root / "compose" / "extra.yml").resolve(),
     ]
-    assert calls == [
-        _expected_compose_call(expected_env, compose_files, "config", "--services"),
-        _expected_compose_call(expected_env, compose_files, "ps"),
+    assert calls == expected_consolidated_plan_calls(
+        expected_env, compose_files, consolidated_file
+    ) + [
+        _expected_compose_call(
+            expected_env, [consolidated_file], "config", "--services"
+        ),
+        _expected_compose_call(expected_env, [consolidated_file], "ps"),
         _expected_compose_call(
             expected_env,
-            compose_files,
+            [consolidated_file],
             "logs",
             "--tail=50",
             "app",
@@ -59,15 +68,22 @@ def test_loads_compose_extra_files_from_env_file(
     assert "[*] Containers:" in result.stdout
 
     repo_root = Path(__file__).resolve().parents[3]
+    consolidated_file = repo_root / "docker-compose.yml"
     expected_files = [
         (repo_root / "compose" / "base.yml").resolve(),
         (repo_root / "compose" / "overlays" / "extra.yml").resolve(),
     ]
     calls = docker_stub.read_calls()
-    assert calls == [
-        _expected_compose_call(str(env_file), expected_files, "config", "--services"),
-        _expected_compose_call(str(env_file), expected_files, "ps"),
-        _expected_compose_call(str(env_file), expected_files, "logs", "--tail=50", "app"),
+    assert calls == expected_consolidated_plan_calls(
+        str(env_file), expected_files, consolidated_file
+    ) + [
+        _expected_compose_call(
+            str(env_file), [consolidated_file], "config", "--services"
+        ),
+        _expected_compose_call(str(env_file), [consolidated_file], "ps"),
+        _expected_compose_call(
+            str(env_file), [consolidated_file], "logs", "--tail=50", "app"
+        ),
     ]
 
 
@@ -87,21 +103,21 @@ def test_ignores_blank_and_duplicate_compose_tokens(docker_stub: DockerStub) -> 
     assert "[*] Containers:" in result.stdout
 
     expected_manifest = str((repo_root / compose_base).resolve())
+    consolidated_file = repo_root / "docker-compose.yml"
     calls = docker_stub.read_calls()
     assert calls, "Expected docker compose invocations to be recorded"
 
-    for call in calls:
+    plan_calls = expected_consolidated_plan_calls(
+        None, [expected_manifest], consolidated_file
+    )
+    assert calls[:2] == plan_calls
+
+    for call in calls[2:]:
         assert "-f" in call, call
-        assert "" not in call, call
-        assert "''" not in call, call
-
-        manifest_args = []
-        for idx, token in enumerate(call):
-            if token != "-f":
-                continue
-            assert idx + 1 < len(call), call
-            manifest_args.append(call[idx + 1])
-
+        manifest_args = [
+            call[idx + 1]
+            for idx, token in enumerate(call)
+            if token == "-f" and idx + 1 < len(call)
+        ]
         assert manifest_args, "No compose manifests were passed to docker compose"
-        assert all(arg == expected_manifest for arg in manifest_args)
-        assert len(manifest_args) == 1
+        assert manifest_args == [str(consolidated_file)]

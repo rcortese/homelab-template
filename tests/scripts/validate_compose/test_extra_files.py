@@ -10,7 +10,7 @@ from tests.helpers.compose_instances import (
     load_compose_instances_data,
 )
 
-from .utils import expected_compose_call
+from .utils import expected_consolidated_calls
 
 if TYPE_CHECKING:
     from ..conftest import DockerStub
@@ -56,12 +56,11 @@ def test_prefers_local_env_when_available(
 
     assert result.returncode == 0, result.stderr
     calls = docker_stub.read_calls()
-    assert len(calls) == 1
-    (call,) = calls
-    assert call == expected_compose_call(
+    assert len(calls) == 2
+    assert calls == expected_consolidated_calls(
         env_chain,
         base_files,
-        "config",
+        repo_copy / "docker-compose.yml",
     )
 
 
@@ -103,16 +102,15 @@ def test_includes_extra_files_from_env_file(
 
     assert result.returncode == 0, result.stderr
     calls = docker_stub.read_calls()
-    assert len(calls) == 1
-    (call,) = calls
-    assert call == expected_compose_call(
+    assert len(calls) == 2
+    assert calls == expected_consolidated_calls(
         env_chain,
         base_files
         + [
             repo_copy / "compose" / "overlays" / "metrics.yml",
             repo_copy / "compose" / "overlays" / "logging.yml",
         ],
-        "config",
+        repo_copy / "docker-compose.yml",
     )
 
 
@@ -160,15 +158,14 @@ def test_env_override_for_extra_files(
 
     assert result.returncode == 0, result.stderr
     calls = docker_stub.read_calls()
-    assert len(calls) == 1
-    (call,) = calls
-    assert call == expected_compose_call(
+    assert len(calls) == 2
+    assert calls == expected_consolidated_calls(
         env_chain,
         base_files
         + [
             repo_copy / "compose" / "overlays" / "custom.yml",
         ],
-        "config",
+        repo_copy / "docker-compose.yml",
     )
 
 
@@ -198,12 +195,11 @@ def test_skips_shared_base_when_missing(
 
     assert result.returncode == 0, result.stderr
     calls = docker_stub.read_calls()
-    assert len(calls) == 1
-    (call,) = calls
-    assert call == expected_compose_call(
+    assert len(calls) == 2
+    assert calls == expected_consolidated_calls(
         env_chain,
         base_files,
-        "config",
+        repo_copy / "docker-compose.yml",
     )
     assert all("compose/base.yml" not in str(path) for path in base_files)
 
@@ -235,11 +231,10 @@ def test_skips_instance_manifest_when_missing(
 
     assert result.returncode == 0, result.stderr
     calls = docker_stub.read_calls()
-    assert len(calls) == 1
-    (call,) = calls
-    assert call == expected_compose_call(
+    assert len(calls) == 2
+    assert calls == expected_consolidated_calls(
         env_chain,
         base_files,
-        "config",
+        repo_copy / "docker-compose.yml",
     )
     assert manifest not in base_files

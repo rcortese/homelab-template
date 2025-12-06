@@ -13,6 +13,7 @@
 #   COMPOSE_FILES        Lista de manifests Compose adicionais a serem aplicados (separados por espaço).
 #   COMPOSE_ENV_FILE     Caminho alternativo para o arquivo de variáveis do docker compose.
 #   HEALTH_SERVICES      Lista (separada por vírgula ou espaço) dos serviços para exibição de logs.
+#   CHECK_HEALTH_PLAN    Define o modo de plano ("legacy" mantém múltiplos -f). Padrão: consolidado.
 # Examples:
 #   scripts/check_health.sh core
 #   HEALTH_SERVICES="api worker" scripts/check_health.sh media
@@ -22,12 +23,18 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 ORIGINAL_PWD="${PWD:-}"
 CHANGED_TO_REPO_ROOT=false
+CHECK_HEALTH_PLAN="${CHECK_HEALTH_PLAN:-consolidated}"
 
 # shellcheck source=lib/python_runtime.sh
 source "${SCRIPT_DIR}/lib/python_runtime.sh"
 
 OUTPUT_FORMAT="text"
 OUTPUT_FILE=""
+
+print_legacy_notice() {
+  echo "[WARN] Modo legacy ativado: o plano dinâmico com múltiplos -f será removido." >&2
+  echo "       Prefira o docker-compose.yml consolidado." >&2
+}
 
 if [[ "$ORIGINAL_PWD" != "$REPO_ROOT" ]]; then
   cd "$REPO_ROOT"
@@ -38,6 +45,9 @@ REPO_ROOT="$(pwd)"
 
 # shellcheck source=lib/compose_command.sh
 source "$SCRIPT_DIR/lib/compose_command.sh"
+
+# shellcheck source=lib/consolidated_compose.sh
+source "$SCRIPT_DIR/lib/consolidated_compose.sh"
 
 # shellcheck source=lib/env_helpers.sh
 source "$SCRIPT_DIR/lib/env_helpers.sh"
@@ -60,6 +70,7 @@ Argumentos posicionais:
 Opções:
   --format {text,json}  Define o formato da saída (padrão: text).
   --output <arquivo>    Grava a saída final no caminho informado além de exibi-la na saída padrão.
+  --legacy-plan         Mantém o plano dinâmico de múltiplos -f (modo legado).
 
 Variáveis de ambiente relevantes:
   COMPOSE_FILES     Sobrescreve os manifests Compose usados. Separe entradas com espaço.
@@ -124,6 +135,12 @@ while [[ $# -gt 0 ]]; do
     ;;
   --output=*)
     OUTPUT_FILE="${1#*=}"
+    shift
+    continue
+    ;;
+  --legacy-plan)
+    CHECK_HEALTH_PLAN="legacy"
+    print_legacy_notice
     shift
     continue
     ;;
@@ -243,6 +260,27 @@ if ! compose_resolve_command __compose_cmd_probe; then
 fi
 unset __compose_cmd_probe
 
+consolidated_compose_file=""
+if [[ "$CHECK_HEALTH_PLAN" != "legacy" ]]; then
+  if ! compose_prepare_consolidated "$REPO_ROOT" COMPOSE_CMD consolidated_compose_file; then
+    echo "Error: falha ao gerar docker-compose.yml consolidado." >&2
+    exit 1
+  fi
+
+  if ! "${COMPOSE_CMD[@]}" config -q; then
+    echo "Error: docker-compose.yml consolidado inválido." >&2
+    exit 1
+  fi
+
+  declare -a compose_base_cmd=()
+  compose_strip_file_flags COMPOSE_CMD compose_base_cmd
+  COMPOSE_CMD=("${compose_base_cmd[@]}" -f "$consolidated_compose_file")
+
+  COMPOSE_FILES="$consolidated_compose_file"
+else
+  print_legacy_notice
+fi
+
 if [[ -z "${HEALTH_SERVICES:-}" ]]; then
   declare -a health_env_files=()
   if [[ -n "${COMPOSE_ENV_FILES:-}" ]]; then
@@ -296,6 +334,12 @@ if [[ -z "${HEALTH_SERVICES:-}" ]]; then
     fi
     unset __health_env_values
   fi
+fi
+
+if [[ "$CHECK_HEALTH_PLAN" != "legacy" ]]; then
+  declare -a __restrip_base_cmd=()
+  compose_strip_file_flags COMPOSE_CMD __restrip_base_cmd
+  COMPOSE_CMD=("${__restrip_base_cmd[@]}" -f "$consolidated_compose_file")
 fi
 
 mapfile -t LOG_TARGETS < <(env_file_chain__parse_list "${HEALTH_SERVICES:-}") || true

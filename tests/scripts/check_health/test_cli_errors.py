@@ -5,7 +5,7 @@ from pathlib import Path
 
 from tests.conftest import DockerStub
 
-from .utils import run_check_health
+from .utils import expected_consolidated_plan_calls, run_check_health
 
 
 def test_errors_when_compose_command_missing() -> None:
@@ -30,34 +30,23 @@ def test_respects_docker_compose_bin_override(docker_stub: DockerStub) -> None:
     calls = docker_stub.read_calls()
     repo_root = Path(__file__).resolve().parents[3]
     base_file = str((repo_root / "compose" / "base.yml").resolve())
-    assert calls == [
+    consolidated_file = repo_root / "docker-compose.yml"
+    base_cmd = ["--context", "remote", "compose"]
+    assert calls == expected_consolidated_plan_calls(
+        None,
+        [base_file],
+        consolidated_file,
+        base_cmd=base_cmd,
+    ) + [
         [
-            "--context",
-            "remote",
-            "compose",
+            *base_cmd,
             "-f",
-            base_file,
+            str(consolidated_file),
             "config",
             "--services",
         ],
-        [
-            "--context",
-            "remote",
-            "compose",
-            "-f",
-            base_file,
-            "ps",
-        ],
-        [
-            "--context",
-            "remote",
-            "compose",
-            "-f",
-            base_file,
-            "logs",
-            "--tail=50",
-            "app",
-        ],
+        [*base_cmd, "-f", str(consolidated_file), "ps"],
+        [*base_cmd, "-f", str(consolidated_file), "logs", "--tail=50", "app"],
     ]
 
 

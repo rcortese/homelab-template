@@ -15,6 +15,9 @@ for every combination of base files plus instance overrides.
 Positional arguments:
   (none)
 
+Options:
+  --legacy-plan      Usa a combinação dinâmica de -f (modo legado). Será removido futuramente.
+
 Relevant environment variables:
   DOCKER_COMPOSE_BIN  Override the docker compose command (for example: docker-compose).
   COMPOSE_INSTANCES   Instances to validate (space- or comma-separated). Default: all.
