@@ -111,6 +111,15 @@ def expected_compose_call(
     return cmd
 
 
+def expected_consolidated_calls(
+    env_files: Path | Sequence[Path] | None, files: Iterable[Path], output_file: Path
+) -> list[list[str]]:
+    return [
+        expected_compose_call(env_files, files, "config", "--output", str(output_file)),
+        expected_compose_call(env_files, [output_file], "config", "-q"),
+    ]
+
+
 def load_app_data_from_deploy_context(repo_root: Path, instance: str) -> dict[str, str]:
     script = textwrap.dedent(
         f"""
@@ -155,7 +164,7 @@ def _discover_instance_metadata(repo_root: Path) -> tuple[InstanceMetadata, ...]
     compose_dir = repo_root / "compose"
     apps_dir = compose_dir / "apps"
     if not apps_dir.is_dir():  # pragma: no cover - defensive
-        raise FileNotFoundError(f"Diretório de aplicações não encontrado: {apps_dir}")
+        raise FileNotFoundError(f"Applications directory not found: {apps_dir}")
 
     instance_files: dict[str, list[Path]] = {}
     instance_app_names: dict[str, list[str]] = {}
@@ -223,7 +232,7 @@ def _discover_instance_metadata(repo_root: Path) -> tuple[InstanceMetadata, ...]
                 known_instances.add(name)
 
     if not known_instances:
-        raise ValueError("Nenhuma instância encontrada em compose/apps ou env.")
+        raise ValueError("No instances found in compose/apps or env.")
 
     instance_names = sorted(known_instances)
 
@@ -312,6 +321,7 @@ __all__ = [
     "REPO_ROOT",
     "SCRIPT_PATH",
     "expected_compose_call",
+    "expected_consolidated_calls",
     "get_instance_metadata_map",
     "get_instance_names",
     "load_instance_metadata",

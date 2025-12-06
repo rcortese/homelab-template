@@ -5,7 +5,11 @@ from pathlib import Path
 from tests.conftest import DockerStub
 from tests.helpers.compose_instances import ComposeInstancesData
 
-from .utils import _expected_compose_call, run_check_health
+from .utils import (
+    _expected_compose_call,
+    expected_consolidated_plan_calls,
+    run_check_health,
+)
 
 
 def _derive_service_names(
@@ -49,13 +53,23 @@ def test_infers_compose_files_and_env_from_instance(
         str((repo_copy / relative).resolve(strict=False))
         for relative in compose_instances_data.compose_plan("core")
     ]
+    consolidated_file = repo_copy / "docker-compose.yml"
 
-    assert calls[:2] == [
-        _expected_compose_call(expected_env_files, expected_files, "config", "--services"),
-        _expected_compose_call(expected_env_files, expected_files, "ps"),
-    ]
+    expected_prefix = expected_consolidated_plan_calls(
+        expected_env_files, expected_files, consolidated_file
+    )
+    expected_prefix.extend(
+        [
+            _expected_compose_call(
+                expected_env_files, [consolidated_file], "config", "--services"
+            ),
+            _expected_compose_call(expected_env_files, [consolidated_file], "ps"),
+        ]
+    )
 
-    log_calls = [call for call in calls[2:] if "logs" in call]
+    assert calls[:4] == expected_prefix
+
+    log_calls = [call for call in calls[4:] if "logs" in call]
     logged_services = [call[-1] for call in log_calls if call]
     expected_primary = compose_instances_data.instance_app_names.get("core", [])
     allowed_services = set(service_names) | set(expected_primary)
@@ -65,7 +79,7 @@ def test_infers_compose_files_and_env_from_instance(
     for call in log_calls:
         service = call[-1]
         assert call == _expected_compose_call(
-            expected_env_files, expected_files, "logs", "--tail=50", service
+            expected_env_files, [consolidated_file], "logs", "--tail=50", service
         )
 
 
@@ -98,13 +112,23 @@ def test_executes_from_scripts_directory(
         str((repo_copy / relative).resolve(strict=False))
         for relative in compose_instances_data.compose_plan("core")
     ]
+    consolidated_file = repo_copy / "docker-compose.yml"
 
-    assert calls[:2] == [
-        _expected_compose_call(expected_env_files, expected_files, "config", "--services"),
-        _expected_compose_call(expected_env_files, expected_files, "ps"),
-    ]
+    expected_prefix = expected_consolidated_plan_calls(
+        expected_env_files, expected_files, consolidated_file
+    )
+    expected_prefix.extend(
+        [
+            _expected_compose_call(
+                expected_env_files, [consolidated_file], "config", "--services"
+            ),
+            _expected_compose_call(expected_env_files, [consolidated_file], "ps"),
+        ]
+    )
 
-    log_calls = [call for call in calls[2:] if "logs" in call]
+    assert calls[:4] == expected_prefix
+
+    log_calls = [call for call in calls[4:] if "logs" in call]
     logged_services = [call[-1] for call in log_calls if call]
     expected_primary = compose_instances_data.instance_app_names.get("core", [])
     allowed_services = set(service_names) | set(expected_primary)
@@ -114,5 +138,5 @@ def test_executes_from_scripts_directory(
     for call in log_calls:
         service = call[-1]
         assert call == _expected_compose_call(
-            expected_env_files, expected_files, "logs", "--tail=50", service
+            expected_env_files, [consolidated_file], "logs", "--tail=50", service
         )

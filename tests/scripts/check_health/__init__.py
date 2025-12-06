@@ -1,1 +1,1 @@
-"""Testes que exercitam o comando 'check_health' do diretório scripts."""
+"""Tests covering the `check_health` command from the scripts directory."""

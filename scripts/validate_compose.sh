@@ -3,11 +3,11 @@
 # Usage: scripts/validate_compose.sh
 #
 # Arguments:
-#   (nenhum) — o script valida as instâncias conhecidas usando somente base + override da instância.
+#   (none) — the script validates known instances using only the base file plus the instance override.
 # Environment:
-#   DOCKER_COMPOSE_BIN   Sobrescreve o binário usado (ex.: docker-compose).
-#   COMPOSE_INSTANCES    Lista de instâncias a validar (separadas por espaço ou vírgula). Default: todas.
-#   COMPOSE_EXTRA_FILES  Overlays extras aplicados após o arquivo override padrão (aceita espaços ou vírgulas).
+#   DOCKER_COMPOSE_BIN   Overrides the binary used (for example: docker-compose).
+#   COMPOSE_INSTANCES    List of instances to validate (space- or comma-separated). Default: all.
+#   COMPOSE_EXTRA_FILES  Extra overlays applied after the default override file (spaces or commas accepted).
 # Examples:
 #   scripts/validate_compose.sh
 #   COMPOSE_INSTANCES="media" scripts/validate_compose.sh
@@ -16,6 +16,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 ENV_LOADER="$SCRIPT_DIR/lib/env_loader.sh"
+VALIDATE_USE_LEGACY_PLAN=${VALIDATE_USE_LEGACY_PLAN:-false}
 
 # shellcheck source=lib/compose_command.sh
 source "$SCRIPT_DIR/lib/compose_command.sh"
@@ -27,8 +28,39 @@ source "$SCRIPT_DIR/lib/validate_cli.sh"
 # shellcheck source=lib/validate_executor.sh
 source "$SCRIPT_DIR/lib/validate_executor.sh"
 
+print_deprecation_notice() {
+  echo "[WARN] Legacy mode enabled: support for the dynamic -f plan will be removed in a future release;" >&2
+  echo "       use the consolidated docker-compose.yml or adjust automations." >&2
+}
+
+POSITIONAL_ARGS=()
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+  --legacy-plan)
+    VALIDATE_USE_LEGACY_PLAN=true
+    print_deprecation_notice
+    shift
+    continue
+    ;;
+  -h | --help)
+    validate_cli_print_help
+    exit 0
+    ;;
+  *)
+    POSITIONAL_ARGS+=("$1")
+    shift
+    ;;
+  esac
+done
+
+if [[ ${#POSITIONAL_ARGS[@]} -gt 0 ]]; then
+  set -- "${POSITIONAL_ARGS[@]}"
+else
+  set --
+fi
+
 if ! compose_metadata="$("$SCRIPT_DIR/lib/compose_instances.sh" "$REPO_ROOT")"; then
-  echo "Error: não foi possível carregar metadados das instâncias." >&2
+  echo "Error: unable to load instance metadata." >&2
   exit 1
 fi
 

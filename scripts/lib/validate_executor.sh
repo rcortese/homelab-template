@@ -16,6 +16,9 @@ source "$VALIDATE_EXECUTOR_DIR/compose_plan.sh"
 # shellcheck source=scripts/lib/compose_file_utils.sh
 source "$VALIDATE_EXECUTOR_DIR/compose_file_utils.sh"
 
+# shellcheck source=scripts/lib/consolidated_compose.sh
+source "$VALIDATE_EXECUTOR_DIR/consolidated_compose.sh"
+
 validate_executor_prepare_plan() {
   local instance="$1"
   local repo_root="$2"
@@ -374,45 +377,79 @@ validate_executor_run_instances() {
     local compose_status=0
     local compose_output_file=""
 
-    if compose_output_file=$(mktemp -t validate-compose-config.XXXXXX 2>/dev/null); then
-      APP_DATA_DIR="$app_data_dir_env" \
-        APP_DATA_DIR_MOUNT="$app_data_dir_mount_env" \
-        "${compose_cmd[@]}" "${env_args[@]}" "${compose_args[@]}" config \
-        >"$compose_output_file" 2>&1
-      compose_status=$?
+    if [[ "${VALIDATE_USE_LEGACY_PLAN:-false}" == "true" ]]; then
+      if compose_output_file=$(mktemp -t validate-compose-config.XXXXXX 2>/dev/null); then
+        APP_DATA_DIR="$app_data_dir_env" \
+          APP_DATA_DIR_MOUNT="$app_data_dir_mount_env" \
+          "${compose_cmd[@]}" "${env_args[@]}" "${compose_args[@]}" config \
+          >"$compose_output_file" 2>&1
+        compose_status=$?
 
-      if ((compose_status == 0)); then
-        rm -f "$compose_output_file"
-        echo "[+] $instance"
-      else
-        compose_output=$(<"$compose_output_file")
-        rm -f "$compose_output_file"
-        echo "[x] instance=\"$instance\" (docker compose config exited with status $compose_status)" >&2
-        echo "   files: ${files[*]}" >&2
-        if ((${#env_files_pretty[@]} > 0)); then
-          echo "   env files: ${env_files_pretty[*]}" >&2
+        if ((compose_status == 0)); then
+          rm -f "$compose_output_file"
+          echo "[+] $instance"
         else
-          echo "   env files: (none)" >&2
+          compose_output=$(<"$compose_output_file")
+          rm -f "$compose_output_file"
+          echo "[x] instance=\"$instance\" (docker compose config exited with status $compose_status)" >&2
+          echo "   files: ${files[*]}" >&2
+          if ((${#env_files_pretty[@]} > 0)); then
+            echo "   env files: ${env_files_pretty[*]}" >&2
+          else
+            echo "   env files: (none)" >&2
+          fi
+          echo "   derived env: APP_DATA_DIR=\"$app_data_dir_env\" APP_DATA_DIR_MOUNT=\"$app_data_dir_mount_env\"" >&2
+          if [[ -n "$compose_output" ]]; then
+            echo "   docker compose config output:" >&2
+            while IFS= read -r compose_line; do
+              echo "     $compose_line" >&2
+            done <<<"$compose_output"
+          fi
+          status=1
         fi
-        echo "   derived env: APP_DATA_DIR=\"$app_data_dir_env\" APP_DATA_DIR_MOUNT=\"$app_data_dir_mount_env\"" >&2
-        if [[ -n "$compose_output" ]]; then
-          echo "   docker compose config output:" >&2
-          while IFS= read -r compose_line; do
-            echo "     $compose_line" >&2
-          done <<<"$compose_output"
+      else
+        APP_DATA_DIR="$app_data_dir_env" \
+          APP_DATA_DIR_MOUNT="$app_data_dir_mount_env" \
+          "${compose_cmd[@]}" "${env_args[@]}" "${compose_args[@]}" config >/dev/null 2>&1
+        compose_status=$?
+
+        if ((compose_status == 0)); then
+          echo "[+] $instance"
+        else
+          echo "[x] instance=\"$instance\" (docker compose config exited with status $compose_status)" >&2
+          echo "   files: ${files[*]}" >&2
+          if ((${#env_files_pretty[@]} > 0)); then
+            echo "   env files: ${env_files_pretty[*]}" >&2
+          else
+            echo "   env files: (none)" >&2
+          fi
+          echo "   derived env: APP_DATA_DIR=\"$app_data_dir_env\" APP_DATA_DIR_MOUNT=\"$app_data_dir_mount_env\"" >&2
+          status=1
         fi
-        status=1
       fi
     else
-      APP_DATA_DIR="$app_data_dir_env" \
-        APP_DATA_DIR_MOUNT="$app_data_dir_mount_env" \
-        "${compose_cmd[@]}" "${env_args[@]}" "${compose_args[@]}" config >/dev/null 2>&1
-      compose_status=$?
+      local -a consolidated_plan=("${compose_cmd[@]}" "${env_args[@]}" "${compose_args[@]}")
+      if ((${#consolidated_plan[@]} == 0)); then
+        echo "[x] instance=\"$instance\" (compose command is empty; cannot prepare consolidated plan)" >&2
+        status=1
+        continue
+      fi
+      local consolidated_file="$repo_root/docker-compose.yml"
 
-      if ((compose_status == 0)); then
-        echo "[+] $instance"
+      if compose_output_file=$(mktemp -t validate-compose-consolidated.XXXXXX 2>/dev/null); then
+        if ! compose_generate_consolidated "$repo_root" consolidated_plan "$consolidated_file" derived_env \
+          2>"$compose_output_file"; then
+          compose_status=$?
+        else
+          rm -f "$compose_output_file"
+        fi
       else
-        echo "[x] instance=\"$instance\" (docker compose config exited with status $compose_status)" >&2
+        compose_generate_consolidated "$repo_root" consolidated_plan "$consolidated_file" derived_env >/dev/null 2>&1
+        compose_status=$?
+      fi
+
+      if ((compose_status != 0)); then
+        echo "[x] instance=\"$instance\" (failed to generate consolidated docker-compose.yml)" >&2
         echo "   files: ${files[*]}" >&2
         if ((${#env_files_pretty[@]} > 0)); then
           echo "   env files: ${env_files_pretty[*]}" >&2
@@ -421,6 +458,75 @@ validate_executor_run_instances() {
         fi
         echo "   derived env: APP_DATA_DIR=\"$app_data_dir_env\" APP_DATA_DIR_MOUNT=\"$app_data_dir_mount_env\"" >&2
         status=1
+        if [[ -n "$compose_output_file" && -f "$compose_output_file" ]]; then
+          compose_output=$(<"$compose_output_file")
+          rm -f "$compose_output_file"
+          if [[ -n "$compose_output" ]]; then
+            echo "   docker compose config output:" >&2
+            while IFS= read -r compose_line; do
+              echo "     $compose_line" >&2
+            done <<<"$compose_output"
+          fi
+        fi
+        continue
+      fi
+
+      if [[ -n "$compose_output_file" && -f "$compose_output_file" ]]; then
+        rm -f "$compose_output_file"
+      fi
+
+      local -a consolidated_cmd=("${compose_cmd[@]}" "${env_args[@]}")
+      compose_strip_file_flags consolidated_cmd consolidated_cmd
+      consolidated_cmd+=(-f "$consolidated_file")
+
+      if compose_output_file=$(mktemp -t validate-compose-config.XXXXXX 2>/dev/null); then
+        APP_DATA_DIR="$app_data_dir_env" \
+          APP_DATA_DIR_MOUNT="$app_data_dir_mount_env" \
+          "${consolidated_cmd[@]}" config -q \
+          >"$compose_output_file" 2>&1
+        compose_status=$?
+        if ((compose_status == 0)); then
+          rm -f "$compose_output_file"
+          echo "[+] $instance"
+        else
+          compose_output=$(<"$compose_output_file")
+          rm -f "$compose_output_file"
+          echo "[x] instance=\"$instance\" (docker compose config -q exited with status $compose_status)" >&2
+          echo "   files: ${files[*]}" >&2
+          echo "   consolidated file: $consolidated_file" >&2
+          if ((${#env_files_pretty[@]} > 0)); then
+            echo "   env files: ${env_files_pretty[*]}" >&2
+          else
+            echo "   env files: (none)" >&2
+          fi
+          echo "   derived env: APP_DATA_DIR=\"$app_data_dir_env\" APP_DATA_DIR_MOUNT=\"$app_data_dir_mount_env\"" >&2
+          if [[ -n "$compose_output" ]]; then
+            echo "   docker compose config output:" >&2
+            while IFS= read -r compose_line; do
+              echo "     $compose_line" >&2
+            done <<<"$compose_output"
+          fi
+          status=1
+        fi
+      else
+        APP_DATA_DIR="$app_data_dir_env" \
+          APP_DATA_DIR_MOUNT="$app_data_dir_mount_env" \
+          "${consolidated_cmd[@]}" config -q >/dev/null 2>&1
+        compose_status=$?
+        if ((compose_status == 0)); then
+          echo "[+] $instance"
+        else
+          echo "[x] instance=\"$instance\" (docker compose config -q exited with status $compose_status)" >&2
+          echo "   files: ${files[*]}" >&2
+          echo "   consolidated file: $consolidated_file" >&2
+          if ((${#env_files_pretty[@]} > 0)); then
+            echo "   env files: ${env_files_pretty[*]}" >&2
+          else
+            echo "   env files: (none)" >&2
+          fi
+          echo "   derived env: APP_DATA_DIR=\"$app_data_dir_env\" APP_DATA_DIR_MOUNT=\"$app_data_dir_mount_env\"" >&2
+          status=1
+        fi
       fi
     fi
   done

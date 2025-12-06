@@ -8,7 +8,8 @@ import textwrap
 import pytest
 
 from .utils import (
-    expected_compose_call,
+    REPO_ROOT,
+    expected_consolidated_calls,
     get_instance_metadata_map,
     load_instance_metadata,
     run_validate_compose,
@@ -58,16 +59,19 @@ def test_accepts_mixed_separators_and_invokes_compose_for_each_instance(
             seen.add(name)
             unique_instances.append(name)
 
-    assert len(calls) == len(unique_instances)
+    assert len(calls) == len(unique_instances) * 2
 
     metadata_map = get_instance_metadata_map()
 
-    for call, instance_name in zip(calls, unique_instances):
+    for offset, instance_name in enumerate(unique_instances):
         assert instance_name in metadata_map, f"Unknown instance '{instance_name}' in test setup"
         metadata = metadata_map[instance_name]
         expected_env = metadata.resolved_env_chain()
         expected_files = metadata.compose_files()
-        assert call == expected_compose_call(expected_env, expected_files, "config")
+        start = offset * 2
+        assert calls[start : start + 2] == expected_consolidated_calls(
+            expected_env, expected_files, REPO_ROOT / "docker-compose.yml"
+        )
 
 
 def test_unknown_instance_returns_error(docker_stub: DockerStub) -> None:
@@ -122,7 +126,7 @@ def test_reports_failure_when_compose_command_fails_with_docker_stub(
 
     assert result.returncode != 0
     assert (
-        f"[x] instance=\"{target_instance}\" (docker compose config exited with status 1)"
+        f"[x] instance=\"{target_instance}\" (docker compose config -q exited with status 1)"
         in result.stderr
     )
 
@@ -132,7 +136,7 @@ def test_reports_failure_when_compose_command_fails_with_docker_stub(
         assert str(file) in result.stderr
 
     calls = docker_stub.read_calls()
-    assert len(calls) == 1
+    assert len(calls) == 2
 
 
 def test_compose_failure_reports_diagnostics(tmp_path: Path) -> None:
@@ -167,7 +171,7 @@ def test_compose_failure_reports_diagnostics(tmp_path: Path) -> None:
     stderr_lines = result.stderr.splitlines()
     assert any(
         line
-        == f"[x] instance=\"{target_instance}\" (docker compose config exited with status 23)"
+        == f"[x] instance=\"{target_instance}\" (docker compose config -q exited with status 23)"
         for line in stderr_lines
     ), result.stderr
 

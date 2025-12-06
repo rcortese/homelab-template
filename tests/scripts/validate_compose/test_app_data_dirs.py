@@ -28,9 +28,9 @@ def test_accepts_matching_app_data_overrides(
     assert result.returncode == 0, result.stderr
 
     env_records = docker_stub.read_call_env()
-    assert len(env_records) == 1
-    assert env_records[0].get("APP_DATA_DIR") == context["APP_DATA_DIR"]
-    assert env_records[0].get("APP_DATA_DIR_MOUNT") == context["APP_DATA_DIR_MOUNT"]
+    assert len(env_records) == 2
+    assert env_records[-1].get("APP_DATA_DIR") == context["APP_DATA_DIR"]
+    assert env_records[-1].get("APP_DATA_DIR_MOUNT") == context["APP_DATA_DIR_MOUNT"]
 
     conflict_mount = Path(context["APP_DATA_DIR_MOUNT"]).parent / "mismatch"
     conflict_env = {
@@ -45,4 +45,4 @@ def test_accepts_matching_app_data_overrides(
     assert "APP_DATA_DIR and APP_DATA_DIR_MOUNT" in conflict_result.stderr
 
     calls_after_conflict = docker_stub.read_calls()
-    assert len(calls_after_conflict) == 1
+    assert len(calls_after_conflict) == 2

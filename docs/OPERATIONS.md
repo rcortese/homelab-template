@@ -123,6 +123,9 @@ Use `--base-dir`, `--with-docs`, and `--override-only` to explicitly declare alt
   - `COMPOSE_INSTANCES` — list of environments to validate (space- or comma-separated).
   - `DOCKER_COMPOSE_BIN` — alternate path to the binary.
   - `COMPOSE_EXTRA_FILES` — optional list of extra overlays applied after the standard override (accepts spaces or commas).
+- The script generates a consolidated `docker-compose.yml` in the repository root before invoking
+  `docker compose -f docker-compose.yml config -q`, removing the need for multiple `-f` entries. Use `--legacy-plan`
+  temporarily if any pipeline still depends on the dynamic plan.
 - **Practical examples:**
   - Default run using only the configured base and override manifests:
     ```bash
@@ -206,6 +209,8 @@ The preferred workflow is to regenerate `docker-compose.yml` with [`scripts/buil
 - **Supported arguments and variables:**
   - `HEALTH_SERVICES` — list of services to inspect (space- or comma-separated). When set, execution is limited to the desired services only.
   - `COMPOSE_ENV_FILE` — path to an alternate `.env` file to load before querying `docker compose`.
+- Collection generates or reuses a consolidated `docker-compose.yml` before running `docker compose -f docker-compose.yml ps/logs`.
+  The legacy multi-`-f` mode remains available as a transitional path via `--legacy-plan` or `CHECK_HEALTH_PLAN=legacy`.
 - The script automatically supplements the service list by running `docker compose config --services`. If no services are found, execution aborts with an error to avoid silently suppressing logs.
 - **Output formats:**
   - `text` (default) — mirrors the historical behavior by printing `docker compose ps` followed by recent logs.
