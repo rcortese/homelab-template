@@ -3,35 +3,64 @@
 set -euo pipefail
 
 print_help() {
+  if ((SHOW_DEPRECATION_WARNING == 1)); then
+    print_deprecation_warning
+  fi
   cat <<'USAGE'
-Uso: scripts/compose.sh [instancia] [--] [argumentos...]
+Usage: scripts/compose.sh [instance] [--] [arguments...]
 
-Wrapper para montar comandos docker compose reutilizando convenções do repositório.
+Wrapper to assemble docker compose commands using the repository conventions.
 
-Argumentos posicionais:
-  instancia        Nome da instância (ex.: core). Quando informado, carrega compose/base.yml
-                   + manifests da aplicação (ex.: compose/apps/app/base.yml e
-                   compose/apps/app/<instancia>.yml) e busca env/local/<instancia>.env.
+Positional arguments:
+  instance         Instance name (e.g., core). When provided, loads compose/base.yml
+                   plus the application manifests (e.g., compose/apps/app/base.yml and
+                   compose/apps/app/<instance>.yml) and looks for env/local/<instance>.env.
 
 Flags:
-  -h, --help       Exibe esta ajuda e sai.
-  --               Separa os parâmetros do docker compose, útil quando o subcomando
-                   começa com hífen.
+  -h, --help       Show this help and exit.
+  --suppress-deprecation-warning
+                    Hide the deprecation notice (automation use).
+  --               Separates docker compose parameters, useful when the subcommand
+                   starts with a dash.
 
-Variáveis de ambiente relevantes:
-  DOCKER_COMPOSE_BIN  Sobrescreve o comando docker compose (ex.: docker-compose).
-  COMPOSE_FILES        Sobrescreve a lista de manifests (-f) aplicados.
-  COMPOSE_ENV_FILE     Define o arquivo .env utilizado pelo docker compose.
+Relevant environment variables:
+  DOCKER_COMPOSE_BIN  Overrides the docker compose command (e.g., docker-compose).
+  COMPOSE_FILES        (Deprecated) Overrides the list of manifests (-f) applied.
+  COMPOSE_ENV_FILE     Sets the .env file used by docker compose.
+  COMPOSE_EXTRA_FILES  (Deprecated) Extra compose files applied after the default plan.
 
-Exemplos:
-  scripts/compose.sh core up -d
-  scripts/compose.sh media logs app
-  scripts/compose.sh core -- down app
+Examples:
+  scripts/build_compose_file.sh -i core
+  docker compose -f docker-compose.yml up -d
+  scripts/build_compose_file.sh -i media --file compose/extra.yml
+  docker compose -f docker-compose.yml logs app
 USAGE
 }
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+print_deprecation_warning() {
+  cat >&2 <<'WARNING'
+Warning: scripts/compose.sh and the use of COMPOSE_FILES/COMPOSE_EXTRA_FILES are deprecated.
+Generate a docker-compose.yml with scripts/build_compose_file.sh and run "docker compose -f docker-compose.yml ...".
+WARNING
+}
+
+SHOW_DEPRECATION_WARNING=1
+declare -a CLEAN_ARGS=()
+for arg in "$@"; do
+  if [[ "$arg" == "--suppress-deprecation-warning" ]]; then
+    SHOW_DEPRECATION_WARNING=0
+    continue
+  fi
+  CLEAN_ARGS+=("$arg")
+done
+set -- "${CLEAN_ARGS[@]:-}"
+
+if ((SHOW_DEPRECATION_WARNING == 1)); then
+  print_deprecation_warning
+fi
 
 # shellcheck source=lib/compose_command.sh
 source "$SCRIPT_DIR/lib/compose_command.sh"
@@ -95,7 +124,7 @@ mapfile -t EXTRA_COMPOSE_FILES < <(
 if [[ -n "$INSTANCE_NAME" ]]; then
   if ! compose_metadata="$("$SCRIPT_DIR/lib/compose_instances.sh" "$REPO_ROOT")"; then
     if [[ -z "${COMPOSE_FILES:-}" ]]; then
-      echo "Error: não foi possível carregar metadados das instâncias." >&2
+      echo "Error: could not load instance metadata." >&2
       exit 1
     fi
   else
@@ -103,8 +132,8 @@ if [[ -n "$INSTANCE_NAME" ]]; then
     metadata_loaded=1
 
     if [[ ! -v COMPOSE_INSTANCE_FILES[$INSTANCE_NAME] ]]; then
-      echo "Error: instância desconhecida '$INSTANCE_NAME'." >&2
-      echo "Disponíveis: ${COMPOSE_INSTANCE_NAMES[*]}" >&2
+      echo "Error: unknown instance '$INSTANCE_NAME'." >&2
+      echo "Available: ${COMPOSE_INSTANCE_NAMES[*]}" >&2
       exit 1
     fi
   fi
@@ -255,7 +284,7 @@ if [[ -n "$service_slug" && -n "$app_data_dir_value" && -n "$app_data_dir_mount_
   fi
 
   if ((precomputed_values == 0)); then
-    echo "Error: APP_DATA_DIR e APP_DATA_DIR_MOUNT não podem ser definidos simultaneamente." >&2
+    echo "Error: APP_DATA_DIR and APP_DATA_DIR_MOUNT cannot be set simultaneously." >&2
     exit 1
   fi
 
@@ -309,7 +338,7 @@ elif ((${#COMPOSE_ENV_FILES_LIST[@]} > 0)); then
 fi
 
 if ! cd "$REPO_ROOT"; then
-  echo "Error: não foi possível acessar o diretório do repositório: $REPO_ROOT" >&2
+  echo "Error: could not access the repository directory: $REPO_ROOT" >&2
   exit 1
 fi
 
