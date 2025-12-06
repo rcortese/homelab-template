@@ -10,6 +10,8 @@ name: Template Quality Checks
 
 on:
   push:
+    branches:
+      - main
     paths:
       - '.github/**'
       - 'compose/**'
