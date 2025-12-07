@@ -61,9 +61,21 @@ def expected_consolidated_plan_calls(
     output_file: Path,
     base_cmd: list[str] | None = None,
 ) -> list[list[str]]:
+    plan_files = list(files)
     return [
         _expected_compose_call(
-            env_files, files, "config", "--output", str(output_file), base_cmd=base_cmd
+            env_files,
+            plan_files,
+            "config",
+            "--output",
+            str(output_file),
+            base_cmd=base_cmd,
         ),
-        _expected_compose_call(env_files, [output_file], "config", "-q", base_cmd=base_cmd),
+        _expected_compose_call(
+            env_files,
+            [*plan_files, output_file],
+            "config",
+            "-q",
+            base_cmd=base_cmd,
+        ),
     ]
