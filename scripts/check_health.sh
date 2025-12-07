@@ -12,7 +12,6 @@
 #   COMPOSE_FILES        Additional Compose manifests to apply (space-separated).
 #   COMPOSE_ENV_FILE     Alternate path to the docker compose environment file.
 #   HEALTH_SERVICES      List (comma- or space-separated) of services for log inspection.
-#   CHECK_HEALTH_PLAN    Plan mode ("legacy" keeps multiple -f entries). Default: consolidated.
 # Examples:
 #   scripts/check_health.sh core
 #   HEALTH_SERVICES="api worker" scripts/check_health.sh media
@@ -22,18 +21,11 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 ORIGINAL_PWD="${PWD:-}"
 CHANGED_TO_REPO_ROOT=false
-CHECK_HEALTH_PLAN="${CHECK_HEALTH_PLAN:-consolidated}"
-
 # shellcheck source=lib/python_runtime.sh
 source "${SCRIPT_DIR}/lib/python_runtime.sh"
 
 OUTPUT_FORMAT="text"
 OUTPUT_FILE=""
-
-print_legacy_notice() {
-  echo "[WARN] Legacy mode enabled: the dynamic multi- -f plan will be removed." >&2
-  echo "       Prefer the consolidated docker-compose.yml." >&2
-}
 
 if [[ "$ORIGINAL_PWD" != "$REPO_ROOT" ]]; then
   cd "$REPO_ROOT"
@@ -44,9 +36,6 @@ REPO_ROOT="$(pwd)"
 
 # shellcheck source=lib/compose_command.sh
 source "$SCRIPT_DIR/lib/compose_command.sh"
-
-# shellcheck source=lib/consolidated_compose.sh
-source "$SCRIPT_DIR/lib/consolidated_compose.sh"
 
 # shellcheck source=lib/env_helpers.sh
 source "$SCRIPT_DIR/lib/env_helpers.sh"
@@ -69,9 +58,7 @@ Positional arguments:
 Options:
   --format {text,json}  Defines the output format (default: text).
   --output <file>       Writes the final output to the provided path in addition to stdout.
-  --legacy-plan         Keeps the dynamic multi- -f plan (legacy mode).
-
-Relevant environment variables:
+  Relevant environment variables:
   COMPOSE_FILES     Overrides the Compose manifests used. Separate entries with spaces.
   COMPOSE_ENV_FILE  Provides an alternate .env file for docker compose.
   HEALTH_SERVICES   List (comma- or space-separated) of services for log inspection.
@@ -137,12 +124,6 @@ while [[ $# -gt 0 ]]; do
     shift
     continue
     ;;
-  --legacy-plan)
-    CHECK_HEALTH_PLAN="legacy"
-    print_legacy_notice
-    shift
-    continue
-    ;;
   --)
     shift
     while [[ $# -gt 0 ]]; do
@@ -189,40 +170,32 @@ normalize_compose_context() {
 
     if [[ ${#files_list[@]} -gt 0 ]]; then
       local -a __filtered=()
+      declare -A __files_seen=()
       local __file
       for __file in "${files_list[@]}"; do
         [[ -z "$__file" ]] && continue
+        if [[ -n "${__files_seen[$__file]:-}" ]]; then
+          continue
+        fi
+        __files_seen[$__file]=1
         __filtered+=("$__file")
       done
       COMPOSE_FILES="${__filtered[*]}"
     fi
   fi
 
-  if [[ ${#COMPOSE_CMD[@]} -gt 0 ]]; then
-    local -a __normalized_cmd=()
-    local __i=0
-    while ((__i < ${#COMPOSE_CMD[@]})); do
-      local __token="${COMPOSE_CMD[$__i]}"
-      if [[ "$__token" == "-f" ]] && ((__i + 1 < ${#COMPOSE_CMD[@]})); then
-        local __value="${COMPOSE_CMD[$((__i + 1))]}"
-        if [[ -n "$__value" ]]; then
-          __normalized_cmd+=("$__token" "$__value")
-        fi
-        __i=$((__i + 2))
-        continue
-      fi
-      __normalized_cmd+=("$__token")
-      __i=$((__i + 1))
-    done
-    COMPOSE_CMD=("${__normalized_cmd[@]}")
-  fi
-
   if [[ -n "${COMPOSE_EXTRA_FILES:-}" ]]; then
     local extra_entry
     local extra_input="${COMPOSE_EXTRA_FILES//$'\n'/ }"
     extra_input="${extra_input//,/ }"
+    declare -A __extra_seen=()
+    local -a __extra_filtered=()
     for extra_entry in $extra_input; do
       [[ -z "$extra_entry" ]] && continue
+      if [[ -n "${__extra_seen[$extra_entry]:-}" ]]; then
+        continue
+      fi
+      __extra_seen[$extra_entry]=1
       local resolved_extra="$extra_entry"
       if [[ "$resolved_extra" != /* ]]; then
         resolved_extra="$REPO_ROOT/$resolved_extra"
@@ -247,38 +220,26 @@ normalize_compose_context() {
       if ((already_present == 0)); then
         COMPOSE_CMD+=(-f "$resolved_extra")
       fi
+      __extra_filtered+=("$extra_entry")
     done
+    if ((${#__extra_filtered[@]} > 0)); then
+      COMPOSE_EXTRA_FILES="${__extra_filtered[*]}"
+    fi
   fi
 }
 
 normalize_compose_context
 
-declare -a __compose_cmd_probe=()
-if ! compose_resolve_command __compose_cmd_probe; then
+COMPOSE_ROOT_FILE="$REPO_ROOT/docker-compose.yml"
+declare -a DOCKER_COMPOSE_CMD=()
+if ! compose_resolve_command DOCKER_COMPOSE_CMD; then
   exit $?
 fi
-unset __compose_cmd_probe
 
-consolidated_compose_file=""
-if [[ "$CHECK_HEALTH_PLAN" != "legacy" ]]; then
-  if ! compose_prepare_consolidated "$REPO_ROOT" COMPOSE_CMD consolidated_compose_file; then
-    echo "Error: falha ao gerar docker-compose.yml consolidado." >&2
-    exit 1
-  fi
-
-  if ! "${COMPOSE_CMD[@]}" config -q; then
-    echo "Error: invalid consolidated docker-compose.yml." >&2
-    exit 1
-  fi
-
-  declare -a compose_base_cmd=()
-  compose_strip_file_flags COMPOSE_CMD compose_base_cmd
-  COMPOSE_CMD=("${compose_base_cmd[@]}" -f "$consolidated_compose_file")
-
-  COMPOSE_FILES="$consolidated_compose_file"
-else
-  print_legacy_notice
-fi
+export COMPOSE_FILES
+export COMPOSE_EXTRA_FILES
+export COMPOSE_ENV_FILES
+export COMPOSE_ENV_FILE
 
 if [[ -z "${HEALTH_SERVICES:-}" ]]; then
   declare -a health_env_files=()
@@ -335,11 +296,27 @@ if [[ -z "${HEALTH_SERVICES:-}" ]]; then
   fi
 fi
 
-if [[ "$CHECK_HEALTH_PLAN" != "legacy" ]]; then
-  declare -a __restrip_base_cmd=()
-  compose_strip_file_flags COMPOSE_CMD __restrip_base_cmd
-  COMPOSE_CMD=("${__restrip_base_cmd[@]}" -f "$consolidated_compose_file")
+declare -a BUILD_COMPOSE_CMD=("$SCRIPT_DIR/build_compose_file.sh" --output "$COMPOSE_ROOT_FILE")
+if [[ -n "$INSTANCE_NAME" ]]; then
+  BUILD_COMPOSE_CMD+=(--instance "$INSTANCE_NAME")
 fi
+
+if [[ -n "${COMPOSE_ENV_FILES:-}" ]]; then
+  while IFS= read -r env_entry; do
+    [[ -z "$env_entry" ]] && continue
+    BUILD_COMPOSE_CMD+=(--env-file "$env_entry")
+  done <<<"${COMPOSE_ENV_FILES//$'\n'/ }"
+elif [[ -n "${COMPOSE_ENV_FILE:-}" ]]; then
+  BUILD_COMPOSE_CMD+=(--env-file "$COMPOSE_ENV_FILE")
+fi
+
+if ! "${BUILD_COMPOSE_CMD[@]}" >/dev/null; then
+  echo "Error: falha ao gerar docker-compose.yml consolidado." >&2
+  exit 1
+fi
+
+COMPOSE_CMD=("${DOCKER_COMPOSE_CMD[@]}" -f "$COMPOSE_ROOT_FILE")
+COMPOSE_FILES="$COMPOSE_ROOT_FILE"
 
 mapfile -t LOG_TARGETS < <(env_file_chain__parse_list "${HEALTH_SERVICES:-}") || true
 

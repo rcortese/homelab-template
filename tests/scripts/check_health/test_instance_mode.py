@@ -60,10 +60,8 @@ def test_infers_compose_files_and_env_from_instance(
     )
     expected_prefix.extend(
         [
-            _expected_compose_call(
-                expected_env_files, [consolidated_file], "config", "--services"
-            ),
-            _expected_compose_call(expected_env_files, [consolidated_file], "ps"),
+            _expected_compose_call(None, [consolidated_file], "config", "--services"),
+            _expected_compose_call(None, [consolidated_file], "ps"),
         ]
     )
 
@@ -79,7 +77,7 @@ def test_infers_compose_files_and_env_from_instance(
     for call in log_calls:
         service = call[-1]
         assert call == _expected_compose_call(
-            expected_env_files, [consolidated_file], "logs", "--tail=50", service
+            None, [consolidated_file], "logs", "--tail=50", service
         )
 
 
@@ -119,10 +117,8 @@ def test_executes_from_scripts_directory(
     )
     expected_prefix.extend(
         [
-            _expected_compose_call(
-                expected_env_files, [consolidated_file], "config", "--services"
-            ),
-            _expected_compose_call(expected_env_files, [consolidated_file], "ps"),
+            _expected_compose_call(None, [consolidated_file], "config", "--services"),
+            _expected_compose_call(None, [consolidated_file], "ps"),
         ]
     )
 
@@ -138,5 +134,5 @@ def test_executes_from_scripts_directory(
     for call in log_calls:
         service = call[-1]
         assert call == _expected_compose_call(
-            expected_env_files, [consolidated_file], "logs", "--tail=50", service
+            None, [consolidated_file], "logs", "--tail=50", service
         )

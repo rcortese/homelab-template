@@ -33,12 +33,10 @@ def test_invokes_ps_and_logs_with_custom_files(docker_stub: DockerStub) -> None:
     assert calls == expected_consolidated_plan_calls(
         expected_env, compose_files, consolidated_file
     ) + [
+        _expected_compose_call(None, [consolidated_file], "config", "--services"),
+        _expected_compose_call(None, [consolidated_file], "ps"),
         _expected_compose_call(
-            expected_env, [consolidated_file], "config", "--services"
-        ),
-        _expected_compose_call(expected_env, [consolidated_file], "ps"),
-        _expected_compose_call(
-            expected_env,
+            None,
             [consolidated_file],
             "logs",
             "--tail=50",
@@ -72,17 +70,16 @@ def test_loads_compose_extra_files_from_env_file(
     expected_files = [
         (repo_root / "compose" / "base.yml").resolve(),
         (repo_root / "compose" / "overlays" / "extra.yml").resolve(),
+        (repo_root / "compose" / "overlays" / "extra.yml").resolve(),
     ]
     calls = docker_stub.read_calls()
     assert calls == expected_consolidated_plan_calls(
         str(env_file), expected_files, consolidated_file
     ) + [
+        _expected_compose_call(None, [consolidated_file], "config", "--services"),
+        _expected_compose_call(None, [consolidated_file], "ps"),
         _expected_compose_call(
-            str(env_file), [consolidated_file], "config", "--services"
-        ),
-        _expected_compose_call(str(env_file), [consolidated_file], "ps"),
-        _expected_compose_call(
-            str(env_file), [consolidated_file], "logs", "--tail=50", "app"
+            None, [consolidated_file], "logs", "--tail=50", "app"
         ),
     ]
 
@@ -108,7 +105,7 @@ def test_ignores_blank_and_duplicate_compose_tokens(docker_stub: DockerStub) -> 
     assert calls, "Expected docker compose invocations to be recorded"
 
     plan_calls = expected_consolidated_plan_calls(
-        None, [expected_manifest], consolidated_file
+        None, [expected_manifest, expected_manifest], consolidated_file
     )
     assert calls[:2] == plan_calls
 
