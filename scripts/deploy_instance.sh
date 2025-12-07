@@ -17,6 +17,9 @@ source "$SCRIPT_DIR/lib/deploy_args.sh"
 # shellcheck source=lib/deploy_context.sh
 source "$SCRIPT_DIR/lib/deploy_context.sh"
 
+# shellcheck source=lib/compose_command.sh
+source "$SCRIPT_DIR/lib/compose_command.sh"
+
 # shellcheck source=lib/step_runner.sh
 source "$SCRIPT_DIR/lib/step_runner.sh"
 
@@ -47,8 +50,14 @@ export APP_DATA_DIR_MOUNT="${DEPLOY_CONTEXT[APP_DATA_DIR_MOUNT]}"
 export COMPOSE_ENV_FILE="${DEPLOY_CONTEXT[COMPOSE_ENV_FILE]}"
 export COMPOSE_ENV_FILES="${DEPLOY_CONTEXT[COMPOSE_ENV_FILES]}"
 export COMPOSE_FILES="${DEPLOY_CONTEXT[COMPOSE_FILES]}"
+COMPOSE_ROOT_FILE="$REPO_ROOT/docker-compose.yml"
 
-COMPOSE_EXEC_CMD=("$REPO_ROOT/scripts/compose.sh" "$INSTANCE" -- up -d)
+declare -a COMPOSE_CMD=()
+if [[ $DRY_RUN -eq 1 ]]; then
+  COMPOSE_CMD=(docker compose)
+elif ! compose_resolve_command COMPOSE_CMD; then
+  exit $?
+fi
 
 run_deploy_step() {
   STEP_RUNNER_DRY_RUN="$DRY_RUN" run_step "$@"
@@ -58,6 +67,8 @@ mapfile -t PERSISTENT_DIRS <<<"${DEPLOY_CONTEXT[PERSISTENT_DIRS]}"
 DATA_UID="${DEPLOY_CONTEXT[DATA_UID]}"
 DATA_GID="${DEPLOY_CONTEXT[DATA_GID]}"
 APP_DATA_UID_GID="${DEPLOY_CONTEXT[APP_DATA_UID_GID]}"
+BUILD_COMPOSE_CMD=("$REPO_ROOT/scripts/build_compose_file.sh" --instance "$INSTANCE")
+COMPOSE_UP_CMD=("${COMPOSE_CMD[@]}" -f "$COMPOSE_ROOT_FILE" up -d)
 
 compose_env_files_display="${COMPOSE_ENV_FILES//$'\n'/ }"
 
@@ -65,7 +76,8 @@ cat <<SUMMARY_EOF
 [*] Instance: $INSTANCE
 [*] COMPOSE_ENV_FILES=${compose_env_files_display}
 [*] COMPOSE_ENV_FILE=${COMPOSE_ENV_FILE}
-[*] COMPOSE_FILES=${COMPOSE_FILES}
+[*] COMPOSE_PLAN=${COMPOSE_FILES}
+[*] COMPOSE_ROOT_FILE=${COMPOSE_ROOT_FILE}
 SUMMARY_EOF
 
 if [[ $RUN_STRUCTURE -eq 1 ]]; then
@@ -82,7 +94,8 @@ fi
 
 if [[ $DRY_RUN -eq 1 ]]; then
   echo "[*] Dry-run enabled. No command was executed."
-  echo "[*] Planned Docker Compose command: $(format_cmd "${COMPOSE_EXEC_CMD[@]}")"
+  echo "[*] Planned compose build: $(format_cmd "${BUILD_COMPOSE_CMD[@]}")"
+  echo "[*] Planned Docker Compose command: $(format_cmd "${COMPOSE_UP_CMD[@]}")"
   if [[ $RUN_HEALTH -eq 1 ]]; then
     echo "[*] Planned health check: $(format_cmd "$REPO_ROOT/scripts/check_health.sh" "$INSTANCE")"
   else
@@ -114,12 +127,18 @@ else
   echo "[*] Prepared persistent directories (${PERSISTENT_DIRS[*]}). Desired owner ${APP_DATA_UID_GID} not applied (insufficient permissions)."
 fi
 
-if ! run_deploy_step "Running docker compose (up -d)" "${COMPOSE_EXEC_CMD[@]}"; then
+if ! run_deploy_step "Generating docker-compose.yml" "${BUILD_COMPOSE_CMD[@]}"; then
+  exit $?
+fi
+
+export COMPOSE_FILES="$COMPOSE_ROOT_FILE"
+
+if ! run_deploy_step "Running docker compose (up -d)" "${COMPOSE_UP_CMD[@]}"; then
   exit $?
 fi
 
 if [[ $RUN_HEALTH -eq 1 ]]; then
-  if ! run_deploy_step "Running post-deploy health check" "$REPO_ROOT/scripts/check_health.sh" "$INSTANCE"; then
+  if ! run_deploy_step "Running post-deploy health check" env COMPOSE_FILES="$COMPOSE_ROOT_FILE" "$REPO_ROOT/scripts/check_health.sh" "$INSTANCE"; then
     exit $?
   fi
 else

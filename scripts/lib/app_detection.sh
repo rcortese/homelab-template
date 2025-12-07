@@ -3,7 +3,7 @@
 # Lista serviços ativos (status running) utilizando o comando docker compose
 # informado. O primeiro argumento deve ser o nome de uma variável do tipo array
 # (nameref) que receberá o resultado. Os argumentos seguintes representam o
-# comando docker compose a ser executado (ex.: $(scripts/compose.sh instancia)).
+# comando docker compose a ser executado (ex.: docker compose -f docker-compose.yml ...).
 app_detection__list_active_services() {
   local __target_ref="$1"
   shift
