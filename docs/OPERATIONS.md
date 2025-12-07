@@ -165,22 +165,23 @@ The script relies on `scripts/lib/deploy_context.sh` to calculate `APP_DATA_DIR`
 
 ## scripts/build_compose_file.sh
 
-- **Goal:** materialize the resolved Compose plan into `docker-compose.yml` at the repository root so that the standard commands become `docker compose up -d` and `docker compose ps` without extra flags.
+- **Goal:** materialize the resolved Compose plan into `docker-compose.yml` at the repository root and consolidate the applied env chain into `.env`, so that the standard commands become `docker compose up -d` and `docker compose ps` without extra flags.
 - **Inputs and overrides:**
   - Accepts `--instance` to reuse the standard discovery chain (base manifests, app overlays, and per-instance overrides);
   - `--file` (repeatable) mirrors `COMPOSE_EXTRA_FILES`, appending overlays after the discovered plan;
-  - `--env-file` (repeatable) extends or replaces the `.env` chain (`COMPOSE_ENV_FILES`/`COMPOSE_ENV_FILE`), falling back to `env/local/<instance>.env` → `env/<instance>.example.env` and `env/common.example.env` when the explicit list is empty.
-- **Output validation:** after writing the merged file, the script runs `docker compose -f docker-compose.yml config -q` (reusing the same env chain) and fails when inconsistencies are detected. Re-run the generator whenever manifests or variables are modified to keep the root file in sync.
+  - `--env-file` (repeatable) extends or replaces the `.env` chain (`COMPOSE_ENV_FILES`/`COMPOSE_ENV_FILE`), falling back to `env/local/<instance>.env` → `env/<instance>.example.env` and `env/common.example.env` when the explicit list is empty;
+  - `--env-output` changes where the consolidated `.env` is written (defaults to the repository root). The helper rebuilds the file on every run, honoring the same precedence applied to `--env-file`.
+- **Output validation:** after writing the merged files, the script runs `docker compose -f docker-compose.yml config -q` (reusing the same env chain) and fails when inconsistencies are detected. Re-run the generator whenever manifests or variables are modified to keep the root file and `.env` in sync.
 - **Examples:**
   ```bash
-  # Generate the root docker-compose.yml for the core instance using defaults
+  # Generate the root docker-compose.yml and .env for the core instance using defaults
   scripts/build_compose_file.sh --instance core
 
   # Append temporary overlays and a custom env chain while writing to a different path
   scripts/build_compose_file.sh --instance media \
     --file compose/apps/monitoring/debug.yml \
     --env-file env/local/common.env --env-file env/local/media.env \
-    --output /tmp/media-merged-compose.yml
+    --output /tmp/media-merged-compose.yml --env-output /tmp/media.env
   ```
 
 ## scripts/describe_instance.sh

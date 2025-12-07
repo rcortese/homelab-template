@@ -18,6 +18,7 @@ Flags:
                         COMPOSE_ENV_FILES/COMPOSE_ENV_FILE). Pode ser usado
                         múltiplas vezes.
   -o, --output PATH     Caminho de saída (default: ./docker-compose.yml).
+  -n, --env-output PATH Caminho do .env consolidado (default: ./.env).
 
 Variáveis de ambiente relevantes:
   COMPOSE_FILES        Sobrescreve a lista -f aplicada (separada por espaços
@@ -45,6 +46,7 @@ source "$SCRIPT_DIR/lib/env_file_chain.sh"
 
 INSTANCE_NAME=""
 OUTPUT_FILE="$REPO_ROOT/docker-compose.yml"
+ENV_OUTPUT_FILE="$REPO_ROOT/.env"
 declare -a DECLARE_EXTRAS=()
 declare -a EXPLICIT_ENV_FILES=()
 
@@ -86,6 +88,14 @@ while [[ $# -gt 0 ]]; do
     fi
     OUTPUT_FILE="$1"
     ;;
+  -n | --env-output)
+    shift
+    if [[ $# -eq 0 ]]; then
+      echo "Error: --env-output requer um caminho." >&2
+      exit 64
+    fi
+    ENV_OUTPUT_FILE="$1"
+    ;;
   --)
     shift
     break
@@ -100,6 +110,9 @@ done
 
 if [[ "$OUTPUT_FILE" != /* ]]; then
   OUTPUT_FILE="$REPO_ROOT/$OUTPUT_FILE"
+fi
+if [[ "$ENV_OUTPUT_FILE" != /* ]]; then
+  ENV_OUTPUT_FILE="$REPO_ROOT/$ENV_OUTPUT_FILE"
 fi
 
 declare -a EXTRA_COMPOSE_FILES=()
@@ -192,9 +205,69 @@ if ((${#COMPOSE_ENV_FILES_LIST[@]} > 0)); then
   )
 fi
 
+merge_env_chain_to_file() {
+  local output_path="$1"
+  shift
+
+  local -a env_chain=("$@")
+  local env_file line key value
+  declare -A kv=()
+  declare -a key_order=()
+
+  local output_dir
+  output_dir="$(dirname "$output_path")"
+  if [[ ! -d "$output_dir" ]]; then
+    if ! mkdir -p "$output_dir"; then
+      echo "Error: não foi possível criar o diretório de saída do .env: $output_dir" >&2
+      return 1
+    fi
+  fi
+
+  : >"$output_path"
+
+  for env_file in "${env_chain[@]}"; do
+    if [[ ! -f "$env_file" ]]; then
+      echo "Error: env file não encontrado: $env_file" >&2
+      return 1
+    fi
+
+    while IFS= read -r line || [[ -n "$line" ]]; do
+      line="${line%$'\r'}"
+      [[ -z "$line" || "$line" == \#* ]] && continue
+      if [[ "$line" == export\ * ]]; then
+        line="${line#export }"
+      fi
+      if [[ "$line" != *"="* ]]; then
+        continue
+      fi
+
+      key="${line%%=*}"
+      value="${line#*=}"
+
+      if [[ ! -v kv[$key] ]]; then
+        key_order+=("$key")
+      fi
+      kv[$key]="$value"
+    done <"$env_file"
+  done
+
+  local ordered_key
+  for ordered_key in "${key_order[@]}"; do
+    printf '%s=%s\n' "$ordered_key" "${kv[$ordered_key]}" >>"$output_path"
+  done
+}
+
 if ! cd "$REPO_ROOT"; then
   echo "Error: não foi possível acessar o diretório do repositório: $REPO_ROOT" >&2
   exit 1
+fi
+
+if ((${#COMPOSE_ENV_FILES_RESOLVED[@]} > 0)); then
+  if ! merge_env_chain_to_file "$ENV_OUTPUT_FILE" "${COMPOSE_ENV_FILES_RESOLVED[@]}"; then
+    exit 1
+  fi
+else
+  : >"$ENV_OUTPUT_FILE"
 fi
 
 declare -a compose_cmd=()
@@ -235,5 +308,6 @@ if ((${#COMPOSE_ENV_FILES_LIST[@]} > 0)); then
   printf 'Cadeia de env aplicada (ordem):\n'
   printf '  - %s\n' "${COMPOSE_ENV_FILES_LIST[@]}"
 fi
+printf 'Arquivo .env consolidado em: %s\n' "$ENV_OUTPUT_FILE"
 
 exit 0
