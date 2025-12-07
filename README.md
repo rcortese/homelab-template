@@ -41,6 +41,8 @@ scripts/check_health.sh core
 
 Remember to adjust `<app>`/`core` to match your fork’s profiles, and refer to [`docs/OPERATIONS.md`](docs/OPERATIONS.md) for detailed instructions.
 
+Regenerate the root `docker-compose.yml` with `scripts/build_compose_file.sh` before running any `docker compose` command so the consolidated plan stays in sync without manual `-f` chains.
+
 ## Suggested flow for new repositories
 
 1. **Modeling** – record goals, requirements, and initial decisions in ADRs (`docs/ADR/`).

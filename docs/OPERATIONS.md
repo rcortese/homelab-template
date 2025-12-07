@@ -123,8 +123,7 @@ Use `--base-dir`, `--with-docs`, and `--override-only` to explicitly declare alt
   - `DOCKER_COMPOSE_BIN` — alternate path to the binary.
   - `COMPOSE_EXTRA_FILES` — optional list of extra overlays applied after the standard override (accepts spaces or commas).
 - The script generates a consolidated `docker-compose.yml` in the repository root before invoking
-  `docker compose -f docker-compose.yml config -q`, removing the need for multiple `-f` entries. Use `--legacy-plan`
-  temporarily if any pipeline still depends on the dynamic plan.
+  `docker compose -f docker-compose.yml config -q`.
 - **Practical examples:**
   - Default run using only the configured base and override manifests:
     ```bash
@@ -155,7 +154,7 @@ The script relies on `scripts/lib/deploy_context.sh` to calculate `APP_DATA_DIR`
 ## scripts/backup.sh
 
 - **Dependencies:**
-  - The instance `.env` must be up to date so that `scripts/lib/deploy_context.sh` can identify `APP_DATA_DIR`, `COMPOSE_FILES`, and other variables used to assemble the stack;
+  - The instance `.env` must be up to date so that `scripts/lib/deploy_context.sh` can identify `APP_DATA_DIR` and other variables used to assemble the stack and compose plan;
   - The `backups/` directory must be writable (the script creates subfolders automatically but respects host permissions);
   - It is recommended to ensure the `.env` is sourced (`source env/<instance>.env`) when there are extra exports required by services.
 - The default command (`scripts/backup.sh core`) generates a full snapshot of the instance and reports the artifact location at the end. See [`docs/BACKUP_RESTORE.md`](./BACKUP_RESTORE.md) for retention and restore practices.
@@ -169,7 +168,7 @@ The script relies on `scripts/lib/deploy_context.sh` to calculate `APP_DATA_DIR`
 - **Goal:** materialize the resolved Compose plan into `docker-compose.yml` at the repository root and consolidate the applied env chain into `.env`, so that the standard commands become `docker compose up -d` and `docker compose ps` without extra flags.
 - **Inputs and overrides:**
   - Accepts `--instance` to reuse the standard discovery chain (base manifests, app overlays, and per-instance overrides);
-  - `--file` (repeatable) mirrors `COMPOSE_EXTRA_FILES`, appending overlays after the discovered plan; if `COMPOSE_FILES` is set, its value replaces the plan entirely before extras are appended;
+  - `--file` (repeatable) mirrors `COMPOSE_EXTRA_FILES`, appending overlays after the discovered plan;
   - `--env-file` (repeatable) extends or replaces the `.env` chain (`COMPOSE_ENV_FILES`/`COMPOSE_ENV_FILE`), falling back to `env/local/<instance>.env` → `env/<instance>.example.env` and `env/common.example.env` when the explicit list is empty;
   - `--env-output` changes where the consolidated `.env` is written (defaults to the repository root). The helper rebuilds the file on every run, honoring the same precedence applied to `--env-file`.
 - **Output validation:** after writing the merged files, the script runs `docker compose -f docker-compose.yml config -q` (reusing the same env chain) and fails when inconsistencies are detected. Re-run the generator whenever manifests or variables are modified to keep the root file and `.env` in sync.
@@ -200,7 +199,6 @@ The script relies on `scripts/lib/deploy_context.sh` to calculate `APP_DATA_DIR`
   - `HEALTH_SERVICES` — list of services to inspect (space- or comma-separated). When set, execution is limited to the desired services only.
   - `COMPOSE_ENV_FILE` — path to an alternate `.env` file to load before querying `docker compose`.
 - Collection generates or reuses a consolidated `docker-compose.yml` before running `docker compose -f docker-compose.yml ps/logs`.
-  The legacy multi-`-f` mode remains available as a transitional path via `--legacy-plan` or `CHECK_HEALTH_PLAN=legacy`.
 - The script automatically supplements the service list by running `docker compose config --services`. If no services are found, execution aborts with an error to avoid silently suppressing logs.
 - **Output formats:**
   - `text` (default) — mirrors the historical behavior by printing `docker compose ps` followed by recent logs.
