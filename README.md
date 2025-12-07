@@ -12,9 +12,9 @@ Before getting started, review the dependencies section in the [onboarding guide
 
 ### Quick checklist
 
-Follow the step-by-step instructions in the [onboarding guide](docs/ONBOARDING.md) to prepare the environment and validations.
+Use the [onboarding guide](docs/ONBOARDING.md) as the single checklist for prerequisites and validation steps.
 
-> When you create a stack-specific onboarding guide, mirror this sequence to keep the instructions aligned across documents.
+Operational procedures and runbooks live in [`docs/OPERATIONS.md`](docs/OPERATIONS.md).
 
 ## Required contents
 
@@ -30,18 +30,7 @@ CI/CD pipelines, tests, and additional scripts can be added, but the directories
 4. Adjust documentation in `docs/` following the guidance in the [Local documentation and customization](#local-documentation-and-customization) section of this template.
 5. Run the validation flow (`scripts/check_all.sh`) before the first commit.
 
-After bootstrapping, you can validate the stack locally to ensure the initial services start as expected.
-
-```bash
-scripts/bootstrap_instance.sh app core
-scripts/build_compose_file.sh --instance core
-docker compose -f docker-compose.yml up -d
-scripts/check_health.sh core
-```
-
-Remember to adjust `<app>`/`core` to match your fork’s profiles, and refer to [`docs/OPERATIONS.md`](docs/OPERATIONS.md) for detailed instructions.
-
-Regenerate the root `docker-compose.yml` with `scripts/build_compose_file.sh` before running any `docker compose` command so the consolidated plan stays in sync without manual `-f` chains.
+After bootstrapping, follow the validation flow in the [onboarding guide](docs/ONBOARDING.md#4-run-the-consolidated-validations) to confirm the stack starts as expected. That guide also covers when to regenerate the consolidated `docker-compose.yml` and where to find the scripts used in the process.
 
 ## Suggested flow for new repositories
 
