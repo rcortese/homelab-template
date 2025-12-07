@@ -27,6 +27,9 @@ source "$SCRIPT_DIR/lib/deploy_context.sh"
 # shellcheck source=lib/app_detection.sh
 source "$SCRIPT_DIR/lib/app_detection.sh"
 
+# shellcheck source=lib/compose_command.sh
+source "$SCRIPT_DIR/lib/compose_command.sh"
+
 deploy_context_eval=""
 if ! deploy_context_eval="$(build_deploy_context "$REPO_ROOT" "$INSTANCE")"; then
   exit 1
@@ -38,8 +41,15 @@ export COMPOSE_ENV_FILES="${DEPLOY_CONTEXT[COMPOSE_ENV_FILES]}"
 export COMPOSE_FILES="${DEPLOY_CONTEXT[COMPOSE_FILES]}"
 export APP_DATA_DIR="${DEPLOY_CONTEXT[APP_DATA_DIR]}"
 export APP_DATA_DIR_MOUNT="${DEPLOY_CONTEXT[APP_DATA_DIR_MOUNT]}"
+COMPOSE_ROOT_FILE="$REPO_ROOT/docker-compose.yml"
 
-compose_cmd=("$REPO_ROOT/scripts/compose.sh" "$INSTANCE")
+declare -a DOCKER_COMPOSE_CMD=()
+if ! compose_resolve_command DOCKER_COMPOSE_CMD; then
+  exit $?
+fi
+
+BUILD_COMPOSE_CMD=("$REPO_ROOT/scripts/build_compose_file.sh" --instance "$INSTANCE")
+COMPOSE_CMD=("${DOCKER_COMPOSE_CMD[@]}" -f "$COMPOSE_ROOT_FILE")
 
 stack_was_stopped=0
 restart_failed=0
@@ -50,7 +60,14 @@ if [[ -n "${DEPLOY_CONTEXT[APP_NAMES]:-}" ]]; then
   mapfile -t KNOWN_APP_NAMES < <(printf '%s\n' "${DEPLOY_CONTEXT[APP_NAMES]}")
 fi
 
-if ! app_detection__list_active_services ACTIVE_APP_SERVICES "${compose_cmd[@]}"; then
+if ! "${BUILD_COMPOSE_CMD[@]}"; then
+  echo "[!] Falha ao gerar docker-compose.yml antes do backup." >&2
+  exit 1
+fi
+
+export COMPOSE_FILES="$COMPOSE_ROOT_FILE"
+
+if ! app_detection__list_active_services ACTIVE_APP_SERVICES "${COMPOSE_CMD[@]}"; then
   echo "[!] Não foi possível listar serviços ativos antes do backup." >&2
   ACTIVE_APP_SERVICES=()
 fi
@@ -83,7 +100,7 @@ restart_stack() {
   local restart_status=0
   if [[ $stack_was_stopped -eq 1 ]]; then
     if ((${#ACTIVE_APP_SERVICES[@]} > 0)); then
-      if "${compose_cmd[@]}" up -d "${ACTIVE_APP_SERVICES[@]}"; then
+      if "${COMPOSE_CMD[@]}" up -d "${ACTIVE_APP_SERVICES[@]}"; then
         echo "[*] Aplicações '${ACTIVE_APP_SERVICES[*]}' reativadas."
       else
         echo "[!] Falha ao religar as aplicações '${ACTIVE_APP_SERVICES[*]}' da instância '$INSTANCE'. Verifique manualmente." >&2
@@ -100,7 +117,7 @@ restart_stack() {
 trap restart_stack EXIT
 
 echo "[*] Parando stack '$INSTANCE' antes do backup..."
-if "${compose_cmd[@]}" down; then
+if "${COMPOSE_CMD[@]}" down; then
   stack_was_stopped=1
 else
   echo "[!] Falha ao parar a stack '$INSTANCE'." >&2

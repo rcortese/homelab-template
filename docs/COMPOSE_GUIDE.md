@@ -149,10 +149,6 @@ Services:
         • /srv/app/data -> /data/app (type=bind)
 ```
 
-### Legacy compatibility (`scripts/compose.sh` and `COMPOSE_FILES`)
-
-The recommended flow is to generate `docker-compose.yml` at the repository root and call `docker compose up -d` directly against it. The `COMPOSE_FILES` examples and the `scripts/compose.sh` wrapper remain only for compatibility with older automations or one-off runs that still depend on manual `-f` chaining. Whenever possible, migrate to the generator and prefer the `--file`/`--env-file` flags to control overlays and variable chains.
-
 ## Best practices
 
 > Align any `compose/...` path mentioned below with step 3 of [How to start a derived project](../README.md#how-to-start-a-derived-project) whenever you rename applications or instances in your fork.

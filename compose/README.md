@@ -14,7 +14,7 @@ Manifests are chained in blocks. Each step inherits anchors and variables from t
 (base.yml) → core.yml|media.yml → compose/apps/app/base.yml → compose/apps/app/<instance>.yml → ...
 ```
 
-> The scripts (`scripts/compose.sh`, `scripts/deploy_instance.sh`, etc.) automatically follow this order when building the plan.
+> The scripts (`scripts/deploy_instance.sh`, etc.) automatically follow this order when building the plan.
 
 ## Main instances and optional applications
 

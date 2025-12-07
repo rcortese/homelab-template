@@ -33,50 +33,68 @@ def _assert_restart_apps(stdout: str, expected_apps: list[str]) -> None:
 
 def _install_compose_stub(
     repo_copy: Path,
+    monkeypatch,
     running_services: dict[str, list[str]] | None = None,
     up_fail_instances: set[str] | None = None,
 ) -> Path:
     compose_log = repo_copy / "compose_calls.log"
-    compose_stub = repo_copy / "scripts" / "compose.sh"
+    services_file = repo_copy / "compose_services.log"
+    fail_file = repo_copy / "compose_up_failures"
+
     running_services = running_services or {}
     up_fail_instances = up_fail_instances or set()
-    fail_file = repo_copy / "compose_up_failures"
+
+    services_lines = [" ".join([instance, *services]) for instance, services in running_services.items()]
+    services_file.write_text("\n".join(services_lines), encoding="utf-8")
     fail_file.write_text("\n".join(sorted(up_fail_instances)), encoding="utf-8")
-    case_entries: list[str] = []
-    for instance, services in running_services.items():
-        case_entries.append(f"    {instance})")
-        for service in services:
-            case_entries.append(f"      printf '%s\\n' \"{service}\"")
-        case_entries.append("      ;;")
-    case_entries.append("    * ) ;;")
-    case_block = "\n".join(case_entries)
-    compose_stub.write_text(
-        "\n".join(
-            [
-                "#!/usr/bin/env bash",
-                "set -euo pipefail",
-                f"printf '%s\\n' \"$*\" >> {compose_log!s}",
-                "instance=\"$1\"",
-                "shift || true",
-                "command=\"${1:-}\"",
-                f"fail_file=\"{fail_file!s}\"",
-                "if [[ \"${1:-}\" == 'ps' && \"${2:-}\" == '--status' && \"${3:-}\" == 'running' && \"${4:-}\" == '--services' ]]; then",
-                "  case \"$instance\" in",
-                case_block,
-                "  esac",
-                "fi",
-                "if [[ \"$command\" == 'up' ]]; then",
-                "  if [[ -n \"$fail_file\" && -f \"$fail_file\" ]] && grep -Fxq \"$instance\" \"$fail_file\"; then",
-                "    echo 'stub compose up failure' >&2",
-                "    exit 1",
-                "  fi",
-                "fi",
-            ]
-        )
-        + "\n",
-        encoding="utf-8",
-    )
-    compose_stub.chmod(0o755)
+
+    docker_stub = f"""#!/usr/bin/env bash
+set -euo pipefail
+printf '%s\n' "$*" >> {compose_log!s}
+services_file="{services_file!s}"
+fail_file="{fail_file!s}"
+instance="${{BACKUP_INSTANCE:-default}}"
+if [[ "${1:-}" == 'compose' ]]; then
+  shift
+fi
+while [[ "${1:-}" == '--env-file' ]]; do
+  shift 2
+done
+if [[ "${1:-}" == '-f' ]]; then
+  shift 2
+fi
+command=${1:-}
+if [[ "$command" == 'ps' && "${2:-}" == '--status' && "${3:-}" == 'running' && "${4:-}" == '--services' ]]; then
+  match_found=0
+  if [[ -f "$services_file" ]]; then
+    while IFS= read -r line; do
+      [[ -z "$line" ]] && continue
+      set -- $line
+      target=$1
+      shift || true
+      if [[ "$target" == "$instance" ]]; then
+        match_found=1
+        for svc in "$@"; do
+          printf '%s\n' "$svc"
+        done
+      fi
+    done <"$services_file"
+  fi
+  if [[ $match_found -eq 0 && -s "$services_file" ]]; then
+    awk 'NF>1{{for(i=2;i<=NF;i++)print $i}}' "$services_file"
+  fi
+  exit 0
+fi
+if [[ "$command" == 'up' ]]; then
+  if [[ -f "$fail_file" ]] && grep -Fxq "$instance" "$fail_file"; then
+    echo 'stub compose up failure' >&2
+    exit 1
+  fi
+fi
+"""
+
+    fake_bin, _ = _prepend_fake_bin(repo_copy, monkeypatch, ("docker", docker_stub))
+    (fake_bin / "docker").chmod(0o755)
     return compose_log
 
 
@@ -98,18 +116,17 @@ def _assert_compose_restart_calls(
     compose_log: Path, expected_apps: list[str]
 ) -> None:
     calls = compose_log.read_text(encoding="utf-8").splitlines()
-    assert calls[:2] == [
-        "core ps --status running --services",
-        "core down",
-    ]
+    ps_call = next((entry for entry in calls if "ps --status running --services" in entry), "")
+    down_call = next((entry for entry in calls if entry.rstrip().endswith(" down")), "")
+    assert ps_call
+    assert down_call
     if expected_apps:
-        assert len(calls) >= 3
-        third_command = calls[2]
-        assert third_command.startswith("core up -d ")
-        actual_apps = third_command.split()[3:]
+        up_call = next((entry for entry in calls if " up -d " in entry), "")
+        assert up_call
+        actual_apps = up_call.split()[up_call.split().index("-d") + 1 :]
         assert actual_apps == expected_apps
     else:
-        assert all(not entry.startswith("core up -d") for entry in calls[2:])
+        assert all(" up -d " not in entry for entry in calls)
 
 
 def test_successful_backup_creates_snapshot_and_restarts_stack(
@@ -120,6 +137,7 @@ def test_successful_backup_creates_snapshot_and_restarts_stack(
     expected_core_apps = compose_instances_data.instance_app_names.get("core", [])
     compose_log = _install_compose_stub(
         repo_copy,
+        monkeypatch,
         {"core": expected_core_apps},
     )
     _prepend_fake_bin(
@@ -163,6 +181,7 @@ def test_copy_failure_still_attempts_restart(
     expected_core_apps = compose_instances_data.instance_app_names.get("core", [])
     compose_log = _install_compose_stub(
         repo_copy,
+        monkeypatch,
         {"core": expected_core_apps},
     )
     cp_log = repo_copy / "cp_calls.log"
@@ -220,6 +239,7 @@ def test_restart_failure_propagates_exit_code(
     expected_core_apps = compose_instances_data.instance_app_names.get("core", [])
     compose_log = _install_compose_stub(
         repo_copy,
+        monkeypatch,
         {"core": expected_core_apps},
         up_fail_instances={"core"},
     )
@@ -263,6 +283,7 @@ def test_detected_apps_prioritize_known_order(
     running_services = ["desconhecido"] + expected_core_apps
     compose_log = _install_compose_stub(
         repo_copy,
+        monkeypatch,
         {"core": running_services},
     )
     _prepend_fake_bin(
@@ -307,7 +328,7 @@ def test_no_restart_when_no_active_services(
     monkeypatch,
     compose_instances_data: ComposeInstancesData,
 ) -> None:
-    compose_log = _install_compose_stub(repo_copy)
+    compose_log = _install_compose_stub(repo_copy, monkeypatch)
     _prepend_fake_bin(
         repo_copy,
         monkeypatch,

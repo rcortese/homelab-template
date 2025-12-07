@@ -34,7 +34,8 @@ After bootstrapping, you can validate the stack locally to ensure the initial se
 
 ```bash
 scripts/bootstrap_instance.sh app core
-scripts/compose.sh core up -d
+scripts/build_compose_file.sh --instance core
+docker compose -f docker-compose.yml up -d
 scripts/check_health.sh core
 ```
 

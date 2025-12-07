@@ -6,7 +6,7 @@
 
 - Keep directory layout and file names stable. Do **not** rename or move `compose/`, `env/`, `docs/`, `scripts/`.
 - Two generic profiles: **core** (Ubuntu) and **media** (Unraid). Compose definitions must remain profile-safe.
-- Required ops scripts exist in `scripts/`: `check_structure.sh`, `validate_compose.sh`, `deploy_instance.sh`, `compose.sh`, `check_health.sh`, etc.
+- Required ops scripts exist in `scripts/`: `check_structure.sh`, `validate_compose.sh`, `deploy_instance.sh`, `build_compose_file.sh`, `check_health.sh`, etc.
 
 ## 2) Global Invariants (Must Always Hold)
 

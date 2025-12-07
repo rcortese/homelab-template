@@ -25,7 +25,7 @@
 - The final directory follows `backups/<instance>-<YYYYMMDD-HHMMSS>`. Use `date` with the appropriate `TZ` if you need snapshots in different time zones.
 - Logs go to stdout/stderr; redirect them when integrating with automations (e.g., `scripts/backup.sh core > logs/backup.log 2>&1`).
 - For scenarios with extra data, export it before running the script (e.g., database dumps) and move the artifacts into the generated directory.
-- Before stopping the stack, the script lists running services by calling `docker compose ps --status running --services` via `scripts/compose.sh`. The returned names are combined with `deploy_context` to preserve the expected restart order.
+- Before stopping the stack, the script lists running services by calling `docker compose ps --status running --services` against the consolidated `docker-compose.yml`. The returned names are combined with `deploy_context` to preserve the expected restart order.
 - Only services detected as active at the start are restarted. If no service was running before the backup, the script exits without bringing new services up, keeping the stack state intact.
 
 #### Testing the flow

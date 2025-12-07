@@ -11,8 +11,9 @@ def test_dry_run_outputs_planned_commands(repo_copy: Path) -> None:
     assert result.returncode == 0, result.stderr
     assert "COMPOSE_ENV_FILES=env/local/common.env env/local/core.env" in result.stdout
     assert "COMPOSE_ENV_FILE=env/local/core.env" in result.stdout
+    assert "Planned compose build:" in result.stdout
     assert "Planned Docker Compose command:" in result.stdout
-    assert "compose.sh core -- up -d" in result.stdout
+    assert "docker compose -f" in result.stdout
     assert "Planned health check" in result.stdout
 
 

@@ -22,6 +22,6 @@ def run_deploy(
 
 def _extract_compose_files(stdout: str) -> list[str]:
     for line in stdout.splitlines():
-        if line.startswith("[*] COMPOSE_FILES="):
+        if line.startswith("[*] COMPOSE_PLAN="):
             return line.split("=", 1)[1].split()
     raise AssertionError(f"COMPOSE_FILES not found in output: {stdout!r}")
