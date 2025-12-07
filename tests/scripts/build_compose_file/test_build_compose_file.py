@@ -138,3 +138,78 @@ def test_applies_extras_and_explicit_env_chain(
 
     second_call = calls[1]
     assert str(output_path.resolve()) in _extract_args(second_call, "-f")
+
+
+def test_writes_consolidated_env_output_with_order(
+    repo_copy: Path, tmp_path: Path
+) -> None:
+    stub = create_compose_config_stub(tmp_path)
+
+    base_env_file = repo_copy / "env" / "custom-base.env"
+    override_env_file = repo_copy / "env" / "custom-override.env"
+    base_env_file.write_text(
+        "ALPHA=1\nSHARED=from_base\nOVERRIDE=keep\n", encoding="utf-8"
+    )
+    override_env_file.write_text(
+        "SHARED=from_override\nNEW_VAR=value\n", encoding="utf-8"
+    )
+
+    env_output = repo_copy / "artifacts" / "env" / "merged.env"
+    env_output.parent.mkdir(parents=True, exist_ok=True)
+    env_output.write_text("SHOULD_BE_REPLACED=1\n", encoding="utf-8")
+
+    result = run_build_compose_file(
+        args=[
+            "--instance",
+            "core",
+            "--env-file",
+            str(override_env_file.relative_to(repo_copy)),
+            "--env-output",
+            str(env_output.relative_to(repo_copy)),
+        ],
+        env={
+            "DOCKER_COMPOSE_BIN": str(stub.path),
+            **stub.base_env,
+            "COMPOSE_ENV_FILES": str(base_env_file.relative_to(repo_copy)),
+        },
+        cwd=repo_copy,
+        script_path=repo_copy / "scripts" / "build_compose_file.sh",
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert env_output.read_text(encoding="utf-8") == (
+        "ALPHA=1\nSHARED=from_override\nOVERRIDE=keep\nNEW_VAR=value\n"
+    )
+    assert str(env_output) in result.stdout
+
+    calls = stub.read_calls()
+    env_files = _extract_args(calls[0], "--env-file")
+    assert env_files == [str(base_env_file.resolve()), str(override_env_file.resolve())]
+
+
+def test_refreshes_default_env_output(repo_copy: Path, tmp_path: Path) -> None:
+    stub = create_compose_config_stub(tmp_path)
+
+    default_env_output = repo_copy / ".env"
+    default_env_output.write_text("OLD=1\n", encoding="utf-8")
+
+    core_env = repo_copy / "env" / "local" / "core.env"
+    core_env.write_text("APP_SECRET=override-secret\nAPP_DATA_UID=2000\n", encoding="utf-8")
+
+    result = run_build_compose_file(
+        args=["--instance", "core"],
+        env={"DOCKER_COMPOSE_BIN": str(stub.path), **stub.base_env},
+        cwd=repo_copy,
+        script_path=repo_copy / "scripts" / "build_compose_file.sh",
+    )
+
+    assert result.returncode == 0, result.stderr
+
+    output_lines = default_env_output.read_text(encoding="utf-8").splitlines()
+    assert output_lines == [
+        "TZ=UTC",
+        "APP_SECRET=override-secret",
+        "APP_RETENTION_HOURS=24",
+        "APP_DATA_UID=2000",
+        "APP_DATA_GID=1000",
+    ]
