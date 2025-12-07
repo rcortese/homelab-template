@@ -100,6 +100,7 @@ When combining several applications, load the manifests in blocks (`base.yml`, a
    ```
 
    The default command now targets the root `docker-compose.yml`, avoiding manual `-f` assembly and `--env-file` chains.
+   This consolidated-file workflow is the supported path for running Compose commands and replaces earlier compatibility modes.
 
 > Set `<instance>` to `core`, `media`, or any other name defined in your fork. Replace `<overlay>` with real files under `compose/overlays/` whenever you need temporary or environment-specific adjustments.
 
