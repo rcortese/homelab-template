@@ -30,19 +30,30 @@ validate_executor_prepare_plan() {
   local -n derived_env_ref=$8
 
   if [[ ! -v COMPOSE_INSTANCE_FILES[$instance] ]]; then
-    mapfile -t potential_matches < <(
-      find "$repo_root/compose/apps" -mindepth 2 -maxdepth 2 -name "${instance}.yml" -print 2>/dev/null
+    local -a potential_matches=()
+    local -a compose_aliases=(
+      "$repo_root/compose/docker-compose.${instance}.yml"
+      "$repo_root/compose/docker-compose.${instance}.yaml"
+      "$repo_root/compose/${instance}.yml"
+      "$repo_root/compose/${instance}.yaml"
     )
 
+    local compose_candidate
+    for compose_candidate in "${compose_aliases[@]}"; do
+      if [[ -f "$compose_candidate" ]]; then
+        potential_matches+=("${compose_candidate#$repo_root/}")
+      fi
+    done
+
     if [[ ${#potential_matches[@]} -gt 0 ]]; then
-      echo "[x] instance=\"$instance\" (file combination missing from metadata)" >&2
+      echo "[x] instance=\"$instance\" (compose metadata missing for: ${potential_matches[*]})" >&2
       return 1
     fi
 
     local local_candidate="$repo_root/env/local/${instance}.env"
     local template_candidate="$repo_root/env/${instance}.example.env"
     if [[ -f "$local_candidate" || -f "$template_candidate" ]]; then
-      echo "[x] instance=\"$instance\" (missing file: compose/apps/*/${instance}.yml)" >&2
+      echo "[x] instance=\"$instance\" (missing compose file: compose/docker-compose.${instance}.yml or supported alias)" >&2
       return 1
     fi
 
