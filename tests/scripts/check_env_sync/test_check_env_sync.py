@@ -352,8 +352,6 @@ declare -A COMPOSE_INSTANCE_FILES=([core]=$'compose/missing.yml')
 declare -A COMPOSE_INSTANCE_ENV_LOCAL=([core]=$'env/local/core.env')
 declare -A COMPOSE_INSTANCE_ENV_TEMPLATES=([core]=$'env/core.example.env')
 declare -A COMPOSE_INSTANCE_ENV_FILES=([core]=$'env/local/core.env')
-declare -A COMPOSE_INSTANCE_APP_NAMES=([core]=$'')
-declare -A COMPOSE_APP_BASE_FILES=([core]=$'')
 EOF
 """,
         encoding="utf-8",
@@ -380,8 +378,6 @@ declare -A COMPOSE_INSTANCE_FILES=([core]=$'compose/apps/app/core.yml')
 declare -A COMPOSE_INSTANCE_ENV_LOCAL=([core]=$'env/local/core.env')
 declare -A COMPOSE_INSTANCE_ENV_TEMPLATES=([core]=$'env/core.example.env')
 declare -A COMPOSE_INSTANCE_ENV_FILES=([core]=$'env/local/core.env')
-declare -A COMPOSE_INSTANCE_APP_NAMES=([core]=$'app')
-declare -A COMPOSE_APP_BASE_FILES=([app]=$'compose/apps/app/base.yml')
 EOF
 """,
         encoding="utf-8",
@@ -406,14 +402,9 @@ def test_main_filters_instances_before_build(monkeypatch, tmp_path: Path) -> Non
             "alpha": [tmp_path / "compose" / "alpha.yml"],
             "beta": [tmp_path / "compose" / "beta.yml"],
         },
-        app_names_by_instance={"alpha": ["app_alpha"], "beta": ["app_beta"]},
         env_template_by_instance={
             "alpha": tmp_path / "env" / "alpha.example.env",
             "beta": tmp_path / "env" / "beta.example.env",
-        },
-        app_base_by_name={
-            "app_alpha": tmp_path / "compose" / "apps" / "alpha" / "base.yml",
-            "app_beta": tmp_path / "compose" / "apps" / "beta" / "base.yml",
         },
     )
 
@@ -440,9 +431,7 @@ def test_main_filters_instances_before_build(monkeypatch, tmp_path: Path) -> Non
     filtered_metadata = captured_metadata[0]
     assert filtered_metadata.instances == ["beta"]
     assert set(filtered_metadata.files_by_instance.keys()) == {"beta"}
-    assert set(filtered_metadata.app_names_by_instance.keys()) == {"beta"}
     assert set(filtered_metadata.env_template_by_instance.keys()) == {"beta"}
-    assert set(filtered_metadata.app_base_by_name.keys()) == {"app_beta"}
 
 
 def test_build_sync_report_handles_shared_base(tmp_path: Path) -> None:
