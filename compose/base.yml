@@ -1,7 +1,7 @@
 # Compose base compartilhado. Combine com overrides de instância (ex.: core/media).
 # Este arquivo define apenas recursos reutilizados pelas aplicações, como redes
-# e volumes nomeados. Os serviços são declarados nos respectivos manifests em
-# `compose/apps/<app>/`.
+# e volumes nomeados. Os serviços são declarados diretamente nos respectivos
+# arquivos `docker-compose.<instance>.yml`.
 
 networks:
   homelab_internal:
