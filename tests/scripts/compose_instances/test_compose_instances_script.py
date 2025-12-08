@@ -214,6 +214,9 @@ def test_apps_with_base_are_registered_for_all_instances(
     names_line = find_declare_line(result.stdout, "COMPOSE_INSTANCE_NAMES")
     instance_names = parse_indexed_values(names_line)
 
+    files_line = find_declare_line(result.stdout, "COMPOSE_INSTANCE_FILES")
+    files_map = parse_mapping(files_line)
+
     for instance in instance_names:
         overrides = [entry for entry in files_map.get(instance, "").splitlines() if entry]
         expected_overrides = compose_instances_data.instance_files.get(instance, [])

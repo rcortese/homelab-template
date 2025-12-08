@@ -12,11 +12,11 @@ class ComposeInstancesData:
     base_file: str
     instance_names: list[str]
     instance_files: dict[str, list[str]]
-    instance_app_names: dict[str, list[str]] = field(default_factory=dict)
-    app_base_files: dict[str, str] = field(default_factory=dict)
     env_local_map: dict[str, str]
     env_template_map: dict[str, str]
     env_files_map: dict[str, list[str]]
+    instance_app_names: dict[str, list[str]] = field(default_factory=dict)
+    app_base_files: dict[str, str] = field(default_factory=dict)
 
     def compose_plan(self, instance: str, extra_files: Iterable[str] | None = None) -> list[str]:
         plan: list[str] = []
@@ -38,6 +38,9 @@ class ComposeInstancesData:
                 append_unique(extra)
 
         return plan
+
+    def apps_without_overrides(self) -> list[str]:
+        return []
 
 
 def _find_declare_line(stdout: str, variable: str) -> str:

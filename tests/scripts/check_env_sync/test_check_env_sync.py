@@ -89,22 +89,13 @@ def test_load_metadata_accepts_instance_without_overrides(
     repo_copy: Path, compose_instances_data: ComposeInstancesData
 ) -> None:
     instance_name = _select_instance(compose_instances_data)
-    manifest = repo_copy / "compose" / f"{instance_name}.yml"
+    manifest = repo_copy / "compose" / f"docker-compose.{instance_name}.yml"
     if manifest.exists():
         manifest.unlink()
-
-    for candidate in (repo_copy / "compose" / "apps").glob(f"*/{instance_name}.yml"):
-        base_candidate = candidate.with_name("base.yml")
-        if base_candidate.exists():
-            candidate.unlink()
 
     metadata = load_compose_metadata(repo_copy)
 
     assert instance_name in metadata.instances
-    remaining_files = list(metadata.files_by_instance[instance_name])
-    for path in remaining_files:
-        base_candidate = path.with_name("base.yml")
-        assert not base_candidate.exists()
 
 
 def test_check_env_sync_detects_missing_variables(
@@ -374,7 +365,7 @@ def test_check_env_sync_errors_when_declared_base_missing(repo_copy: Path) -> No
 cat <<'EOF'
 declare -- BASE_COMPOSE_FILE="compose/missing-base.yml"
 declare -a COMPOSE_INSTANCE_NAMES=([0]="core")
-declare -A COMPOSE_INSTANCE_FILES=([core]=$'compose/apps/app/core.yml')
+declare -A COMPOSE_INSTANCE_FILES=([core]=$'compose/docker-compose.core.yml')
 declare -A COMPOSE_INSTANCE_ENV_LOCAL=([core]=$'env/local/core.env')
 declare -A COMPOSE_INSTANCE_ENV_TEMPLATES=([core]=$'env/core.example.env')
 declare -A COMPOSE_INSTANCE_ENV_FILES=([core]=$'env/local/core.env')
@@ -485,12 +476,10 @@ services:
             "core": [core_override.resolve()],
             "media": [media_override.resolve()],
         },
-        app_names_by_instance={"core": [], "media": []},
         env_template_by_instance={
             "core": core_env.resolve(),
             "media": media_env.resolve(),
         },
-        app_base_by_name={},
     )
 
     report = build_sync_report(repo_root, metadata)
