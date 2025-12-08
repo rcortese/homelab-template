@@ -1,5 +1,0 @@
-services:
-  monitoring:
-    networks:
-      homelab_internal:
-        ipv4_address: ${MONITORING_NETWORK_IPV4}

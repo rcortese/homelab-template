@@ -71,72 +71,72 @@ env_helpers__normalize_absolute_path "$REPO_ROOT" "$VALUE"
 def test_derive_from_relative_app_dir() -> None:
     result = _run_derive(
         repo_root=REPO_ROOT,
-        service_slug="app",
-        default_rel="data/core/app",
+        service_slug="core",
+        default_rel="data/core/core",
         app_dir="custom/storage",
         app_mount="",
     )
 
     assert result.returncode == 0, result.stderr
     lines = result.stdout.splitlines()
-    assert lines == ["custom/storage", f"{REPO_ROOT}/custom/storage/app"]
+    assert lines == ["custom/storage", f"{REPO_ROOT}/custom/storage/core"]
 
 
 def test_derive_from_default_when_app_dir_blank() -> None:
     result = _run_derive(
         repo_root=REPO_ROOT,
-        service_slug="app",
-        default_rel="data/core/app",
+        service_slug="core",
+        default_rel="data/core/core",
         app_dir="",
         app_mount="",
     )
 
     assert result.returncode == 0, result.stderr
     lines = result.stdout.splitlines()
-    assert lines == ["data/core/app", f"{REPO_ROOT}/data/core/app"]
+    assert lines == ["data/core/core", f"{REPO_ROOT}/data/core/core"]
 
 
 def test_derive_normalizes_absolute_app_dir() -> None:
     absolute_dir = (REPO_ROOT / "absolute" / "storage").as_posix()
     result = _run_derive(
         repo_root=REPO_ROOT,
-        service_slug="app",
-        default_rel="data/core/app",
+        service_slug="core",
+        default_rel="data/core/core",
         app_dir=absolute_dir,
         app_mount="",
     )
 
     assert result.returncode == 0, result.stderr
     lines = result.stdout.splitlines()
-    assert lines == ["absolute/storage", f"{REPO_ROOT}/absolute/storage/app"]
+    assert lines == ["absolute/storage", f"{REPO_ROOT}/absolute/storage/core"]
 
 
 def test_derive_from_relative_mount_path() -> None:
     result = _run_derive(
         repo_root=REPO_ROOT,
-        service_slug="app",
-        default_rel="data/core/app",
+        service_slug="core",
+        default_rel="data/core/core",
         app_dir="",
         app_mount="custom-mount",
     )
 
     assert result.returncode == 0, result.stderr
     lines = result.stdout.splitlines()
-    assert lines == ["custom-mount", f"{REPO_ROOT}/custom-mount/app"]
+    assert lines == ["custom-mount", f"{REPO_ROOT}/custom-mount/core"]
 
 
 def test_derive_from_external_mount_keeps_default_rel() -> None:
     result = _run_derive(
         repo_root=REPO_ROOT,
-        service_slug="app",
-        default_rel="data/core/app",
+        service_slug="core",
+        default_rel="data/core/core",
         app_dir="",
         app_mount="/srv/external",
     )
 
     assert result.returncode == 0, result.stderr
     lines = result.stdout.splitlines()
-    assert lines == ["data/core/app", "/srv/external/app"]
+    assert lines == ["data/core/core", "/srv/external/core"]
 
 
 def test_derive_rejects_conflicting_inputs() -> None:

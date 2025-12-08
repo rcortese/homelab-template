@@ -30,7 +30,6 @@ append_unique_file() {
 #        that should be appended to the plan.
 #   $4 - (optional) Name of an associative array variable that will receive
 #        metadata (newline-separated strings) about the generated plan. Keys:
-#          app_names        -> apps associated with the instance.
 #          discovered_files -> files declared in COMPOSE_INSTANCE_FILES.
 #          extra_files      -> any extra files appended to the plan.
 build_compose_file_plan() {
@@ -59,63 +58,10 @@ build_compose_file_plan() {
   local -a __instance_compose_files=()
   mapfile -t __instance_compose_files < <(printf '%s\n' "${COMPOSE_INSTANCE_FILES[$instance_name]}")
 
-  local -a __instance_app_names=()
-  if [[ -n "${COMPOSE_INSTANCE_APP_NAMES[$instance_name]:-}" ]]; then
-    mapfile -t __instance_app_names < <(printf '%s\n' "${COMPOSE_INSTANCE_APP_NAMES[$instance_name]}")
-  fi
-
   if [[ -n "${BASE_COMPOSE_FILE:-}" ]]; then
     append_unique_file __plan_ref "$BASE_COMPOSE_FILE"
   fi
 
-  local -a __instance_level_overrides=()
-  declare -A __overrides_by_app=()
-  local __compose_file __app_for_file
-  for __compose_file in "${__instance_compose_files[@]}"; do
-    [[ -z "$__compose_file" ]] && continue
-    if [[ "$__compose_file" == "compose/${instance_name}.yml" || "$__compose_file" == "compose/${instance_name}.yaml" ]]; then
-      append_unique_file __instance_level_overrides "$__compose_file"
-      continue
-    fi
-    __app_for_file="${__compose_file#compose/apps/}"
-    __app_for_file="${__app_for_file%%/*}"
-    if [[ -z "$__app_for_file" ]]; then
-      continue
-    fi
-    if [[ -n "${__overrides_by_app[$__app_for_file]:-}" ]]; then
-      __overrides_by_app[$__app_for_file]+=$'\n'"$__compose_file"
-    else
-      __overrides_by_app[$__app_for_file]="$__compose_file"
-    fi
-  done
-
-  local __instance_override
-  for __instance_override in "${__instance_level_overrides[@]}"; do
-    append_unique_file __plan_ref "$__instance_override"
-  done
-
-  local __app_name
-  local __app_base_file
-  for __app_name in "${__instance_app_names[@]}"; do
-    __app_base_file="${COMPOSE_APP_BASE_FILES[$__app_name]:-}"
-    if [[ -z "$__app_base_file" && -z "${__overrides_by_app[$__app_name]:-}" ]]; then
-      printf '[!] Instance "%s": application "%s" has no base.yml or overrides.\n' \
-        "$instance_name" "$__app_name" >&2
-      return 1
-    fi
-    if [[ -n "$__app_base_file" ]]; then
-      append_unique_file __plan_ref "$__app_base_file"
-    fi
-    if [[ -n "${__overrides_by_app[$__app_name]:-}" ]]; then
-      mapfile -t __instance_compose_files < <(printf '%s\n' "${__overrides_by_app[$__app_name]}")
-      local __override_file
-      for __override_file in "${__instance_compose_files[@]}"; do
-        append_unique_file __plan_ref "$__override_file"
-      done
-    fi
-  done
-
-  mapfile -t __instance_compose_files < <(printf '%s\n' "${COMPOSE_INSTANCE_FILES[$instance_name]}")
   for __compose_file in "${__instance_compose_files[@]}"; do
     append_unique_file __plan_ref "$__compose_file"
   done
@@ -128,10 +74,6 @@ build_compose_file_plan() {
     declare -gA "$metadata_assoc_name"
     local -n __metadata_ref=$metadata_assoc_name
     __metadata_ref=()
-
-    if [[ ${#__instance_app_names[@]} -gt 0 ]]; then
-      __metadata_ref["app_names"]="$(printf '%s\n' "${__instance_app_names[@]}")"
-    fi
 
     if [[ ${#__instance_compose_files[@]} -gt 0 ]]; then
       __metadata_ref["discovered_files"]="$(printf '%s\n' "${__instance_compose_files[@]}")"

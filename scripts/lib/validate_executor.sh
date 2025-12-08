@@ -30,19 +30,30 @@ validate_executor_prepare_plan() {
   local -n derived_env_ref=$8
 
   if [[ ! -v COMPOSE_INSTANCE_FILES[$instance] ]]; then
-    mapfile -t potential_matches < <(
-      find "$repo_root/compose/apps" -mindepth 2 -maxdepth 2 -name "${instance}.yml" -print 2>/dev/null
+    local -a potential_matches=()
+    local -a compose_aliases=(
+      "$repo_root/compose/docker-compose.${instance}.yml"
+      "$repo_root/compose/docker-compose.${instance}.yaml"
+      "$repo_root/compose/${instance}.yml"
+      "$repo_root/compose/${instance}.yaml"
     )
 
+    local compose_candidate
+    for compose_candidate in "${compose_aliases[@]}"; do
+      if [[ -f "$compose_candidate" ]]; then
+        potential_matches+=("${compose_candidate#$repo_root/}")
+      fi
+    done
+
     if [[ ${#potential_matches[@]} -gt 0 ]]; then
-      echo "[x] instance=\"$instance\" (file combination missing from metadata)" >&2
+      echo "[x] instance=\"$instance\" (compose metadata missing for: ${potential_matches[*]})" >&2
       return 1
     fi
 
     local local_candidate="$repo_root/env/local/${instance}.env"
     local template_candidate="$repo_root/env/${instance}.example.env"
     if [[ -f "$local_candidate" || -f "$template_candidate" ]]; then
-      echo "[x] instance=\"$instance\" (missing file: compose/apps/*/${instance}.yml)" >&2
+      echo "[x] instance=\"$instance\" (missing compose file: compose/docker-compose.${instance}.yml or supported alias)" >&2
       return 1
     fi
 
@@ -100,11 +111,6 @@ validate_executor_prepare_plan() {
     return 1
   fi
 
-  local -a instance_app_names=()
-  if [[ -n "${COMPOSE_INSTANCE_APP_NAMES[$instance]:-}" ]]; then
-    mapfile -t instance_app_names < <(printf '%s\n' "${COMPOSE_INSTANCE_APP_NAMES[$instance]}")
-  fi
-
   files_ref=()
   local plan_entry resolved_entry
   for plan_entry in "${compose_plan_rel[@]}"; do
@@ -158,32 +164,7 @@ validate_executor_prepare_plan() {
   fi
 
   derived_env_ref=()
-
-  local -a instance_app_names=()
-  if [[ -v COMPOSE_INSTANCE_APP_NAMES[$instance] ]]; then
-    mapfile -t instance_app_names < <(printf '%s\n' "${COMPOSE_INSTANCE_APP_NAMES[$instance]}")
-  fi
-  if [[ ${#instance_app_names[@]} -gt 0 ]]; then
-    local -a filtered_app_names=()
-    local instance_app_name
-    for instance_app_name in "${instance_app_names[@]}"; do
-      if [[ -n "${COMPOSE_APP_BASE_FILES[$instance_app_name]:-}" ]]; then
-        filtered_app_names+=("$instance_app_name")
-      fi
-    done
-    if [[ ${#filtered_app_names[@]} -gt 0 ]]; then
-      instance_app_names=("${filtered_app_names[@]}")
-    fi
-  fi
-  if [[ ${#instance_app_names[@]} -eq 0 ]]; then
-    echo "[x] instance=\"$instance\" (associated applications not found)" >&2
-    return 1
-  fi
-
-  local primary_app=""
-  if [[ ${#instance_app_names[@]} -gt 0 ]]; then
-    primary_app="${instance_app_names[0]}"
-  fi
+  local primary_app="$instance"
 
   declare -A env_loaded=()
   if [[ ${#env_files_abs[@]} -gt 0 ]]; then

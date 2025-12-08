@@ -52,7 +52,7 @@ def test_dry_run_outputs_planned_actions(repo_copy: Path) -> None:
     _append_env_values(env_file, uid=uid, gid=gid)
 
     data_dir = repo_copy / "data" / "core"
-    data_mount = data_dir / "app"
+    data_mount = data_dir / "core"
     backups_dir = repo_copy / "backups"
     expected_dirs = (data_mount, backups_dir)
 
@@ -113,7 +113,7 @@ def test_script_creates_directories_and_applies_owner(repo_copy: Path) -> None:
     stdout = result.stdout
 
     data_dir = repo_copy / "custom-storage"
-    data_mount = data_dir / "app"
+    data_mount = data_dir / "core"
     backups_dir = repo_copy / "backups"
 
     assert data_dir.is_dir()
