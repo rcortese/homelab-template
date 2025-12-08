@@ -70,7 +70,7 @@ The instance templates include illustrative placeholders that should be renamed 
 
 Rename these identifiers to terms aligned with your domain (for example, `PORTAL_PUBLIC_URL`, `PORTAL_NETWORK_IPV4`, `ACME_PROXY_NETWORK_NAME`) and update the associated manifests to avoid leftover default values.
 
-> **Note:** the main persistent directory follows the `data/<instance>/<app>` convention, considering the primary application (first in `COMPOSE_INSTANCE_APP_NAMES`). Leave `APP_DATA_DIR` and `APP_DATA_DIR_MOUNT` blank to automatically use this relative fallback. Provide **only one** of them when you need to customize the path (relative or absolute, respectively); the scripts error out if both are set at the same time. Adjust `APP_DATA_UID` and `APP_DATA_GID` to align permissions.
+> **Note:** the main persistent directory follows the `data/<instance>/<app>` convention using the primary service slug for the stack. Leave `APP_DATA_DIR` and `APP_DATA_DIR_MOUNT` blank to automatically use this relative fallback. Provide **only one** of them when you need to customize the path (relative or absolute, respectively); the scripts error out if both are set at the same time. Adjust `APP_DATA_UID` and `APP_DATA_GID` to align permissions.
 
 > **New flow (`LOCAL_INSTANCE`)**: the wrappers (such as `scripts/deploy_instance.sh`) automatically export `LOCAL_INSTANCE` based on the `.env` file for the active instance (e.g., `core`, `media`). This variable injects the instance segment into the fallback `data/<instance>/<app>` used by the manifests. When running `docker compose` directly, export `LOCAL_INSTANCE=<instance>` before the command or reuse the scripts to avoid directory mismatches.
 

@@ -207,62 +207,14 @@ build_deploy_context() {
     fi
   done
 
-  local -a instance_app_names=()
-  if [[ -v COMPOSE_INSTANCE_APP_NAMES["$instance"] ]]; then
-    mapfile -t instance_app_names < <(printf '%s\n' "${COMPOSE_INSTANCE_APP_NAMES[$instance]}")
-  fi
-  if [[ ${#instance_app_names[@]} -eq 0 ]]; then
-    echo "[!] Application associated with instance '$instance' not found." >&2
-    return 1
-  fi
-
-  local -a filtered_app_names=()
-  local -a instance_compose_files=()
-  if [[ -v COMPOSE_INSTANCE_FILES[$instance] && -n "${COMPOSE_INSTANCE_FILES[$instance]}" ]]; then
-    mapfile -t instance_compose_files < <(printf '%s\n' "${COMPOSE_INSTANCE_FILES[$instance]}")
-  fi
-
-  local instance_app_name
-  for instance_app_name in "${instance_app_names[@]}"; do
-    if [[ -n "${COMPOSE_APP_BASE_FILES[$instance_app_name]:-}" ]]; then
-      filtered_app_names+=("$instance_app_name")
-      continue
-    fi
-
-    if ((${#instance_compose_files[@]} > 0)); then
-      local compose_entry
-      for compose_entry in "${instance_compose_files[@]}"; do
-        if [[ "$compose_entry" == "compose/apps/${instance_app_name}/"* ]]; then
-          filtered_app_names+=("$instance_app_name")
-          break
-        fi
-      done
-      if [[ "${filtered_app_names[-1]:-}" == "$instance_app_name" ]]; then
-        continue
-      fi
-    fi
-  done
-
+  local primary_app="$instance"
   local app_names_string=""
-  if [[ ${#instance_app_names[@]} -gt 0 ]]; then
-    app_names_string="$(printf '%s\n' "${instance_app_names[@]}")"
-  fi
-
-  local primary_app=""
-  if [[ ${#filtered_app_names[@]} -gt 0 ]]; then
-    primary_app="${filtered_app_names[0]}"
-  else
-    primary_app="${instance_app_names[0]}"
-  fi
   local default_app_data_dir=""
   if [[ -n "$primary_app" && -n "$instance" ]]; then
     default_app_data_dir="data/${instance}/${primary_app}"
   fi
 
-  local service_slug=""
-  if [[ -n "$primary_app" ]]; then
-    service_slug="$primary_app"
-  fi
+  local service_slug="$primary_app"
 
   local app_data_dir_value_raw="${APP_DATA_DIR:-}"
   local app_data_dir_mount_value_raw="${APP_DATA_DIR_MOUNT:-}"

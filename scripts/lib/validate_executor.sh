@@ -100,11 +100,6 @@ validate_executor_prepare_plan() {
     return 1
   fi
 
-  local -a instance_app_names=()
-  if [[ -n "${COMPOSE_INSTANCE_APP_NAMES[$instance]:-}" ]]; then
-    mapfile -t instance_app_names < <(printf '%s\n' "${COMPOSE_INSTANCE_APP_NAMES[$instance]}")
-  fi
-
   files_ref=()
   local plan_entry resolved_entry
   for plan_entry in "${compose_plan_rel[@]}"; do
@@ -158,32 +153,7 @@ validate_executor_prepare_plan() {
   fi
 
   derived_env_ref=()
-
-  local -a instance_app_names=()
-  if [[ -v COMPOSE_INSTANCE_APP_NAMES[$instance] ]]; then
-    mapfile -t instance_app_names < <(printf '%s\n' "${COMPOSE_INSTANCE_APP_NAMES[$instance]}")
-  fi
-  if [[ ${#instance_app_names[@]} -gt 0 ]]; then
-    local -a filtered_app_names=()
-    local instance_app_name
-    for instance_app_name in "${instance_app_names[@]}"; do
-      if [[ -n "${COMPOSE_APP_BASE_FILES[$instance_app_name]:-}" ]]; then
-        filtered_app_names+=("$instance_app_name")
-      fi
-    done
-    if [[ ${#filtered_app_names[@]} -gt 0 ]]; then
-      instance_app_names=("${filtered_app_names[@]}")
-    fi
-  fi
-  if [[ ${#instance_app_names[@]} -eq 0 ]]; then
-    echo "[x] instance=\"$instance\" (associated applications not found)" >&2
-    return 1
-  fi
-
-  local primary_app=""
-  if [[ ${#instance_app_names[@]} -gt 0 ]]; then
-    primary_app="${instance_app_names[0]}"
-  fi
+  local primary_app="$instance"
 
   declare -A env_loaded=()
   if [[ ${#env_files_abs[@]} -gt 0 ]]; then

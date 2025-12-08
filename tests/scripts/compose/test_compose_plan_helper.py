@@ -87,8 +87,6 @@ def parse_mapping(line: str) -> dict[str, str]:
 def build_expected_plan(
     base_file: str,
     instance: str,
-    app_names_map: dict[str, list[str]],
-    app_base_map: dict[str, str],
     instance_files_map: dict[str, list[str]],
 ) -> list[str]:
     expected: list[str] = []
@@ -98,23 +96,6 @@ def build_expected_plan(
             expected.append(entry)
 
     append_unique(base_file)
-
-    instance_candidates = instance_files_map.get(instance, [])
-    instance_level_overrides = [
-        candidate
-        for candidate in instance_candidates
-        if not candidate.startswith("compose/apps/")
-    ]
-    for override in instance_level_overrides:
-        append_unique(override)
-
-    for app_name in app_names_map.get(instance, []):
-        app_base = app_base_map.get(app_name, "")
-        append_unique(app_base)
-        for candidate in instance_files_map.get(instance, []):
-            prefix = f"compose/apps/{app_name}/"
-            if candidate.startswith(prefix):
-                append_unique(candidate)
 
     for candidate in instance_files_map.get(instance, []):
         append_unique(candidate)
@@ -126,8 +107,6 @@ def test_compose_plan_matches_existing_logic(repo_copy: Path) -> None:
     (
         expected_names,
         expected_files_map,
-        expected_app_names_map,
-        expected_app_base_map,
         _env_local_map,
         _env_template_map,
         _env_file_map,
@@ -145,8 +124,6 @@ def test_compose_plan_matches_existing_logic(repo_copy: Path) -> None:
         expected_plan = build_expected_plan(
             base_file,
             instance,
-            expected_app_names_map,
-            expected_app_base_map,
             expected_files_map,
         )
 
@@ -168,8 +145,6 @@ def test_compose_plan_appends_extra_files(repo_copy: Path) -> None:
     (
         _names,
         expected_files_map,
-        expected_app_names_map,
-        expected_app_base_map,
         _env_local_map,
         _env_template_map,
         _env_file_map,
@@ -178,8 +153,6 @@ def test_compose_plan_appends_extra_files(repo_copy: Path) -> None:
     expected_plan = build_expected_plan(
         "compose/base.yml" if (repo_copy / "compose" / "base.yml").exists() else "",
         "core",
-        expected_app_names_map,
-        expected_app_base_map,
         expected_files_map,
     )
     expected_plan.extend(extras)
@@ -199,13 +172,10 @@ def test_compose_plan_optional_metadata(repo_copy: Path) -> None:
     (
         _names,
         expected_files_map,
-        expected_app_names_map,
-        expected_app_base_map,
         _env_local_map,
         _env_template_map,
         _env_file_map,
     ) = _collect_compose_metadata(repo_copy)
 
-    assert metadata["app_names"].splitlines() == expected_app_names_map["core"]
     assert metadata["discovered_files"].splitlines() == expected_files_map["core"]
     assert metadata["extra_files"].splitlines() == extras
