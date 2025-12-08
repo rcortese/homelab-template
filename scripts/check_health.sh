@@ -351,9 +351,9 @@ append_real_service_targets() {
       if [[ -z "$compose_service" ]]; then
         continue
       fi
-        if [[ -n "${__log_targets_seen["$compose_service"]:-}" ]]; then
-          continue
-        fi
+      if [[ -n "${__log_targets_seen["$compose_service"]:-}" ]]; then
+        continue
+      fi
       LOG_TARGETS+=("$compose_service")
       __log_targets_seen["$compose_service"]=1
     done <<<"$compose_services_output"

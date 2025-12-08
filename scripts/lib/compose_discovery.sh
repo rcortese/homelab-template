@@ -64,13 +64,13 @@ load_compose_discovery() {
     candidate_name="${instance_file##*/}"
 
     case "$candidate_name" in
-      docker-compose.*.yml | docker-compose.*.yaml)
-        candidate_instance="${candidate_name#docker-compose.}"
-        candidate_instance="${candidate_instance%.*}"
-        ;;
-      *)
-        continue
-        ;;
+    docker-compose.*.yml | docker-compose.*.yaml)
+      candidate_instance="${candidate_name#docker-compose.}"
+      candidate_instance="${candidate_instance%.*}"
+      ;;
+    *)
+      continue
+      ;;
     esac
 
     if [[ -z "$candidate_instance" || "$candidate_instance" == "base" ]]; then
