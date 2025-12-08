@@ -3,7 +3,7 @@
 # Usage: scripts/check_health.sh [--format text|json] [--output <file>] [instance]
 #
 # Arguments:
-#   instance (optional): identifier used by compose/apps/<app>/<instance>.yml manifests loaded from compose/base.yml.
+#   instance (optional): identifier used by compose/docker-compose.<instance>.yml manifests loaded from compose/base.yml.
 #                        When provided, the script also searches for env/local/<instance>.env.
 # Options:
 #   --format text|json    Controls the output format (default: text).
@@ -323,20 +323,8 @@ mapfile -t LOG_TARGETS < <(env_file_chain__parse_list "${HEALTH_SERVICES:-}") ||
 declare -a METADATA_APP_NAMES=()
 declare -a METADATA_PRIMARY_APPS=()
 if [[ -n "$INSTANCE_NAME" ]]; then
-  if load_compose_instances "$REPO_ROOT"; then
-    if [[ -n "${COMPOSE_INSTANCE_APP_NAMES[$INSTANCE_NAME]:-}" ]]; then
-      mapfile -t METADATA_APP_NAMES < <(printf '%s\n' "${COMPOSE_INSTANCE_APP_NAMES[$INSTANCE_NAME]}")
-      if [[ ${#METADATA_APP_NAMES[@]} -gt 0 ]]; then
-        __metadata_app_name=""
-        for __metadata_app_name in "${METADATA_APP_NAMES[@]}"; do
-          if [[ -n "${COMPOSE_APP_BASE_FILES[$__metadata_app_name]:-}" ]]; then
-            METADATA_PRIMARY_APPS+=("$__metadata_app_name")
-          fi
-        done
-        unset __metadata_app_name
-      fi
-    fi
-  fi
+  METADATA_APP_NAMES=("$INSTANCE_NAME")
+  METADATA_PRIMARY_APPS=("$INSTANCE_NAME")
 fi
 
 if [[ ${#LOG_TARGETS[@]} -eq 0 ]]; then
@@ -363,14 +351,9 @@ append_real_service_targets() {
       if [[ -z "$compose_service" ]]; then
         continue
       fi
-      if [[ "$CHANGED_TO_REPO_ROOT" == false && -n "$INSTANCE_NAME" ]]; then
-        if [[ ! -f "$REPO_ROOT/compose/apps/$compose_service/base.yml" ]]; then
+        if [[ -n "${__log_targets_seen["$compose_service"]:-}" ]]; then
           continue
         fi
-      fi
-      if [[ -n "${__log_targets_seen["$compose_service"]:-}" ]]; then
-        continue
-      fi
       LOG_TARGETS+=("$compose_service")
       __log_targets_seen["$compose_service"]=1
     done <<<"$compose_services_output"

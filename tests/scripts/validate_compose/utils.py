@@ -20,7 +20,6 @@ class InstanceMetadata:
     """Metadata discovered for a docker compose instance."""
 
     name: str
-    app_names: tuple[str, ...]
     override_files: tuple[Path, ...]
     env_file: Path | None
     env_local: Path | None
@@ -50,27 +49,6 @@ class InstanceMetadata:
             append_unique(base_candidate)
 
         override_paths = [root / entry for entry in self.override_files]
-        overrides_by_app: dict[str, list[Path]] = {}
-        instance_level_overrides: list[Path] = []
-
-        for entry, resolved in zip(self.override_files, override_paths):
-            parts = entry.parts
-            if len(parts) >= 3 and parts[0] == "compose" and parts[1] == "apps":
-                app_name = parts[2]
-                overrides_by_app.setdefault(app_name, []).append(resolved)
-            else:
-                instance_level_overrides.append(resolved)
-
-        for override in instance_level_overrides:
-            append_unique(override)
-
-        for app_name in self.app_names:
-            base_candidate = root / "compose" / "apps" / app_name / "base.yml"
-            if base_candidate.exists():
-                append_unique(base_candidate)
-            for override in overrides_by_app.get(app_name, []):
-                append_unique(override)
-
         for override in override_paths:
             append_unique(override)
 
@@ -162,54 +140,16 @@ def load_app_data_from_deploy_context(repo_root: Path, instance: str) -> dict[st
 
 def _discover_instance_metadata(repo_root: Path) -> tuple[InstanceMetadata, ...]:
     compose_dir = repo_root / "compose"
-    apps_dir = compose_dir / "apps"
-    if not apps_dir.is_dir():  # pragma: no cover - defensive
-        raise FileNotFoundError(f"Applications directory not found: {apps_dir}")
 
     instance_files: dict[str, list[Path]] = {}
-    instance_app_names: dict[str, list[str]] = {}
-    apps_without_overrides: list[str] = []
-    apps_with_base: set[str] = set()
-    app_override_instances: dict[str, set[str]] = {}
-
-    for app_dir in sorted(path for path in apps_dir.iterdir() if path.is_dir()):
-        base_override = app_dir / "base.yml"
-        has_base = base_override.exists()
-        if has_base:
-            apps_with_base.add(app_dir.name)
-
-        app_files = list(sorted(app_dir.glob("*.yml"))) + list(sorted(app_dir.glob("*.yaml")))
-        found_override = False
-
-        for candidate in app_files:
-            if candidate.stem == "base":
-                continue
-
-            found_override = True
-            instance_name = candidate.stem
-            rel_path = candidate.relative_to(repo_root)
-
-            instance_files.setdefault(instance_name, [])
-            if rel_path not in instance_files[instance_name]:
-                instance_files[instance_name].append(rel_path)
-
-            instance_app_names.setdefault(instance_name, [])
-            if app_dir.name not in instance_app_names[instance_name]:
-                instance_app_names[instance_name].append(app_dir.name)
-
-            app_override_instances.setdefault(app_dir.name, set()).add(instance_name)
-
-        if not found_override and has_base:
-            apps_without_overrides.append(app_dir.name)
-
-    top_level_candidates = list(sorted(compose_dir.glob("*.yml"))) + list(
-        sorted(compose_dir.glob("*.yaml"))
+    top_level_candidates = list(sorted(compose_dir.glob("docker-compose.*.yml"))) + list(
+        sorted(compose_dir.glob("docker-compose.*.yaml"))
     )
     for candidate in top_level_candidates:
-        if candidate.stem == "base":
+        instance_name = candidate.stem.replace("docker-compose.", "", 1)
+        if not instance_name or instance_name == "base":
             continue
 
-        instance_name = candidate.stem
         rel_path = candidate.relative_to(repo_root)
 
         instance_files.setdefault(instance_name, [])
@@ -232,28 +172,12 @@ def _discover_instance_metadata(repo_root: Path) -> tuple[InstanceMetadata, ...]
                 known_instances.add(name)
 
     if not known_instances:
-        raise ValueError("No instances found in compose/apps or env.")
+        raise ValueError("No instances found in compose or env.")
 
     instance_names = sorted(known_instances)
 
     for name in instance_names:
         instance_files.setdefault(name, [])
-        instance_app_names.setdefault(name, [])
-
-    if apps_without_overrides:
-        for app_name in apps_without_overrides:
-            for name in instance_names:
-                if app_name not in instance_app_names[name]:
-                    instance_app_names[name].append(app_name)
-
-    if apps_with_base:
-        for app_name in sorted(apps_with_base):
-            override_instances = app_override_instances.get(app_name, set())
-            for name in instance_names:
-                if name in override_instances:
-                    continue
-                if app_name not in instance_app_names[name]:
-                    instance_app_names[name].append(app_name)
 
     metadata: list[InstanceMetadata] = []
 
@@ -285,7 +209,6 @@ def _discover_instance_metadata(repo_root: Path) -> tuple[InstanceMetadata, ...]
         metadata.append(
             InstanceMetadata(
                 name=name,
-                app_names=tuple(instance_app_names.get(name, ())),
                 override_files=tuple(instance_files.get(name, ())),
                 env_file=env_file,
                 env_local=env_local,
