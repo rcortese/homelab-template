@@ -35,12 +35,20 @@ deploy_context__report_missing_instance() {
   shift 2
   local available_instances=("$@")
 
-  mapfile -t candidate_files < <(
-    find "$repo_root/compose/apps" -mindepth 2 -maxdepth 2 -name "${instance}.yml" -print 2>/dev/null
-  )
+  local -a candidate_files=()
+  local primary_compose_candidate="compose/docker-compose.${instance}.yml"
+  local legacy_compose_candidate="compose/${instance}.yml"
+
+  if [[ -f "$repo_root/$primary_compose_candidate" ]]; then
+    candidate_files+=("$primary_compose_candidate")
+  fi
+
+  if [[ -f "$repo_root/$legacy_compose_candidate" ]]; then
+    candidate_files+=("$legacy_compose_candidate")
+  fi
 
   if [[ ${#candidate_files[@]} -gt 0 ]]; then
-    echo "[!] Missing metadata for instance '$instance'." >&2
+    echo "[!] Missing metadata for instance '$instance' (found: ${candidate_files[*]})." >&2
   else
     echo "[!] Invalid instance '$instance'." >&2
   fi
