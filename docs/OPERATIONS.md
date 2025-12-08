@@ -107,9 +107,7 @@ See the summary in the table above. Include `scripts/check_env_sync.sh` in local
 
 ## scripts/bootstrap_instance.sh
 
-Use `--base-dir`, `--with-docs`, and `--override-only` to explicitly declare alternate directories, generate initial documentation, and limit the bootstrap to override files. After bootstrapping, adjust overrides (`compose/apps/<app>/<instance>.yml`), fill in `env/<instance>.example.env`, and extend `docs/apps/<app>.md`.
-
-- **When to use `--override-only`:** applications without `compose/apps/<app>/base.yml` can use only overrides (`compose/apps/<app>/<instance>.yml`). The script automatically detects when `base.yml` is missing, but the flag enforces the behavior in non-interactive runs or when you want to emphasize the scenario.
+Use `--base-dir` and `--with-docs` to explicitly declare alternate directories and generate initial documentation. After bootstrapping, adjust the instance compose file (`docker-compose.<instance>.yml`), fill in `env/<instance>.example.env`, and extend `docs/apps/<component>.md`.
 - **Quick example:**
   ```bash
   scripts/bootstrap_instance.sh my-app prod --override-only --with-docs
@@ -139,7 +137,7 @@ Use `--base-dir`, `--with-docs`, and `--override-only` to explicitly declare alt
     COMPOSE_EXTRA_FILES="compose/overlays/metrics.yml" scripts/validate_compose.sh
     ```
 
-  > Application directories that provide only overrides (`compose/apps/<app>/<instance>.yml`) are supported. The planning helper automatically ignores `compose/apps/<app>/base.yml` when the file does not exist, keeping the list of `-f` entries consistent with available manifests.
+  > The planning helper automatically chains `compose/base.yml` (when present) with the selected `docker-compose.<instance>.yml` and any overlays provided via `COMPOSE_EXTRA_FILES` or `--file`, keeping the list of `-f` entries consistent with available manifests.
 
   > Variables can be pre-exported (`export COMPOSE_INSTANCES=...`) or prefixed to the command, keeping the flow simple.
   > **Warning:** use validation to confirm that the standard Compose combinations remain compatible with active profiles before deployments or PRs.
@@ -180,7 +178,7 @@ The script relies on `scripts/lib/deploy_context.sh` to calculate `APP_DATA_DIR`
 
   # Append temporary overlays and a custom env chain while writing to a different path
   scripts/build_compose_file.sh --instance media \
-    --file compose/apps/monitoring/debug.yml \
+    --file compose/overlays/monitoring-debug.yml \
     --env-file env/local/common.env --env-file env/local/media.env \
     --output /tmp/media-merged-compose.yml --env-output /tmp/media.env
   ```
@@ -271,10 +269,10 @@ This document keeps only a summary: use `scripts/update_from_template.sh` to rea
 
 ## Suggested customizations
 
-- **New service:** use `scripts/bootstrap_instance.sh <app> <instance>` as a starting point; then customize Compose, `.env`, and documentation before proceeding with validations.
+- **New service:** use `scripts/bootstrap_instance.sh <instance>` (or your preferred scaffolding) as a starting point; then declare the service inside `docker-compose.<instance>.yml`, customize `.env`, and update documentation before proceeding with validations.
 - **Persistent directories:** the `data/<instance>/<app>` path is calculated automatically; use `APP_DATA_DIR` (relative) **or** `APP_DATA_DIR_MOUNT` (absolute) when you need to customize the destination and adjust `APP_DATA_UID`/`APP_DATA_GID` in `.env` to align permissions.
 - **Monitored services:** set `HEALTH_SERVICES` in `.env` files so `scripts/check_health.sh` targets the correct logs.
-- **Extra volumes:** use instance-specific overrides (`compose/apps/<app>/<instance>.yml`) to mount additional directories or expose different ports per environment. When present, see also [`compose/media.yml`](../compose/media.yml) for an example of a named volume shared (`media_cache`) between services in the instance.
+- **Extra volumes:** add mounts directly to the relevant service inside `docker-compose.<instance>.yml` to expose different paths per environment. When present, see also [`docker-compose.media.yml`](../docker-compose.media.yml) for an example of a named volume shared (`media_cache`) between services in the instance.
 - **Configurable overlays:** register optional overlays under `compose/overlays/*.yml` and enable them per environment via `COMPOSE_EXTRA_FILES`. This keeps template diffs confined to configuration files without editing scripts.
 
 ## Suggested operational flows

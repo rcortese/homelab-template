@@ -10,7 +10,7 @@ This guide describes the minimum structure expected for any repository inheritin
 
 | Path | Description | Expected items |
 | --- | --- | --- |
-| `compose/` | Base Docker Compose manifests and variations by environment or function. | `base.yml` (when necessary), named overlays (`<target>.yml`, e.g., [`core.yml`](../compose/core.yml) and [`media.yml`](../compose/media.yml), when they exist) and directories under `compose/apps/`. |
+| `compose/` | Base Docker Compose anchors and repeatable overlays. | `base.yml` (when necessary) and overlay files under `compose/overlays/`. Instance compose files now live at the repository root (`docker-compose.<instance>.yml`). |
 | `docs/` | Local documentation, runbooks, operational guides, and ADRs. | `README.md`, `STRUCTURE.md`, `OPERATIONS.md`, themed subfolders, and [`local/`](./local/README.md). |
 | `env/` | Variable templates, example files, and fill-in instructions. | `*.example.env`, `README.md`, Git-ignored `local/`. Expand with variables needed for every enabled application. |
 | `scripts/` | Reusable automation (deploy, validation, backups, health checks). | Shell scripts (or equivalents) referenced by the documentation. |
@@ -28,21 +28,17 @@ This guide describes the minimum structure expected for any repository inheritin
 | `docs/OPERATIONS.md` | Documents how to execute scripts and operational flows for the project. |
 | `docs/ADR/` | Collects architectural decisions. Each file must follow the `YYYY-sequence-title.md` convention. |
 
-## Per-application components
+## Instance components
 
-Each additional application must follow the pattern below to stay compatible with the template’s scripts and runbooks:
-
-> Tip: use `scripts/bootstrap_instance.sh <app> <instance>` to automatically generate the files listed in the table below before customizing them. For applications composed only of overrides, add `--override-only` or let the script detect existing directories without `base.yml`.
+Each instance is defined by a consolidated compose file and its supporting documentation/configuration:
 
 | Path | Required? | Description |
 | --- | --- | --- |
-| `compose/apps/<app>/` | Yes | Dedicated directory containing the application manifests. |
-| `compose/apps/<app>/base.yml` | When applicable | Base services reusable across every instance. Optional for applications composed only of instance-specific overrides. |
-| `compose/apps/<app>/<instance>.yml` | One per instance | Override with service names, ports, and instance-specific variables. |
-| `docs/apps/<app>.md` | Recommended | Support document describing the application’s responsibilities and requirements. |
-| `env/<instance>.example.env` | One per instance | Must include every variable consumed by the manifests of the applications enabled for the instance. |
-
-> For applications composed only of overrides, ensure the `<instance>.yml` files are present and follow the guidance in [Override-only applications](./COMPOSE_GUIDE.md#applications-composed-only-of-overrides).
+| `docker-compose.<instance>.yml` | Yes (one per instance) | Complete compose file for the instance (services, networks, volumes, labels, and profiles). |
+| `compose/base.yml` | Optional | Anchors and shared resources loaded before any instance file. |
+| `compose/overlays/<overlay>.yml` | Optional | Repeatable overlays applied after the main instance compose file for experiments or environment-specific tuning. |
+| `docs/apps/<component>.md` | Recommended | Support document describing the responsibilities and requirements of key services or components. |
+| `env/<instance>.example.env` | One per instance | Must include every variable consumed by the services enabled for the instance. |
 
 ## Suggested validations
 
