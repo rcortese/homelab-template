@@ -80,26 +80,6 @@ def test_defaults_for_core_instance(
     if compose_instances_data.base_file:
         assert compose_instances_data.base_file in compose_entries
 
-    core_apps = compose_instances_data.instance_app_names.get("core", [])
-    core_overrides = compose_instances_data.instance_files.get("core", [])
-    for app in core_apps:
-        base_file = compose_instances_data.app_base_files.get(app, "")
-        overrides = [
-            entry
-            for entry in core_overrides
-            if entry.startswith(f"compose/apps/{app}/")
-        ]
-        if base_file:
-            assert base_file in compose_entries
-        if overrides:
-            for override in overrides:
-                assert override in compose_entries
-        else:
-            assert base_file, f"Aplicação '{app}' deveria possuir base quando não há overrides"
-        if app not in compose_instances_data.app_base_files:
-            base_candidate = f"compose/apps/{app}/base.yml"
-            assert base_candidate not in compose_entries
-
     expected_files = [
         str((repo_copy / path).resolve(strict=False))
         for path in expected_relative

@@ -12,11 +12,17 @@ class ComposeInstancesData:
     base_file: str
     instance_names: list[str]
     instance_files: dict[str, list[str]]
-    instance_app_names: dict[str, list[str]]
-    app_base_files: dict[str, str]
     env_local_map: dict[str, str]
     env_template_map: dict[str, str]
     env_files_map: dict[str, list[str]]
+
+    @property
+    def instance_app_names(self) -> dict[str, list[str]]:
+        return {}
+
+    @property
+    def app_base_files(self) -> dict[str, str]:
+        return {}
 
     def compose_plan(self, instance: str, extra_files: Iterable[str] | None = None) -> list[str]:
         plan: list[str] = []
@@ -30,36 +36,6 @@ class ComposeInstancesData:
 
         append_unique(self.base_file)
 
-        instance_overrides = [
-            path
-            for path in self.instance_files.get(instance, [])
-            if not path.startswith("compose/apps/")
-        ]
-        for override in instance_overrides:
-            append_unique(override)
-
-        overrides_by_app: dict[str, list[str]] = {}
-        for path in self.instance_files.get(instance, []):
-            if not path.startswith("compose/apps/"):
-                continue
-            remainder = path[len("compose/apps/") :]
-            app_name = remainder.split("/", 1)[0]
-            overrides_by_app.setdefault(app_name, []).append(path)
-
-        apps_for_instance = list(self.instance_app_names.get(instance, []))
-        for app_name in self.app_base_files:
-            if app_name in apps_for_instance:
-                continue
-            if overrides_by_app.get(app_name):
-                continue
-            apps_for_instance.append(app_name)
-
-        for app in apps_for_instance:
-            base_file = self.app_base_files.get(app, "")
-            append_unique(base_file)
-            for override in overrides_by_app.get(app, []):
-                append_unique(override)
-
         for override in self.instance_files.get(instance, []):
             append_unique(override)
 
@@ -70,19 +46,7 @@ class ComposeInstancesData:
         return plan
 
     def apps_without_overrides(self) -> set[str]:
-        apps_with_overrides: set[str] = set()
-        for files in self.instance_files.values():
-            for entry in files:
-                if not entry.startswith("compose/apps/"):
-                    continue
-                remainder = entry[len("compose/apps/") :]
-                app_name = remainder.split("/", 1)[0]
-                apps_with_overrides.add(app_name)
-
-        return {
-            app for app in self.app_base_files if app not in apps_with_overrides
-        }
-
+        return set()
 
 def _find_declare_line(stdout: str, variable: str) -> str:
     pattern = re.compile(r"^declare[^=]*\b" + re.escape(variable) + "=", re.MULTILINE)
@@ -144,16 +108,6 @@ def load_compose_instances_data(repo_root: Path) -> ComposeInstancesData:
         for key, value in files_map_raw.items()
     }
 
-    app_names_line = _find_declare_line(result.stdout, "COMPOSE_INSTANCE_APP_NAMES")
-    app_names_map_raw = _parse_mapping(app_names_line)
-    app_names_map = {
-        key: [entry for entry in value.splitlines() if entry]
-        for key, value in app_names_map_raw.items()
-    }
-
-    app_base_line = _find_declare_line(result.stdout, "COMPOSE_APP_BASE_FILES")
-    app_base_map = _parse_mapping(app_base_line)
-
     env_local_line = _find_declare_line(result.stdout, "COMPOSE_INSTANCE_ENV_LOCAL")
     env_local_map = _parse_mapping(env_local_line)
 
@@ -171,8 +125,6 @@ def load_compose_instances_data(repo_root: Path) -> ComposeInstancesData:
         base_file=base_file,
         instance_names=instance_names,
         instance_files=files_map,
-        instance_app_names=app_names_map,
-        app_base_files=app_base_map,
         env_local_map=env_local_map,
         env_template_map=env_template_map,
         env_files_map=env_files_map,

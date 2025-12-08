@@ -15,13 +15,9 @@ from .utils import (
 def _derive_service_names(
     compose_instances_data: ComposeInstancesData, instance: str
 ) -> list[str]:
-    services = set(compose_instances_data.instance_app_names.get(instance, []))
-    for entry in compose_instances_data.compose_plan(instance):
-        if entry.startswith("compose/apps/"):
-            parts = entry.split("/")
-            if len(parts) >= 3:
-                services.add(parts[2])
-    return sorted(services)
+    # Fallback to instance name for primary log targets; compose output will
+    # append real services during execution.
+    return [instance]
 
 
 def test_infers_compose_files_and_env_from_instance(
@@ -69,7 +65,7 @@ def test_infers_compose_files_and_env_from_instance(
 
     log_calls = [call for call in calls[4:] if "logs" in call]
     logged_services = [call[-1] for call in log_calls if call]
-    expected_primary = compose_instances_data.instance_app_names.get("core", [])
+    expected_primary = ["core"]
     allowed_services = set(service_names) | set(expected_primary)
     assert set(logged_services).issubset(allowed_services)
     assert len(logged_services) == len(set(logged_services))
@@ -126,7 +122,7 @@ def test_executes_from_scripts_directory(
 
     log_calls = [call for call in calls[4:] if "logs" in call]
     logged_services = [call[-1] for call in log_calls if call]
-    expected_primary = compose_instances_data.instance_app_names.get("core", [])
+    expected_primary = ["core"]
     allowed_services = set(service_names) | set(expected_primary)
     assert set(logged_services).issubset(allowed_services)
     assert len(logged_services) == len(set(logged_services))

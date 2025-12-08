@@ -60,9 +60,27 @@ compose_generate_consolidated() {
     app_data_dir_mount_value="${__env_assoc_ref[APP_DATA_DIR_MOUNT]:-}"
   fi
 
+  local output_dir
+  output_dir="$(dirname "$output_file")"
+  if [[ -n "$output_dir" && ! -d "$output_dir" ]]; then
+    if ! mkdir -p "$output_dir"; then
+      echo "compose_generate_consolidated: unable to create output directory: $output_dir" >&2
+      return 1
+    fi
+  fi
+
+  local compose_status=0
+
   APP_DATA_DIR="$app_data_dir_value" \
     APP_DATA_DIR_MOUNT="$app_data_dir_mount_value" \
-    "${__compose_cmd_ref[@]}" config --output "$output_file"
+    "${__compose_cmd_ref[@]}" config >"$output_file" || compose_status=$?
+
+  if ((compose_status != 0)); then
+    rm -f "$output_file"
+    return $compose_status
+  fi
+
+  return 0
 }
 
 compose_prepare_consolidated() {
