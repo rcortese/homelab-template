@@ -41,7 +41,7 @@ validate_executor_prepare_plan() {
     local compose_candidate
     for compose_candidate in "${compose_aliases[@]}"; do
       if [[ -f "$compose_candidate" ]]; then
-        potential_matches+=("${compose_candidate#$repo_root/}")
+        potential_matches+=("${compose_candidate#"$repo_root"/}")
       fi
     done
 
