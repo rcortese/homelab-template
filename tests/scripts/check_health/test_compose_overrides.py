@@ -109,7 +109,9 @@ def test_ignores_blank_and_duplicate_compose_tokens(docker_stub: DockerStub) -> 
     assert calls, "Expected docker compose invocations to be recorded"
 
     plan_calls = expected_consolidated_plan_calls(
-        None, [expected_manifest, expected_manifest], consolidated_file
+        str((repo_root / "env" / "custom.env").resolve()),
+        [expected_manifest, expected_manifest],
+        consolidated_file,
     )
     assert calls[:2] == plan_calls
 

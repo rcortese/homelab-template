@@ -34,8 +34,8 @@ env_file_chain__dedupe_preserve_order() {
 
 env_file_chain__resolve_explicit() {
   local explicit_raw="${1:-}"
-  local repo_root="$2"
-  local instance="$3"
+  local repo_root="${2:-}"
+  local instance="${3:-}"
 
   local -a assembled=()
 

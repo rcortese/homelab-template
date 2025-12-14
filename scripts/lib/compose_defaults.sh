@@ -55,28 +55,19 @@ setup_compose_defaults() {
     COMPOSE_FILES="compose/base.yml"
   fi
 
-  local explicit_env_input="${COMPOSE_ENV_FILES:-}"
-  if [[ -z "$explicit_env_input" && -n "${COMPOSE_ENV_FILE:-}" ]]; then
-    explicit_env_input="$COMPOSE_ENV_FILE"
+  local env_chain_input="${COMPOSE_ENV_FILES:-}"
+  if [[ -z "$env_chain_input" && -n "${COMPOSE_ENV_FILE:-}" ]]; then
+    env_chain_input="$COMPOSE_ENV_FILE"
   fi
 
-  local metadata_env_input=""
-  if [[ -n "$instance" && $metadata_loaded -eq 1 && -n "${COMPOSE_INSTANCE_ENV_FILES[$instance]:-}" ]]; then
-    metadata_env_input="${COMPOSE_INSTANCE_ENV_FILES[$instance]}"
+  if [[ -z "$env_chain_input" && -n "$instance" && $metadata_loaded -eq 1 && -n "${COMPOSE_INSTANCE_ENV_FILES[$instance]:-}" ]]; then
+    env_chain_input="${COMPOSE_INSTANCE_ENV_FILES[$instance]}"
   fi
 
   declare -a env_files_rel=()
-  if [[ -n "$explicit_env_input" || -n "$metadata_env_input" ]]; then
-    mapfile -t env_files_rel < <(
-      env_file_chain__resolve_explicit "$explicit_env_input" "$metadata_env_input"
-    )
-  fi
-
-  if ((${#env_files_rel[@]} == 0)) && [[ -n "$instance" ]]; then
-    mapfile -t env_files_rel < <(
-      env_file_chain__defaults "$base_fs" "$instance"
-    )
-  fi
+  mapfile -t env_files_rel < <(
+    env_file_chain__resolve_explicit "$env_chain_input" "$base_fs" "$instance"
+  )
 
   declare -a env_files_abs=()
   if ((${#env_files_rel[@]} > 0)); then
