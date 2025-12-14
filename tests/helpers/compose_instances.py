@@ -18,7 +18,7 @@ class ComposeInstancesData:
 
     @property
     def instance_app_names(self) -> dict[str, list[str]]:
-        return {}
+        return {name: ["app"] for name in self.instance_names}
 
     @property
     def app_base_files(self) -> dict[str, str]:

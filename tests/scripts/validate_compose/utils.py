@@ -62,12 +62,14 @@ class InstanceMetadata:
 
 
 def run_validate_compose(env: dict[str, str], cwd: Path | None = None) -> subprocess.CompletedProcess[str]:
+    script_root = Path(cwd) if cwd is not None else REPO_ROOT
+    script_path = script_root / "scripts" / "validate_compose.sh"
     return subprocess.run(
-        [str(SCRIPT_PATH)],
+        [str(script_path)],
         capture_output=True,
         text=True,
         check=False,
-        cwd=cwd or REPO_ROOT,
+        cwd=script_root,
         env={**os.environ, **env},
     )
 
@@ -93,7 +95,7 @@ def expected_consolidated_calls(
     env_files: Path | Sequence[Path] | None, files: Iterable[Path], output_file: Path
 ) -> list[list[str]]:
     return [
-        expected_compose_call(env_files, files, "config", "--output", str(output_file)),
+        expected_compose_call(env_files, files, "config"),
         expected_compose_call(env_files, [output_file], "config", "-q"),
     ]
 

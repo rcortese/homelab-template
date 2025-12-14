@@ -138,7 +138,7 @@ validate_executor_prepare_plan() {
 
   derived_env_ref=()
 
-  local primary_app="$instance"
+  local primary_app="${APP_NAME:-app}"
 
   declare -A env_loaded=()
   if [[ ${#env_files_abs[@]} -gt 0 ]]; then
