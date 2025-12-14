@@ -1,7 +1,0 @@
-services:
-  worker:
-    environment:
-      WORKER_CONCURRENCY: ${WORKER_CORE_CONCURRENCY:-2}
-    networks:
-      homelab_internal:
-        ipv4_address: ${WORKER_CORE_NETWORK_IPV4}
