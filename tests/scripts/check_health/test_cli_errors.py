@@ -33,7 +33,7 @@ def test_respects_docker_compose_bin_override(docker_stub: DockerStub) -> None:
     consolidated_file = repo_root / "docker-compose.yml"
     base_cmd = ["--context", "remote", "compose"]
     assert calls == expected_consolidated_plan_calls(
-        None,
+        str((repo_root / "env" / "custom.env").resolve()),
         [base_file],
         consolidated_file,
         base_cmd=base_cmd,

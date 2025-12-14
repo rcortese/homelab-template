@@ -175,23 +175,9 @@ if ((${#EXPLICIT_ENV_FILES[@]} > 0)); then
   fi
 fi
 
-metadata_env_input=""
-if [[ -n "$INSTANCE_NAME" && $metadata_loaded -eq 1 && -n "${COMPOSE_INSTANCE_ENV_FILES[$INSTANCE_NAME]:-}" ]]; then
-  metadata_env_input="${COMPOSE_INSTANCE_ENV_FILES[$INSTANCE_NAME]}"
-fi
-
-declare -a COMPOSE_ENV_FILES_LIST=()
-if [[ -n "$explicit_env_input" || -n "$metadata_env_input" ]]; then
-  mapfile -t COMPOSE_ENV_FILES_LIST < <(
-    env_file_chain__resolve_explicit "$explicit_env_input" "$metadata_env_input"
-  )
-fi
-
-if ((${#COMPOSE_ENV_FILES_LIST[@]} == 0)) && [[ -n "$INSTANCE_NAME" ]]; then
-  mapfile -t COMPOSE_ENV_FILES_LIST < <(
-    env_file_chain__defaults "$REPO_ROOT" "$INSTANCE_NAME"
-  )
-fi
+mapfile -t COMPOSE_ENV_FILES_LIST < <(
+  env_file_chain__resolve_explicit "$explicit_env_input" "$REPO_ROOT" "$INSTANCE_NAME"
+)
 
 declare -a COMPOSE_ENV_FILES_RESOLVED=()
 if ((${#COMPOSE_ENV_FILES_LIST[@]} > 0)); then

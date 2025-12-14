@@ -34,21 +34,20 @@ env_file_chain__dedupe_preserve_order() {
 
 env_file_chain__resolve_explicit() {
   local explicit_raw="${1:-}"
-  local metadata_raw="${2:-}"
+  local repo_root="${2:-}"
+  local instance="${3:-}"
 
   local -a assembled=()
 
   if [[ -n "$explicit_raw" ]]; then
     mapfile -t assembled < <(env_file_chain__parse_list "$explicit_raw")
-  elif [[ -n "$metadata_raw" ]]; then
-    mapfile -t assembled < <(env_file_chain__parse_list "$metadata_raw")
+    if ((${#assembled[@]} > 0)); then
+      env_file_chain__dedupe_preserve_order "${assembled[@]}"
+      return 0
+    fi
   fi
 
-  if ((${#assembled[@]} == 0)); then
-    return 0
-  fi
-
-  env_file_chain__dedupe_preserve_order "${assembled[@]}"
+  env_file_chain__defaults "$repo_root" "$instance"
 }
 
 env_file_chain__defaults() {
