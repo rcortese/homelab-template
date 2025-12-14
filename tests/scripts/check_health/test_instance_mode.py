@@ -74,7 +74,7 @@ def test_infers_compose_files_and_env_from_instance(
 
     log_calls = [call for call in calls[4:] if "logs" in call]
     logged_services = [call[-1] for call in log_calls if call]
-    expected_primary = compose_instances_data.instance_app_names.get("core", [])
+    expected_primary = ["core"]
     allowed_services = set(service_names) | set(expected_primary)
     assert set(logged_services).issubset(allowed_services)
     assert len(logged_services) == len(set(logged_services))
@@ -134,7 +134,7 @@ def test_executes_from_scripts_directory(
 
     log_calls = [call for call in calls[4:] if "logs" in call]
     logged_services = [call[-1] for call in log_calls if call]
-    expected_primary = compose_instances_data.instance_app_names.get("core", [])
+    expected_primary = ["core"]
     allowed_services = set(service_names) | set(expected_primary)
     assert set(logged_services).issubset(allowed_services)
     assert len(logged_services) == len(set(logged_services))

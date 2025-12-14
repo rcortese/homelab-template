@@ -28,7 +28,7 @@ This directory stores templates (`*.example.env`) and instructions for generatin
 
 | Variable | Required? | Usage | Reference |
 | --- | --- | --- | --- |
-| `TZ` | Yes | Sets timezone for logs and schedules. | `compose/apps/app/base.yml`. |
+| `TZ` | Yes | Sets timezone for logs and schedules. | `docker-compose.<instance>.yml`. |
 | `APP_DATA_DIR`/`APP_DATA_DIR_MOUNT` | Optional | Defines the relative persistent directory (`data/<instance>/<app>`) or an alternative absolute path—never use both at the same time. | `scripts/deploy_instance.sh`, `scripts/backup.sh`, `scripts/fix_permission_issues.sh`. |
 | `APP_DATA_UID`/`APP_DATA_GID` | Optional | Adjusts the default owner of persistent volumes. | `scripts/deploy_instance.sh`, `scripts/backup.sh`, `scripts/fix_permission_issues.sh`. |
 | `APP_NETWORK_NAME` | Optional | Logical name of the network shared among applications. | `compose/base.yml`. |
@@ -39,34 +39,34 @@ This directory stores templates (`*.example.env`) and instructions for generatin
 
 <a id="placeholders-app-worker"></a>
 
-#### Example application placeholders (`app`/`worker`)
+#### Example service placeholders (`app`/`worker`)
 
 | Variable | Required? | Usage | Reference |
 | --- | --- | --- | --- |
-| `APP_SECRET` | Yes | Key used to encrypt sensitive data. | `compose/apps/app/base.yml`. |
-| `APP_RETENTION_HOURS` | Optional | Controls retention of records/processes. | `compose/apps/app/base.yml` and runbooks. |
-| `WORKER_QUEUE_URL` | Optional | Source queue processed by the example workers. | `compose/apps/worker/base.yml`. |
+| `APP_SECRET` | Yes | Key used to encrypt sensitive data. | `docker-compose.<instance>.yml`. |
+| `APP_RETENTION_HOURS` | Optional | Controls retention of records/processes. | `docker-compose.<instance>.yml` and runbooks. |
+| `WORKER_QUEUE_URL` | Optional | Source queue processed by the example workers. | `docker-compose.<instance>.yml`. |
 
-> When adapting the stack, rename or remove these placeholders to reflect your applications’ real names and adjust the corresponding manifests (`compose/apps/<your-app>/` and `compose/apps/worker/`). Keeping the generic `APP_*` names helps explain the template, but forks should align naming with the project domain (for example, `PORTAL_SECRET`, `PORTAL_RETENTION_HOURS`, `PAYMENTS_QUEUE_URL`).
+> When adapting the stack, rename or remove these placeholders to reflect your services’ real names and adjust the corresponding compose files (`docker-compose.<instance>.yml`). Keeping the generic `APP_*` names helps explain the template, but forks should align naming with the project domain (for example, `PORTAL_SECRET`, `PORTAL_RETENTION_HOURS`, `PAYMENTS_QUEUE_URL`).
 
 Create a table similar to the one below for each `env/<target>.example.env` file:
 
 | Variable | Required? | Usage | Reference |
 | --- | --- | --- | --- |
-| `APP_PUBLIC_URL` | Optional | Sets the public URL for links and cookies. | `compose/apps/<app>/<instance>.yml` (e.g., `compose/apps/app/core.yml`). |
+| `APP_PUBLIC_URL` | Optional | Sets the public URL for links and cookies. | `docker-compose.<instance>.yml` (e.g., `docker-compose.core.yml`). |
 | `COMPOSE_EXTRA_FILES` | Optional | Lists additional overlays applied after the instance override (space- or comma-separated). | `scripts/deploy_instance.sh`, `scripts/validate_compose.sh`, `scripts/lib/compose_defaults.sh`. |
 
 > Replace the table with the real fields in your stack. Use the **Reference** column to point where the variable is consumed (manifests, scripts, external infrastructure, etc.).
 
 The instance templates include illustrative placeholders that should be renamed according to each fork’s real service. Use the following list as a guide when reviewing `env/core.example.env` and `env/media.example.env`:
 
-- `APP_PUBLIC_URL` and `APP_WEBHOOK_URL` — URLs injected into the main application (`compose/apps/app/core.yml`).
-- `APP_CORE_PORT` and `APP_MEDIA_PORT` — port mappings exposed by the instance-specific manifests (`compose/apps/app/core.yml` and `compose/apps/app/media.yml`).
-- `APP_NETWORK_IPV4` — static address used by the main service on internal networks (`compose/apps/app/base.yml`).
-- `MONITORING_NETWORK_IPV4` — IP reserved for the example monitoring service (`compose/apps/monitoring/base.yml` and `compose/apps/monitoring/core.yml`).
-- `WORKER_CORE_CONCURRENCY`, `WORKER_MEDIA_CONCURRENCY`, `WORKER_CORE_NETWORK_IPV4`, and `WORKER_MEDIA_NETWORK_IPV4` — variables consumed by the worker manifests (`compose/apps/worker/core.yml` and `compose/apps/worker/media.yml`).
-- `CORE_PROXY_NETWORK_NAME`, `CORE_PROXY_IPV4`, and `CORE_LOGS_VOLUME_NAME` — shared resources defined in the `core` instance (`compose/core.yml`).
-- `MEDIA_HOST_PATH` and `MEDIA_CACHE_VOLUME_NAME` — mounts and volumes specific to the `media` instance (`compose/apps/app/media.yml` and `compose/media.yml`).
+- `APP_PUBLIC_URL` and `APP_WEBHOOK_URL` — URLs injected into the main application (see service blocks in `docker-compose.<instance>.yml`).
+- `APP_CORE_PORT` and `APP_MEDIA_PORT` — port mappings exposed by the instance compose files (`docker-compose.core.yml` and `docker-compose.media.yml`).
+- `APP_NETWORK_IPV4` — static address used by the main service on internal networks (declared alongside the service in `docker-compose.<instance>.yml`).
+- `MONITORING_NETWORK_IPV4` — IP reserved for the example monitoring service (declared in the monitoring service block of `docker-compose.<instance>.yml`).
+- `WORKER_CORE_CONCURRENCY`, `WORKER_MEDIA_CONCURRENCY`, `WORKER_CORE_NETWORK_IPV4`, and `WORKER_MEDIA_NETWORK_IPV4` — variables consumed by the worker service definitions in the instance compose files.
+- `CORE_PROXY_NETWORK_NAME`, `CORE_PROXY_IPV4`, and `CORE_LOGS_VOLUME_NAME` — shared resources defined in the `core` instance (`docker-compose.core.yml`).
+- `MEDIA_HOST_PATH` and `MEDIA_CACHE_VOLUME_NAME` — mounts and volumes specific to the `media` instance (`docker-compose.media.yml`).
 
 Rename these identifiers to terms aligned with your domain (for example, `PORTAL_PUBLIC_URL`, `PORTAL_NETWORK_IPV4`, `ACME_PROXY_NETWORK_NAME`) and update the associated manifests to avoid leftover default values.
 

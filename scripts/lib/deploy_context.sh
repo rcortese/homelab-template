@@ -35,15 +35,7 @@ deploy_context__report_missing_instance() {
   shift 2
   local available_instances=("$@")
 
-  mapfile -t candidate_files < <(
-    find "$repo_root/compose/apps" -mindepth 2 -maxdepth 2 -name "${instance}.yml" -print 2>/dev/null
-  )
-
-  if [[ ${#candidate_files[@]} -gt 0 ]]; then
-    echo "[!] Missing metadata for instance '$instance'." >&2
-  else
-    echo "[!] Invalid instance '$instance'." >&2
-  fi
+  echo "[!] Invalid instance '$instance'." >&2
 
   if ((${#available_instances[@]} > 0)); then
     echo "    Available: ${available_instances[*]}" >&2

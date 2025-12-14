@@ -128,7 +128,6 @@ def test_compose_plan_matches_existing_logic(repo_copy: Path) -> None:
         )
 
         assert plan_entries == expected_plan
-        assert "compose/apps/overrideonly/base.yml" not in plan_entries
 
 
 def test_compose_plan_appends_extra_files(repo_copy: Path) -> None:

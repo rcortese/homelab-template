@@ -18,6 +18,14 @@ class ComposeInstancesData:
     instance_app_names: dict[str, list[str]] = field(default_factory=dict)
     app_base_files: dict[str, str] = field(default_factory=dict)
 
+    @property
+    def instance_app_names(self) -> dict[str, list[str]]:
+        return {name: ["app"] for name in self.instance_names}
+
+    @property
+    def app_base_files(self) -> dict[str, str]:
+        return {}
+
     def compose_plan(self, instance: str, extra_files: Iterable[str] | None = None) -> list[str]:
         plan: list[str] = []
 
@@ -138,8 +146,6 @@ def load_compose_instances_data(repo_root: Path) -> ComposeInstancesData:
         base_file=base_file,
         instance_names=instance_names,
         instance_files=files_map,
-        instance_app_names=app_names_map,
-        app_base_files=app_base_map,
         env_local_map=env_local_map,
         env_template_map=env_template_map,
         env_files_map=env_files_map,

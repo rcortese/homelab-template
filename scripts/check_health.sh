@@ -3,7 +3,7 @@
 # Usage: scripts/check_health.sh [--format text|json] [--output <file>] [instance]
 #
 # Arguments:
-#   instance (optional): identifier used by compose/apps/<app>/<instance>.yml manifests loaded from compose/base.yml.
+#   instance (optional): identifier used by compose/docker-compose.<instance>.yml manifests loaded from compose/base.yml.
 #                        When provided, the script also searches for env/local/<instance>.env.
 # Options:
 #   --format text|json    Controls the output format (default: text).

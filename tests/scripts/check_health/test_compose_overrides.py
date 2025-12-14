@@ -19,7 +19,7 @@ def test_invokes_ps_and_logs_with_custom_files(docker_stub: DockerStub) -> None:
 
     env = {
         "COMPOSE_FILES": "compose/base.yml compose/extra.yml",
-        "COMPOSE_ENV_FILE": "env/custom.env",
+        "COMPOSE_ENV_FILE": "env/common.example.env",
     }
 
     result = run_check_health(env=env)

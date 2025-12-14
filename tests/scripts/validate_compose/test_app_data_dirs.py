@@ -20,7 +20,6 @@ def test_accepts_matching_app_data_overrides(
     env = {
         "COMPOSE_INSTANCES": instance,
         "APP_DATA_DIR": context["APP_DATA_DIR"],
-        "APP_DATA_DIR_MOUNT": context["APP_DATA_DIR_MOUNT"],
     }
 
     result = run_validate_compose(env, cwd=repo_copy)

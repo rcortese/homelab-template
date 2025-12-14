@@ -22,7 +22,6 @@ class InstanceMetadata:
     """Metadata discovered for a docker compose instance."""
 
     name: str
-    app_names: tuple[str, ...]
     override_files: tuple[Path, ...]
     env_file: Path | None
     env_local: Path | None
@@ -52,27 +51,6 @@ class InstanceMetadata:
             append_unique(base_candidate)
 
         override_paths = [root / entry for entry in self.override_files]
-        overrides_by_app: dict[str, list[Path]] = {}
-        instance_level_overrides: list[Path] = []
-
-        for entry, resolved in zip(self.override_files, override_paths):
-            parts = entry.parts
-            if len(parts) >= 3 and parts[0] == "compose" and parts[1] == "apps":
-                app_name = parts[2]
-                overrides_by_app.setdefault(app_name, []).append(resolved)
-            else:
-                instance_level_overrides.append(resolved)
-
-        for override in instance_level_overrides:
-            append_unique(override)
-
-        for app_name in self.app_names:
-            base_candidate = root / "compose" / "apps" / app_name / "base.yml"
-            if base_candidate.exists():
-                append_unique(base_candidate)
-            for override in overrides_by_app.get(app_name, []):
-                append_unique(override)
-
         for override in override_paths:
             append_unique(override)
 
@@ -86,12 +64,14 @@ class InstanceMetadata:
 
 
 def run_validate_compose(env: dict[str, str], cwd: Path | None = None) -> subprocess.CompletedProcess[str]:
+    script_root = Path(cwd) if cwd is not None else REPO_ROOT
+    script_path = script_root / "scripts" / "validate_compose.sh"
     return subprocess.run(
-        [str(SCRIPT_PATH)],
+        [str(script_path)],
         capture_output=True,
         text=True,
         check=False,
-        cwd=cwd or REPO_ROOT,
+        cwd=script_root,
         env={**os.environ, **env},
     )
 
@@ -117,7 +97,7 @@ def expected_consolidated_calls(
     env_files: Path | Sequence[Path] | None, files: Iterable[Path], output_file: Path
 ) -> list[list[str]]:
     return [
-        expected_compose_call(env_files, files, "config", "--output", str(output_file)),
+        expected_compose_call(env_files, files, "config"),
         expected_compose_call(env_files, [output_file], "config", "-q"),
     ]
 

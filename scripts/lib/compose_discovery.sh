@@ -45,6 +45,8 @@ load_compose_discovery() {
   declare -gA COMPOSE_INSTANCE_FILES=()
   declare -ga COMPOSE_INSTANCE_NAMES=()
 
+  local -A known_instances=()
+
   shopt -s nullglob
   local -A seen_instances=()
   local -a compose_candidates=("$repo_root/$compose_dir_rel"/docker-compose.*.yml)
@@ -60,13 +62,8 @@ load_compose_discovery() {
       continue
     fi
 
-    seen_instances[$candidate_instance]=1
+    known_instances[$candidate_instance]=1
     compose_discovery__append_instance_file "$candidate_instance" "$compose_dir_rel/$candidate_name"
-  done
-
-  declare -A known_instances=()
-  for instance in "${!seen_instances[@]}"; do
-    known_instances[$instance]=1
   done
 
   shopt -s nullglob
