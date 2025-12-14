@@ -4,33 +4,31 @@ set -euo pipefail
 
 print_help() {
   cat <<'USAGE'
-Uso: scripts/build_compose_file.sh [opções]
+Usage: scripts/build_compose_file.sh [options]
 
-Gera um docker-compose.yml unificado na raiz do repositório combinando os
-manifests resolvidos para uma instância.
+Generates a unified docker-compose.yml in the repository root by combining the
+resolved manifests for an instance.
 
 Flags:
-  -h, --help            Exibe esta ajuda e sai.
-  -i, --instance NAME   Seleciona a instância (ex.: core, media).
-  -f, --file PATH       Adiciona um compose extra após o plano padrão. Pode ser
-                        usado múltiplas vezes (equivale a COMPOSE_EXTRA_FILES).
-  -e, --env-file PATH   Adiciona um .env extra à cadeia aplicada (equivale a
-                        COMPOSE_ENV_FILES/COMPOSE_ENV_FILE). Pode ser usado
-                        múltiplas vezes.
-  -o, --output PATH     Caminho de saída (default: ./docker-compose.yml).
-  -n, --env-output PATH Caminho do .env consolidado (default: ./.env).
+  -h, --help            Show this help text and exit.
+  -i, --instance NAME   Select the instance (e.g., core, media).
+  -f, --file PATH       Add an extra compose file after the default plan. Can be
+                        used multiple times (equivalent to COMPOSE_EXTRA_FILES).
+  -e, --env-file PATH   Add an extra .env to the applied chain (equivalent to
+                        COMPOSE_ENV_FILES). Can be used multiple times.
+  -o, --output PATH     Output path (default: ./docker-compose.yml).
+  -n, --env-output PATH Consolidated .env path (default: ./.env).
 
-Variáveis de ambiente relevantes:
-  COMPOSE_FILES        Sobrescreve a lista -f aplicada (separada por espaços
-                       ou vírgulas). Se definida, ignora o plano por instância.
-  COMPOSE_EXTRA_FILES  Compose extras aplicados após o plano padrão.
-  COMPOSE_ENV_FILES    Cadeia explícita de envs; substitui a cadeia descoberta
-                       pela instância quando informada.
-  COMPOSE_ENV_FILE     Alias para COMPOSE_ENV_FILES quando único arquivo.
-  DOCKER_COMPOSE_BIN   Sobrescreve o binário docker compose.
+Relevant environment variables:
+  COMPOSE_FILES        Overrides the -f list (space- or comma-separated). If set,
+                       it ignores the instance plan.
+  COMPOSE_EXTRA_FILES  Extra compose files applied after the default plan.
+  COMPOSE_ENV_FILES    Explicit env chain; replaces the chain discovered for the
+                       instance when provided.
+  DOCKER_COMPOSE_BIN   Override the docker compose binary.
 
-O arquivo gerado pode ser reutilizado por outros scripts passando
-"-f docker-compose.yml" ou definindo COMPOSE_FILE.
+The generated file can be reused by other scripts by passing
+"-f docker-compose.yml" or setting COMPOSE_FILE.
 USAGE
 }
 
@@ -59,7 +57,7 @@ while [[ $# -gt 0 ]]; do
   -i | --instance)
     shift
     if [[ $# -eq 0 ]]; then
-      echo "Error: --instance requer um valor." >&2
+      echo "Error: --instance requires a value." >&2
       exit 64
     fi
     INSTANCE_NAME="$1"
@@ -67,7 +65,7 @@ while [[ $# -gt 0 ]]; do
   -f | --file)
     shift
     if [[ $# -eq 0 ]]; then
-      echo "Error: --file requer um caminho." >&2
+      echo "Error: --file requires a path." >&2
       exit 64
     fi
     DECLARE_EXTRAS+=("$1")
@@ -75,7 +73,7 @@ while [[ $# -gt 0 ]]; do
   -e | --env-file)
     shift
     if [[ $# -eq 0 ]]; then
-      echo "Error: --env-file requer um caminho." >&2
+      echo "Error: --env-file requires a path." >&2
       exit 64
     fi
     EXPLICIT_ENV_FILES+=("$1")
@@ -83,7 +81,7 @@ while [[ $# -gt 0 ]]; do
   -o | --output)
     shift
     if [[ $# -eq 0 ]]; then
-      echo "Error: --output requer um caminho." >&2
+      echo "Error: --output requires a path." >&2
       exit 64
     fi
     OUTPUT_FILE="$1"
@@ -91,7 +89,7 @@ while [[ $# -gt 0 ]]; do
   -n | --env-output)
     shift
     if [[ $# -eq 0 ]]; then
-      echo "Error: --env-output requer um caminho." >&2
+      echo "Error: --env-output requires a path." >&2
       exit 64
     fi
     ENV_OUTPUT_FILE="$1"
@@ -101,7 +99,7 @@ while [[ $# -gt 0 ]]; do
     break
     ;;
   *)
-    echo "Error: argumento desconhecido '$1'." >&2
+    echo "Error: unknown argument '$1'." >&2
     exit 64
     ;;
   esac
@@ -128,7 +126,7 @@ metadata_loaded=0
 
 if [[ -n "$INSTANCE_NAME" && -z "${COMPOSE_FILES:-}" ]]; then
   if ! compose_metadata="$("$SCRIPT_DIR/lib/compose_instances.sh" "$REPO_ROOT")"; then
-    echo "Error: não foi possível carregar metadados das instâncias." >&2
+    echo "Error: could not load instance metadata." >&2
     exit 1
   fi
 
@@ -136,8 +134,8 @@ if [[ -n "$INSTANCE_NAME" && -z "${COMPOSE_FILES:-}" ]]; then
   metadata_loaded=1
 
   if [[ ! -v COMPOSE_INSTANCE_FILES[$INSTANCE_NAME] ]]; then
-    echo "Error: instância desconhecida '$INSTANCE_NAME'." >&2
-    echo "Disponíveis: ${COMPOSE_INSTANCE_NAMES[*]}" >&2
+    echo "Error: unknown instance '$INSTANCE_NAME'." >&2
+    echo "Available: ${COMPOSE_INSTANCE_NAMES[*]}" >&2
     exit 1
   fi
 fi
@@ -153,23 +151,20 @@ elif [[ -n "$INSTANCE_NAME" && $metadata_loaded -eq 1 ]]; then
   if build_compose_file_plan "$INSTANCE_NAME" plan_files EXTRA_COMPOSE_FILES; then
     compose_files_list=("${plan_files[@]}")
   else
-    echo "Error: falha ao montar a lista de compose files para '$INSTANCE_NAME'." >&2
+    echo "Error: failed to build the compose file list for '$INSTANCE_NAME'." >&2
     exit 1
   fi
 else
-  echo "Error: nenhuma instância informada e COMPOSE_FILES vazio." >&2
+  echo "Error: no instance provided and COMPOSE_FILES is empty." >&2
   exit 64
 fi
 
 if ((${#compose_files_list[@]} == 0)); then
-  echo "Error: lista de compose files está vazia." >&2
+  echo "Error: compose file list is empty." >&2
   exit 1
 fi
 
 explicit_env_input="${COMPOSE_ENV_FILES:-}"
-if [[ -z "$explicit_env_input" && -n "${COMPOSE_ENV_FILE:-}" ]]; then
-  explicit_env_input="$COMPOSE_ENV_FILE"
-fi
 
 if ((${#EXPLICIT_ENV_FILES[@]} > 0)); then
   cli_env_join="$(env_file_chain__join ' ' "${EXPLICIT_ENV_FILES[@]}")"
@@ -218,7 +213,7 @@ merge_env_chain_to_file() {
   output_dir="$(dirname "$output_path")"
   if [[ ! -d "$output_dir" ]]; then
     if ! mkdir -p "$output_dir"; then
-      echo "Error: não foi possível criar o diretório de saída do .env: $output_dir" >&2
+      echo "Error: could not create the .env output directory: $output_dir" >&2
       return 1
     fi
   fi
@@ -227,7 +222,7 @@ merge_env_chain_to_file() {
 
   for env_file in "${env_chain[@]}"; do
     if [[ ! -f "$env_file" ]]; then
-      echo "Error: env file não encontrado: $env_file" >&2
+      echo "Error: env file not found: $env_file" >&2
       return 1
     fi
 
@@ -258,7 +253,7 @@ merge_env_chain_to_file() {
 }
 
 if ! cd "$REPO_ROOT"; then
-  echo "Error: não foi possível acessar o diretório do repositório: $REPO_ROOT" >&2
+  echo "Error: could not access repository directory: $REPO_ROOT" >&2
   exit 1
 fi
 
@@ -292,22 +287,22 @@ done
 generate_cmd=("${compose_cmd[@]}" config --output "$OUTPUT_FILE")
 
 if ! "${generate_cmd[@]}"; then
-  echo "Error: falha ao gerar docker-compose.yml." >&2
+  echo "Error: failed to generate docker-compose.yml." >&2
   exit 1
 fi
 validate_cmd=("${compose_cmd[@]}" -f "$OUTPUT_FILE" config -q)
 if ! "${validate_cmd[@]}"; then
-  echo "Error: inconsistências detectadas ao validar $OUTPUT_FILE." >&2
+  echo "Error: inconsistencies detected while validating $OUTPUT_FILE." >&2
   exit 1
 fi
 
-printf 'docker-compose.yml gerado em: %s\n' "$OUTPUT_FILE"
-printf 'Arquivos de compose aplicados (ordem):\n'
+printf 'docker-compose.yml generated at: %s\n' "$OUTPUT_FILE"
+printf 'Applied compose files (order):\n'
 printf '  - %s\n' "${compose_files_list[@]}"
 if ((${#COMPOSE_ENV_FILES_LIST[@]} > 0)); then
-  printf 'Cadeia de env aplicada (ordem):\n'
+  printf 'Applied env chain (order):\n'
   printf '  - %s\n' "${COMPOSE_ENV_FILES_LIST[@]}"
 fi
-printf 'Arquivo .env consolidado em: %s\n' "$ENV_OUTPUT_FILE"
+printf 'Consolidated .env file at: %s\n' "$ENV_OUTPUT_FILE"
 
 exit 0
