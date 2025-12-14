@@ -21,7 +21,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 ORIGINAL_PWD="${PWD:-}"
 CHANGED_TO_REPO_ROOT=false
-# shellcheck source=lib/python_runtime.sh
+# shellcheck source=./lib/python_runtime.sh
 source "${SCRIPT_DIR}/lib/python_runtime.sh"
 
 OUTPUT_FORMAT="text"
@@ -34,16 +34,16 @@ fi
 
 REPO_ROOT="$(pwd)"
 
-# shellcheck source=lib/compose_command.sh
+# shellcheck source=./lib/compose_command.sh
 source "$SCRIPT_DIR/lib/compose_command.sh"
 
-# shellcheck source=lib/env_helpers.sh
+# shellcheck source=./lib/env_helpers.sh
 source "$SCRIPT_DIR/lib/env_helpers.sh"
 
-# shellcheck source=lib/env_file_chain.sh
+# shellcheck source=./lib/env_file_chain.sh
 source "$SCRIPT_DIR/lib/env_file_chain.sh"
 
-# shellcheck source=lib/compose_instances.sh
+# shellcheck source=./lib/compose_instances.sh
 source "$SCRIPT_DIR/lib/compose_instances.sh"
 
 print_help() {
@@ -168,7 +168,7 @@ if [[ -f "$custom_env_path" && "${COMPOSE_ENV_FILE:-}" == "$REPO_ROOT/env/common
   if ((${#COMPOSE_CMD[@]} > 0)); then
     for idx in "${!COMPOSE_CMD[@]}"; do
       if [[ "${COMPOSE_CMD[$idx]}" == "--env-file" && $((idx + 1)) -lt ${#COMPOSE_CMD[@]} ]]; then
-        COMPOSE_CMD[$((idx + 1))]="$custom_env_path"
+        COMPOSE_CMD[idx+1]="$custom_env_path"
       fi
     done
   fi
