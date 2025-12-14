@@ -6,13 +6,14 @@ If you just forked or templated the project, start with the [onboarding guide](d
 
 We keep this file generic to simplify syncing with new template versions. Stack-specific information should live in the local notes indicated in [Local documentation and customization](#local-documentation-and-customization).
 
-## Prerequisites
+## Prerequisites and validation snapshot
 
-Before getting started, review the dependencies section in the [onboarding guide](docs/ONBOARDING.md). It contains the complete, always up-to-date list of tools (including minimum versions and compatible alternatives) needed to prepare the environment.
+- Docker Engine **>= 24.x** with Compose v2.20+
+- Python **>= 3.11**
+- Shell lint/format tools: `shellcheck` **>= 0.9.0**, `shfmt` **>= 3.6.0**, `checkbashisms`
+- Validate setup: `scripts/check_all.sh`
 
-### Quick checklist
-
-Use the [onboarding guide](docs/ONBOARDING.md) as the single checklist for prerequisites and validation steps.
+See the [onboarding guide](docs/ONBOARDING.md) for the full dependency matrix and detailed validation steps.
 
 Operational procedures and runbooks live in [`docs/OPERATIONS.md`](docs/OPERATIONS.md).
 
