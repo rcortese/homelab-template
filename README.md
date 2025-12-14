@@ -8,10 +8,9 @@ We keep this file generic to simplify syncing with new template versions. Stack-
 
 ## Prerequisites and validation snapshot
 
-- Docker Engine **>= 24.x** with Compose v2.20+
-- Python **>= 3.11**
-- Shell lint/format tools: `shellcheck` **>= 0.9.0**, `shfmt` **>= 3.6.0**, `checkbashisms`
-- Validate setup: `scripts/check_all.sh`
+- Docker Engine **>= 24.x** with Compose v2.20+ (only hard requirements for running the stack)
+- Optional contributor tooling: Python **>= 3.11** plus `shellcheck` **>= 0.9.0**, `shfmt` **>= 3.6.0**, and `checkbashisms` for local lint/format
+- Validate setup: `scripts/check_all.sh` (structure/env/compose checks using Docker and Compose)
 
 See the [onboarding guide](docs/ONBOARDING.md) for the full dependency matrix and detailed validation steps.
 
