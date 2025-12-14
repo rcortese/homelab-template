@@ -24,7 +24,7 @@ def test_requires_instance_or_compose_files(repo_copy: Path, tmp_path: Path) -> 
     )
 
     assert result.returncode == 64
-    assert "nenhuma instância informada" in result.stderr
+    assert "no instance provided" in result.stderr
 
 
 def test_generates_compose_from_instance_plan(
