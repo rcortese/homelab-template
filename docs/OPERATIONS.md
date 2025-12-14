@@ -94,6 +94,27 @@ See the summary in the table above. Include `scripts/check_env_sync.sh` in local
 - **Best practices:** run the script after changes to Compose or example `.env` files and include it in the local validation pipeline before opening PRs.
   > **Warning:** running the verification before opening PRs prevents orphan variables from reaching review.
 
+### Allowing project-specific implicit variables
+
+- **Local override:** derived projects can create `scripts/local/check_env_sync.py` with an `IMPLICIT_ENV_VARS` set to whitelist extra variables that should not appear in `env/*.example.env` (for example, secrets injected only in production). See the template in [`scripts/local/README.md`](../scripts/local/README.md).
+- **When to use:** add variables that are intentionally absent from the example templates but required by Compose or auxiliary scripts. Keep the list small and documented so forks know why each entry is skipped by the sync checker.
+- **Minimal example:**
+  ```yaml
+  services:
+    app:
+      environment:
+        - NEW_RELIC_LICENSE_KEY=${NEW_RELIC_LICENSE_KEY}
+  ```
+  ```python
+  """Local overrides for check_env_sync."""
+
+  from typing import Set
+
+  IMPLICIT_ENV_VARS: Set[str] = {
+      "NEW_RELIC_LICENSE_KEY",
+  }
+  ```
+
 ## scripts/run_quality_checks.sh
 
 - **Purpose:** concentrate the base quality suite (`python -m pytest`, `shfmt`, `shellcheck`, and `checkbashisms` across repository scripts) into a single command.
