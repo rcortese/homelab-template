@@ -64,11 +64,6 @@ load_compose_discovery() {
     BASE_COMPOSE_FILE="$base_candidate"
   fi
 
-  if [[ ! -d "$apps_dir" ]]; then
-    echo "[!] Application directory not found: $apps_dir_rel" >&2
-    return 1
-  fi
-
   declare -gA COMPOSE_INSTANCE_FILES=()
   declare -gA COMPOSE_INSTANCE_APP_NAMES=()
   declare -gA COMPOSE_APP_BASE_FILES=()
@@ -77,16 +72,13 @@ load_compose_discovery() {
   shopt -s nullglob
   local -a app_dirs=()
   local app_dir
-  for app_dir in "$apps_dir"/*; do
-    [[ -d "$app_dir" ]] || continue
-    app_dirs+=("$app_dir")
-  done
-  shopt -u nullglob
-
-  if [[ ${#app_dirs[@]} -eq 0 ]]; then
-    echo "[!] No application found in $apps_dir_rel" >&2
-    return 1
+  if [[ -d "$apps_dir" ]]; then
+    for app_dir in "$apps_dir"/*; do
+      [[ -d "$app_dir" ]] || continue
+      app_dirs+=("$app_dir")
+    done
   fi
+  shopt -u nullglob
 
   if [[ ${#app_dirs[@]} -gt 0 ]]; then
     mapfile -t app_dirs < <(printf '%s\n' "${app_dirs[@]}" | sort)
@@ -154,9 +146,6 @@ load_compose_discovery() {
     if [[ $found_for_app -eq 0 ]]; then
       if [[ -f "$app_base_abs" ]]; then
         apps_without_overrides+=("$app_name")
-      else
-        echo "[!] Application '$app_name' has no base.yml or overrides (file missing)." >&2
-        return 1
       fi
     fi
   done
@@ -172,6 +161,11 @@ load_compose_discovery() {
     candidate_instance="${candidate_name%.*}"
     if [[ "$candidate_instance" == "base" ]]; then
       continue
+    fi
+
+    if [[ "$candidate_name" == docker-compose.*.yml || "$candidate_name" == docker-compose.*.yaml ]]; then
+      candidate_instance="${candidate_name#docker-compose.}"
+      candidate_instance="${candidate_instance%.*}"
     fi
 
     seen_instances[$candidate_instance]=1
@@ -205,7 +199,7 @@ load_compose_discovery() {
   shopt -u nullglob
 
   if [[ ${#known_instances[@]} -eq 0 ]]; then
-    echo "[!] No instance found in $apps_dir_rel or $env_dir_rel" >&2
+    echo "[!] No instance found in compose manifests or env files" >&2
     return 1
   fi
 
