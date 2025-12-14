@@ -1,0 +1,51 @@
+# Consolidated base Compose file containing shared resources and base application manifests.
+
+services:
+  app:
+    image: example/app:latest
+    restart: unless-stopped
+    environment:
+      TZ: ${TZ}
+      APP_SECRET: ${APP_SECRET}
+      APP_RETENTION_HOURS: ${APP_RETENTION_HOURS:-168}
+    volumes:
+      - ${APP_DATA_DIR_MOUNT:-./${APP_DATA_DIR:-data/${LOCAL_INSTANCE:-core}/app}}:/var/lib/app
+      - ${PWD:-.}/backups:/var/backups
+    networks:
+      homelab_internal:
+        ipv4_address: ${APP_NETWORK_IPV4}
+
+  worker:
+    image: example/worker:latest
+    restart: unless-stopped
+    depends_on:
+      app:
+        condition: service_started
+    environment:
+      WORKER_QUEUE_URL: ${WORKER_QUEUE_URL}
+    networks:
+      homelab_internal: {}
+
+  monitoring:
+    image: example/monitoring:latest
+    restart: unless-stopped
+    networks:
+      homelab_internal:
+        ipv4_address: ${MONITORING_NETWORK_IPV4}
+
+  baseonly:
+    image: example/base-only:latest
+    restart: unless-stopped
+
+networks:
+  homelab_internal:
+    name: ${APP_NETWORK_NAME:-homelab_internal}
+    driver: ${APP_NETWORK_DRIVER:-bridge}
+    ipam:
+      config:
+        - subnet: ${APP_NETWORK_SUBNET}
+          gateway: ${APP_NETWORK_GATEWAY}
+
+volumes:
+  homelab_shared_data:
+    name: ${APP_SHARED_DATA_VOLUME_NAME:-homelab_shared_data}
