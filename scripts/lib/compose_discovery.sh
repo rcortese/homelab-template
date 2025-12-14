@@ -48,7 +48,6 @@ load_compose_discovery() {
   local -A known_instances=()
 
   shopt -s nullglob
-  local -A seen_instances=()
   local -a compose_candidates=("$repo_root/$compose_dir_rel"/docker-compose.*.yml)
   shopt -u nullglob
 

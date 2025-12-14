@@ -48,6 +48,8 @@ REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 SHELLCHECK_BIN="${SHELLCHECK_BIN:-shellcheck}"
 SHFMT_BIN="${SHFMT_BIN:-shfmt}"
 CHECKBASHISMS_BIN="${CHECKBASHISMS_BIN:-checkbashisms}"
+SHELLCHECK_OPTS="${SHELLCHECK_OPTS:--x -P scripts}"
+export SHELLCHECK_OPTS
 
 PYTHON_HELPERS_PATH="${SCRIPT_DIR}/lib/python_runtime.sh"
 

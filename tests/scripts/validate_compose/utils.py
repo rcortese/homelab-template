@@ -22,6 +22,7 @@ class InstanceMetadata:
     """Metadata discovered for a docker compose instance."""
 
     name: str
+    app_names: tuple[str, ...]
     override_files: tuple[Path, ...]
     env_file: Path | None
     env_local: Path | None
