@@ -36,14 +36,11 @@ load_compose_discovery() {
   local env_local_dir_rel="$env_dir_rel/local"
 
   BASE_COMPOSE_FILE=""
-  local base_candidates=("$compose_dir_rel/base.yml" "$compose_dir_rel/base.yaml")
-  local base_candidate
-  for base_candidate in "${base_candidates[@]}"; do
-    if [[ -f "$repo_root/$base_candidate" ]]; then
-      BASE_COMPOSE_FILE="$base_candidate"
-      break
-    fi
-  done
+  local base_candidate="$compose_dir_rel/base.yml"
+  local base_compose_abs="$repo_root/$base_candidate"
+  if [[ -f "$base_compose_abs" ]]; then
+    BASE_COMPOSE_FILE="$base_candidate"
+  fi
 
   declare -gA COMPOSE_INSTANCE_FILES=()
   declare -ga COMPOSE_INSTANCE_NAMES=()
@@ -51,28 +48,16 @@ load_compose_discovery() {
   local -A known_instances=()
 
   shopt -s nullglob
-  local -a top_level_candidates=("$repo_root/$compose_dir_rel"/docker-compose.*.yml "$repo_root/$compose_dir_rel"/docker-compose.*.yaml)
+  local -A seen_instances=()
+  local -a compose_candidates=("$repo_root/$compose_dir_rel"/docker-compose.*.yml)
   shopt -u nullglob
 
-  if [[ ${#top_level_candidates[@]} -gt 0 ]]; then
-    mapfile -t top_level_candidates < <(printf '%s\n' "${top_level_candidates[@]}" | sort)
-  fi
-
   local instance_file candidate_name candidate_instance
-  for instance_file in "${top_level_candidates[@]}"; do
+  for instance_file in "${compose_candidates[@]}"; do
     [[ -f "$instance_file" ]] || continue
     candidate_name="${instance_file##*/}"
-
-    case "$candidate_name" in
-    docker-compose.*.yml | docker-compose.*.yaml)
-      candidate_instance="${candidate_name#docker-compose.}"
-      candidate_instance="${candidate_instance%.*}"
-      ;;
-    *)
-      continue
-      ;;
-    esac
-
+    candidate_instance="${candidate_name#docker-compose.}"
+    candidate_instance="${candidate_instance%.yml}"
     if [[ -z "$candidate_instance" || "$candidate_instance" == "base" ]]; then
       continue
     fi
@@ -120,7 +105,6 @@ load_compose_discovery() {
     if [[ ! -v COMPOSE_INSTANCE_FILES[$instance] ]]; then
       COMPOSE_INSTANCE_FILES[$instance]=""
     fi
-
   done
 
   COMPOSE_INSTANCE_NAMES=("${instance_names[@]}")

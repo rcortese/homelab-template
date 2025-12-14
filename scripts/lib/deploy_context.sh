@@ -199,10 +199,8 @@ build_deploy_context() {
     fi
   done
 
-  local primary_app="${APP_NAME:-app}"
-  local -a instance_app_names=("$primary_app")
+  local primary_app="$instance"
   local app_names_string=""
-  app_names_string="$(printf '%s\n' "${instance_app_names[@]}")"
   local default_app_data_dir=""
   if [[ -n "$primary_app" && -n "$instance" ]]; then
     default_app_data_dir="data/${instance}/${primary_app}"

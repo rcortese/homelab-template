@@ -1,29 +1,19 @@
-# Consolidated Compose file for the "media" instance.
+# Consolidated base Compose file containing shared resources and base application manifests.
 
 services:
   app:
     image: example/app:latest
     restart: unless-stopped
-    ports:
-      - "${APP_MEDIA_PORT:-8081}:8080"
     environment:
       TZ: ${TZ}
       APP_SECRET: ${APP_SECRET}
       APP_RETENTION_HOURS: ${APP_RETENTION_HOURS:-168}
-      MEDIA_ROOT: /srv/media
     volumes:
       - ${APP_DATA_DIR_MOUNT:-./${APP_DATA_DIR:-data/${LOCAL_INSTANCE:-core}/app}}:/var/lib/app
       - ${PWD:-.}/backups:/var/backups
-      - type: bind
-        source: ${MEDIA_HOST_PATH}
-        target: /mnt/media
-      - media_cache:/var/cache/transcoder
-      - ${MEDIA_HOST_PATH:-/mnt/data}:/srv/media:rw
     networks:
       homelab_internal:
         ipv4_address: ${APP_NETWORK_IPV4}
-    labels:
-      homelab.backup: skip
 
   worker:
     image: example/worker:latest
@@ -33,12 +23,8 @@ services:
         condition: service_started
     environment:
       WORKER_QUEUE_URL: ${WORKER_QUEUE_URL}
-      WORKER_CONCURRENCY: ${WORKER_MEDIA_CONCURRENCY:-1}
     networks:
-      homelab_internal:
-        ipv4_address: ${WORKER_MEDIA_NETWORK_IPV4}
-    volumes:
-      - media_cache:/var/cache/transcoder
+      homelab_internal: {}
 
   monitoring:
     image: example/monitoring:latest
@@ -63,6 +49,3 @@ networks:
 volumes:
   homelab_shared_data:
     name: ${APP_SHARED_DATA_VOLUME_NAME:-homelab_shared_data}
-  media_cache:
-    name: ${MEDIA_CACHE_VOLUME_NAME:-media_cache}
-    driver: local

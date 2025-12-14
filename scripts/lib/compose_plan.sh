@@ -62,7 +62,6 @@ build_compose_file_plan() {
     append_unique_file __plan_ref "$BASE_COMPOSE_FILE"
   fi
 
-  mapfile -t __instance_compose_files < <(printf '%s\n' "${COMPOSE_INSTANCE_FILES[$instance_name]}")
   for __compose_file in "${__instance_compose_files[@]}"; do
     append_unique_file __plan_ref "$__compose_file"
   done

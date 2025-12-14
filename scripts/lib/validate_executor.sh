@@ -30,6 +30,33 @@ validate_executor_prepare_plan() {
   local -n derived_env_ref=$8
 
   if [[ ! -v COMPOSE_INSTANCE_FILES[$instance] ]]; then
+    local -a potential_matches=()
+    local -a compose_aliases=(
+      "$repo_root/compose/docker-compose.${instance}.yml"
+      "$repo_root/compose/docker-compose.${instance}.yaml"
+      "$repo_root/compose/${instance}.yml"
+      "$repo_root/compose/${instance}.yaml"
+    )
+
+    local compose_candidate
+    for compose_candidate in "${compose_aliases[@]}"; do
+      if [[ -f "$compose_candidate" ]]; then
+        potential_matches+=("${compose_candidate#$repo_root/}")
+      fi
+    done
+
+    if [[ ${#potential_matches[@]} -gt 0 ]]; then
+      echo "[x] instance=\"$instance\" (compose metadata missing for: ${potential_matches[*]})" >&2
+      return 1
+    fi
+
+    local local_candidate="$repo_root/env/local/${instance}.env"
+    local template_candidate="$repo_root/env/${instance}.example.env"
+    if [[ -f "$local_candidate" || -f "$template_candidate" ]]; then
+      echo "[x] instance=\"$instance\" (missing compose file: compose/docker-compose.${instance}.yml or supported alias)" >&2
+      return 1
+    fi
+
     echo "Error: unknown instance '$instance'." >&2
     return 2
   fi
@@ -137,8 +164,7 @@ validate_executor_prepare_plan() {
   fi
 
   derived_env_ref=()
-
-  local primary_app="${APP_NAME:-app}"
+  local primary_app="$instance"
 
   declare -A env_loaded=()
   if [[ ${#env_files_abs[@]} -gt 0 ]]; then

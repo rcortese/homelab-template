@@ -97,6 +97,7 @@ def load_compose_metadata(repo_root: Path) -> ComposeMetadata:
     instances: List[str] = []
     files_map: Dict[str, List[Path]] = {}
     env_templates: Dict[str, Path | None] = {}
+
     for raw_line in result.stdout.splitlines():
         line = raw_line.strip()
         if not line:
@@ -127,6 +128,7 @@ def load_compose_metadata(repo_root: Path) -> ComposeMetadata:
             raw_map = parse_declare_mapping(line)
             for instance, value in raw_map.items():
                 env_templates[instance] = (repo_root / value).resolve() if value else None
+
     if base_file is not None and not base_file.exists():
         raise ComposeMetadataError("Arquivo compose/base.yml não encontrado.")
     if not instances:

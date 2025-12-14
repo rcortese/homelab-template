@@ -320,19 +320,8 @@ COMPOSE_FILES="$COMPOSE_ROOT_FILE"
 
 mapfile -t LOG_TARGETS < <(env_file_chain__parse_list "${HEALTH_SERVICES:-}") || true
 
-declare -a METADATA_APP_NAMES=()
-declare -a METADATA_PRIMARY_APPS=()
-if [[ -n "$INSTANCE_NAME" ]]; then
-  METADATA_APP_NAMES=("$INSTANCE_NAME")
-  METADATA_PRIMARY_APPS=("$INSTANCE_NAME")
-fi
-
 if [[ ${#LOG_TARGETS[@]} -eq 0 ]]; then
-  if [[ "$CHANGED_TO_REPO_ROOT" == false && ${#METADATA_PRIMARY_APPS[@]} -gt 0 ]]; then
-    LOG_TARGETS=("${METADATA_PRIMARY_APPS[@]}")
-  elif [[ ${#METADATA_APP_NAMES[@]} -gt 0 ]]; then
-    LOG_TARGETS=("${METADATA_APP_NAMES[@]}")
-  fi
+  :
 fi
 
 primary_targets=("${LOG_TARGETS[@]}")

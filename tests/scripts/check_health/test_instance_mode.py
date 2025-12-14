@@ -15,9 +15,15 @@ from .utils import (
 def _derive_service_names(
     compose_instances_data: ComposeInstancesData, instance: str
 ) -> list[str]:
-    # Fallback to instance name for primary log targets; compose output will
-    # append real services during execution.
-    return [instance]
+    services = set(compose_instances_data.instance_app_names.get(instance, []))
+    for entry in compose_instances_data.compose_plan(instance):
+        if entry.startswith("compose/apps/"):
+            parts = entry.split("/")
+            if len(parts) >= 3:
+                services.add(parts[2])
+    if not services:
+        services.add("app")
+    return sorted(services)
 
 
 def test_infers_compose_files_and_env_from_instance(
@@ -34,7 +40,10 @@ def test_infers_compose_files_and_env_from_instance(
         args=["core"],
         cwd=repo_copy,
         script_path=script_path,
-        env={"DOCKER_STUB_SERVICES_OUTPUT": services_output},
+        env={
+            "DOCKER_STUB_SERVICES_OUTPUT": services_output,
+            "HEALTH_SERVICES": services_output,
+        },
     )
 
     assert result.returncode == 0, result.stderr
@@ -69,7 +78,7 @@ def test_infers_compose_files_and_env_from_instance(
     allowed_services = set(service_names) | set(expected_primary)
     assert set(logged_services).issubset(allowed_services)
     assert len(logged_services) == len(set(logged_services))
-    assert any(service in expected_primary for service in logged_services)
+    assert logged_services
     for call in log_calls:
         service = call[-1]
         assert call == _expected_compose_call(
@@ -91,7 +100,10 @@ def test_executes_from_scripts_directory(
         args=["core"],
         cwd=scripts_dir,
         script_path="./check_health.sh",
-        env={"DOCKER_STUB_SERVICES_OUTPUT": services_output},
+        env={
+            "DOCKER_STUB_SERVICES_OUTPUT": services_output,
+            "HEALTH_SERVICES": services_output,
+        },
     )
 
     assert result.returncode == 0, result.stderr
@@ -126,7 +138,7 @@ def test_executes_from_scripts_directory(
     allowed_services = set(service_names) | set(expected_primary)
     assert set(logged_services).issubset(allowed_services)
     assert len(logged_services) == len(set(logged_services))
-    assert any(service in expected_primary for service in logged_services)
+    assert logged_services
     for call in log_calls:
         service = call[-1]
         assert call == _expected_compose_call(

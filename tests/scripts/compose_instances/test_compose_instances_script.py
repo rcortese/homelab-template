@@ -15,18 +15,17 @@ def _collect_compose_metadata(repo_root: Path) -> tuple[
     dict[str, str],
     dict[str, str],
 ]:
-
     compose_dir = repo_root / "compose"
     instance_files: dict[str, list[str]] = defaultdict(list)
 
-    top_level_candidates = list(sorted(compose_dir.glob("docker-compose.*.yml"))) + list(
-        sorted(compose_dir.glob("docker-compose.*.yaml"))
-    )
-    for candidate in top_level_candidates:
-        instance_name = candidate.stem
-        instance_name = instance_name.replace("docker-compose.", "", 1)
-        rel_path = candidate.relative_to(repo_root).as_posix()
+    compose_candidates = sorted(compose_dir.glob("docker-compose.*.yml"))
+    for candidate in compose_candidates:
+        name_part = candidate.name.replace("docker-compose.", "")
+        instance_name = name_part.replace(".yml", "")
+        if not instance_name or instance_name == "base":
+            continue
 
+        rel_path = candidate.relative_to(repo_root).as_posix()
         if rel_path not in instance_files[instance_name]:
             instance_files[instance_name].append(rel_path)
 
@@ -181,6 +180,48 @@ def test_compose_instances_outputs_expected_metadata(repo_copy: Path) -> None:
     env_files_line = find_declare_line(result.stdout, "COMPOSE_INSTANCE_ENV_FILES")
     assert parse_mapping(env_files_line) == expected_env_files_map
 
+
+def test_instances_include_apps_without_overrides(
+    repo_copy: Path, compose_instances_data: ComposeInstancesData
+) -> None:
+    result = run_compose_instances(repo_copy)
+
+    assert result.returncode == 0, result.stderr
+
+    names_line = find_declare_line(result.stdout, "COMPOSE_INSTANCE_NAMES")
+    instance_names = parse_indexed_values(names_line)
+
+    files_line = find_declare_line(result.stdout, "COMPOSE_INSTANCE_FILES")
+    files_map = parse_mapping(files_line)
+
+    files_line = find_declare_line(result.stdout, "COMPOSE_INSTANCE_FILES")
+    files_map = parse_mapping(files_line)
+
+    for instance in instance_names:
+        overrides = [entry for entry in files_map.get(instance, "").splitlines() if entry]
+        expected_overrides = compose_instances_data.instance_files.get(instance, [])
+        for override in expected_overrides:
+            assert override in overrides
+
+
+def test_apps_with_base_are_registered_for_all_instances(
+    repo_copy: Path, compose_instances_data: ComposeInstancesData
+) -> None:
+    result = run_compose_instances(repo_copy)
+
+    assert result.returncode == 0, result.stderr
+
+    names_line = find_declare_line(result.stdout, "COMPOSE_INSTANCE_NAMES")
+    instance_names = parse_indexed_values(names_line)
+
+    files_line = find_declare_line(result.stdout, "COMPOSE_INSTANCE_FILES")
+    files_map = parse_mapping(files_line)
+
+    for instance in instance_names:
+        overrides = [entry for entry in files_map.get(instance, "").splitlines() if entry]
+        expected_overrides = compose_instances_data.instance_files.get(instance, [])
+        for override in expected_overrides:
+            assert override in overrides
 
 
 def test_missing_base_file_is_allowed(repo_copy: Path) -> None:

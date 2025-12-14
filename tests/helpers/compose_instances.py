@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 import subprocess
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Iterable
 
@@ -15,6 +15,8 @@ class ComposeInstancesData:
     env_local_map: dict[str, str]
     env_template_map: dict[str, str]
     env_files_map: dict[str, list[str]]
+    instance_app_names: dict[str, list[str]] = field(default_factory=dict)
+    app_base_files: dict[str, str] = field(default_factory=dict)
 
     @property
     def instance_app_names(self) -> dict[str, list[str]]:
@@ -45,8 +47,9 @@ class ComposeInstancesData:
 
         return plan
 
-    def apps_without_overrides(self) -> set[str]:
-        return set()
+    def apps_without_overrides(self) -> list[str]:
+        return []
+
 
 def _find_declare_line(stdout: str, variable: str) -> str:
     pattern = re.compile(r"^declare[^=]*\b" + re.escape(variable) + "=", re.MULTILINE)
@@ -107,6 +110,24 @@ def load_compose_instances_data(repo_root: Path) -> ComposeInstancesData:
         key: [entry for entry in value.splitlines() if entry]
         for key, value in files_map_raw.items()
     }
+
+    try:
+        app_names_line = _find_declare_line(result.stdout, "COMPOSE_INSTANCE_APP_NAMES")
+    except AssertionError:
+        app_names_map: dict[str, list[str]] = {}
+    else:
+        app_names_map_raw = _parse_mapping(app_names_line)
+        app_names_map = {
+            key: [entry for entry in value.splitlines() if entry]
+            for key, value in app_names_map_raw.items()
+        }
+
+    try:
+        app_base_line = _find_declare_line(result.stdout, "COMPOSE_APP_BASE_FILES")
+    except AssertionError:
+        app_base_map: dict[str, str] = {}
+    else:
+        app_base_map = _parse_mapping(app_base_line)
 
     env_local_line = _find_declare_line(result.stdout, "COMPOSE_INSTANCE_ENV_LOCAL")
     env_local_map = _parse_mapping(env_local_line)

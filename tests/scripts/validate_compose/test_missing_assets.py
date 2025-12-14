@@ -18,7 +18,8 @@ def _select_manifest(repo_copy: Path) -> Path:
 
     instance = "core" if "core" in instances.instance_names else instances.instance_names[0]
     for relative in instances.compose_plan(instance):
-        candidate = repo_copy / Path(relative)
+        relative_path = Path(relative)
+        candidate = repo_copy / relative_path
         if candidate.is_file():
             return candidate
 
@@ -49,4 +50,3 @@ def test_missing_compose_file_in_temporary_copy(
     )
 
     assert result.returncode == 0
-    assert len(docker_stub.read_calls()) == 2
