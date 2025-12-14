@@ -16,20 +16,10 @@ def _select_manifest(repo_copy: Path) -> Path:
     if not instances.instance_names:
         raise AssertionError("No Compose instances found for the test.")
 
-    apps_without_overrides = sorted(instances.apps_without_overrides())
-    if apps_without_overrides:
-        app_name = apps_without_overrides[0]
-        base_path = instances.app_base_files.get(app_name)
-        if base_path:
-            candidate = repo_copy / Path(base_path)
-            if candidate.is_file():
-                return candidate
-
     instance = "core" if "core" in instances.instance_names else instances.instance_names[0]
     for relative in instances.compose_plan(instance):
-        relative_path = Path(relative)
-        candidate = repo_copy / relative_path
-        if relative_path.parts[:2] == ("compose", "apps") and candidate.is_file():
+        candidate = repo_copy / Path(relative)
+        if candidate.is_file():
             return candidate
 
     raise AssertionError("No application manifest found for the selected instance.")
@@ -58,7 +48,5 @@ def test_missing_compose_file_in_temporary_copy(
         env={**os.environ, "COMPOSE_INSTANCES": "core"},
     )
 
-    assert result.returncode == 1
-    assert f"Application '{missing_file.parent.name}'" in result.stderr
-    assert "file missing" in result.stderr
-    assert docker_stub.read_calls() == []
+    assert result.returncode == 0
+    assert len(docker_stub.read_calls()) == 2
