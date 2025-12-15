@@ -12,6 +12,7 @@ from scripts.check_env_sync import (
     SyncReport,
     build_sync_report,
     decode_bash_string,
+    extract_compose_variables,
     load_compose_metadata,
     main,
     parse_declare_array,
@@ -510,3 +511,24 @@ def test_parse_declare_mapping_with_multiple_entries_and_escapes() -> None:
     assert result["foo"] == "line\nA"
     assert result["bar"] == "line\nB"
     assert result["baz"] == "tab\tvalue"
+
+
+def test_extract_compose_variables_fallback_on_yaml_error(
+    tmp_path: Path, capfd: pytest.CaptureFixture[str]
+) -> None:
+    compose_file = tmp_path / "broken.yml"
+    compose_file.write_text(
+        """
+services:
+  app:
+    environment:
+      BROKEN: "${MALFORMED_VAR}
+""".lstrip(),
+        encoding="utf-8",
+    )
+
+    variables = extract_compose_variables([compose_file])
+    stderr = capfd.readouterr().err
+
+    assert "Falha ao analisar YAML" in stderr
+    assert "MALFORMED_VAR" in variables
