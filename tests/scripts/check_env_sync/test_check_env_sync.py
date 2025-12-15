@@ -292,6 +292,64 @@ def test_build_sync_report_uses_runtime_provided_variables(
     assert "PWD" in missing_without_runtime
 
 
+def test_build_sync_report_uses_common_and_implicit_vars(monkeypatch, tmp_path: Path) -> None:
+    repo_root = tmp_path
+    base_file = repo_root / "compose" / "base.yml"
+    base_file.parent.mkdir(parents=True, exist_ok=True)
+    base_file.write_text(
+        """
+services:
+  app:
+    environment:
+      COMMON_FROM_TEMPLATE: ${COMMON_FROM_TEMPLATE}
+      LOCAL_COMMON_ONLY: ${LOCAL_COMMON_ONLY}
+      IMPLICIT_VAR: ${IMPLICIT_FROM_MONKEYPATCH}
+""".strip(),
+        encoding="utf-8",
+    )
+
+    overrides_dir = repo_root / "compose" / "overrides"
+    overrides_dir.mkdir(parents=True, exist_ok=True)
+    core_override = overrides_dir / "core.yml"
+    core_override.write_text(
+        """
+services:
+  app:
+    environment:
+      CORE_SPECIFIC: ${CORE_SPECIFIC_VAR}
+""".strip(),
+        encoding="utf-8",
+    )
+
+    env_dir = repo_root / "env"
+    env_dir.mkdir(parents=True, exist_ok=True)
+    common_env = env_dir / "common.example.env"
+    common_env.write_text("COMMON_FROM_TEMPLATE=\n", encoding="utf-8")
+    local_common_env = env_dir / "local" / "common.env"
+    local_common_env.parent.mkdir(parents=True, exist_ok=True)
+    local_common_env.write_text("LOCAL_COMMON_ONLY=\n", encoding="utf-8")
+
+    core_env = env_dir / "core.example.env"
+    core_env.write_text("CORE_SPECIFIC_VAR=\nUNUSED_ONLY=\n", encoding="utf-8")
+
+    metadata = ComposeMetadata(
+        base_file=base_file.resolve(),
+        instances=["core"],
+        files_by_instance={"core": [core_override.resolve()]},
+        env_template_by_instance={"core": core_env.resolve()},
+    )
+
+    monkeypatch.setattr(
+        "scripts.check_env_sync.IMPLICIT_ENV_VARS", {"IMPLICIT_FROM_MONKEYPATCH"}
+    )
+
+    report = build_sync_report(repo_root, metadata)
+
+    assert report.missing_by_instance == {"core": set()}
+    assert report.missing_templates == []
+    assert report.unused_by_file == {core_env.resolve(): {"UNUSED_ONLY"}}
+
+
 def test_check_env_sync_reports_unknown_instance(repo_copy: Path) -> None:
     result = run_check(repo_copy, ["--instance", "unknown-instance"])
 
