@@ -189,7 +189,7 @@ The script relies on `scripts/lib/deploy_context.sh` to calculate `APP_DATA_DIR`
 - **Inputs and overrides:**
   - Accepts `--instance` to reuse the standard discovery chain (base manifests, app overlays, and per-instance overrides);
   - `--file` (repeatable) mirrors `COMPOSE_EXTRA_FILES`, appending overlays after the discovered plan;
-  - `--env-file` (repeatable) extends or replaces the `.env` chain (`COMPOSE_ENV_FILES`/`COMPOSE_ENV_FILE`), falling back to `env/local/<instance>.env` → `env/<instance>.example.env` and `env/common.example.env` when the explicit list is empty;
+  - `--env-file` (repeatable) extends or replaces the `.env` chain controlled by `COMPOSE_ENV_FILES`, falling back to `env/local/common.env` → `env/local/<instance>.env` when the explicit list is empty;
   - `--env-output` changes where the consolidated `.env` is written (defaults to the repository root). The helper rebuilds the file on every run, honoring the same precedence applied to `--env-file`.
 - **Output validation:** after writing the merged files, the script runs `docker compose -f docker-compose.yml config -q` (reusing the same env chain) and fails when inconsistencies are detected. Re-run the generator whenever manifests or variables are modified to keep the root file and `.env` in sync.
 - **Examples:**
@@ -217,7 +217,7 @@ The script relies on `scripts/lib/deploy_context.sh` to calculate `APP_DATA_DIR`
 
 - **Supported arguments and variables:**
   - `HEALTH_SERVICES` — list of services to inspect (space- or comma-separated). When set, execution is limited to the desired services only.
-  - `COMPOSE_ENV_FILE` — path to an alternate `.env` file to load before querying `docker compose`.
+  - `COMPOSE_ENV_FILES` — optional list of `.env` files applied before querying `docker compose`, overriding the default `env/local/common.env` → `env/local/<instance>.env` chain when provided.
 - Collection generates or reuses a consolidated `docker-compose.yml` before running `docker compose -f docker-compose.yml ps/logs`.
 - The script automatically supplements the service list by running `docker compose config --services`. If no services are found, execution aborts with an error to avoid silently suppressing logs.
 - **Output formats:**

@@ -83,7 +83,7 @@ Rename these identifiers to terms aligned with your domain (for example, `PORTAL
 
 ## Integration with scripts
 
-Template scripts accept `COMPOSE_ENV_FILES` (or the legacy `COMPOSE_ENV_FILE`) to select which `.env` files will be used. Document in the relevant runbook how to combine variables and manifests for each environment. When you need to enable specific overlays without changing scripts, add something like this to the `.env`:
+Template scripts honor `COMPOSE_ENV_FILES` (and repeated `--env-file` flags) to select which `.env` files will be used, layering them on top of the default `env/local/common.env` → `env/local/<instance>.env` chain. Document in the relevant runbook how to combine variables and manifests for each environment. When you need to enable specific overlays without changing scripts, add something like this to the `.env`:
 
 ```env
 COMPOSE_EXTRA_FILES=compose/overlays/observability.yml compose/overlays/metrics.yml
