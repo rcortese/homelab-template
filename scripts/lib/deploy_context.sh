@@ -118,11 +118,6 @@ build_deploy_context() {
     env_files_rel=("$local_env_file")
   fi
 
-  local primary_env_file=""
-  if ((${#env_files_rel[@]} > 0)); then
-    primary_env_file="${env_files_rel[-1]}"
-  fi
-
   declare -a env_files_abs=()
   mapfile -t env_files_abs < <(
     env_file_chain__to_absolute "$repo_root" "${env_files_rel[@]}"
@@ -263,7 +258,6 @@ build_deploy_context() {
 
   printf 'declare -A DEPLOY_CONTEXT=(\n'
   printf '  [INSTANCE]=%q\n' "$instance"
-  printf '  [COMPOSE_ENV_FILE]=%q\n' "$primary_env_file"
   printf '  [COMPOSE_ENV_FILES]=%q\n' "$env_files_string"
   printf '  [COMPOSE_EXTRA_FILES]=%q\n' "$extra_compose_files_string"
   printf '  [COMPOSE_FILES]=%q\n' "$compose_files_string"

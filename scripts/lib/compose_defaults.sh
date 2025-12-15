@@ -23,7 +23,6 @@ setup_compose_defaults() {
   local base_fs
 
   declare -g COMPOSE_FILES="${COMPOSE_FILES:-}"
-  declare -g COMPOSE_ENV_FILE="${COMPOSE_ENV_FILE:-}"
   declare -g COMPOSE_ENV_FILES="${COMPOSE_ENV_FILES:-}"
   declare -ga COMPOSE_CMD=()
 
@@ -56,10 +55,6 @@ setup_compose_defaults() {
   fi
 
   local env_chain_input="${COMPOSE_ENV_FILES:-}"
-  if [[ -z "$env_chain_input" && -n "${COMPOSE_ENV_FILE:-}" ]]; then
-    env_chain_input="$COMPOSE_ENV_FILE"
-  fi
-
   if [[ -z "$env_chain_input" && -n "$instance" && $metadata_loaded -eq 1 && -n "${COMPOSE_INSTANCE_ENV_FILES[$instance]:-}" ]]; then
     env_chain_input="${COMPOSE_INSTANCE_ENV_FILES[$instance]}"
   fi
@@ -77,11 +72,9 @@ setup_compose_defaults() {
   fi
 
   if ((${#env_files_abs[@]} > 0)); then
-    COMPOSE_ENV_FILE="${env_files_abs[-1]}"
     COMPOSE_ENV_FILES="$(printf '%s\n' "${env_files_abs[@]}")"
     COMPOSE_ENV_FILES="${COMPOSE_ENV_FILES%$'\n'}"
   else
-    COMPOSE_ENV_FILE=""
     COMPOSE_ENV_FILES=""
   fi
 
@@ -215,7 +208,7 @@ main() {
 
   setup_compose_defaults "$instance" "$base_dir"
 
-  declare -p COMPOSE_FILES COMPOSE_ENV_FILES COMPOSE_ENV_FILE COMPOSE_CMD
+  declare -p COMPOSE_FILES COMPOSE_ENV_FILES COMPOSE_CMD
 }
 
 if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
