@@ -10,7 +10,8 @@
 #   --output <file>       Optional path to write the generated output.
 # Environment:
 #   COMPOSE_FILES        Additional Compose manifests to apply (space-separated).
-#   COMPOSE_ENV_FILE     Alternate path to the docker compose environment file.
+#   COMPOSE_ENV_FILES    Explicit env chain for docker compose. Separate entries
+#                        with spaces or newlines.
 #   HEALTH_SERVICES      List (comma- or space-separated) of services for log inspection.
 # Examples:
 #   scripts/check_health.sh core
@@ -60,7 +61,7 @@ Options:
   --output <file>       Writes the final output to the provided path in addition to stdout.
   Relevant environment variables:
   COMPOSE_FILES     Overrides the Compose manifests used. Separate entries with spaces.
-  COMPOSE_ENV_FILE  Provides an alternate .env file for docker compose.
+  COMPOSE_ENV_FILES Explicit env chain for docker compose. Separate entries with spaces.
   HEALTH_SERVICES   List (comma- or space-separated) of services for log inspection.
 
 Examples:
@@ -162,15 +163,23 @@ fi
 eval "$compose_defaults_dump"
 
 custom_env_path="$REPO_ROOT/env/custom.env"
-if [[ -f "$custom_env_path" && "${COMPOSE_ENV_FILE:-}" == "$REPO_ROOT/env/common.example.env" ]]; then
-  COMPOSE_ENV_FILE="$custom_env_path"
-  COMPOSE_ENV_FILES="$custom_env_path"
-  if ((${#COMPOSE_CMD[@]} > 0)); then
-    for idx in "${!COMPOSE_CMD[@]}"; do
-      if [[ "${COMPOSE_CMD[$idx]}" == "--env-file" && $((idx + 1)) -lt ${#COMPOSE_CMD[@]} ]]; then
-        COMPOSE_CMD[idx + 1]="$custom_env_path"
+if [[ -f "$custom_env_path" && -n "${COMPOSE_ENV_FILES:-}" ]]; then
+  mapfile -t compose_env_chain < <(env_file_chain__parse_list "$COMPOSE_ENV_FILES")
+  if ((${#compose_env_chain[@]} == 1)); then
+    env_entry="${compose_env_chain[0]}"
+    if [[ "$env_entry" != /* ]]; then
+      env_entry="$REPO_ROOT/$env_entry"
+    fi
+    if [[ "$env_entry" == "$REPO_ROOT/env/common.example.env" ]]; then
+      COMPOSE_ENV_FILES="$custom_env_path"
+      if ((${#COMPOSE_CMD[@]} > 0)); then
+        for idx in "${!COMPOSE_CMD[@]}"; do
+          if [[ "${COMPOSE_CMD[$idx]}" == "--env-file" && $((idx + 1)) -lt ${#COMPOSE_CMD[@]} ]]; then
+            COMPOSE_CMD[idx + 1]="$custom_env_path"
+          fi
+        done
       fi
-    done
+    fi
   fi
 fi
 normalize_compose_context() {
@@ -252,7 +261,6 @@ fi
 export COMPOSE_FILES
 export COMPOSE_EXTRA_FILES
 export COMPOSE_ENV_FILES
-export COMPOSE_ENV_FILE
 
 if [[ -z "${HEALTH_SERVICES:-}" ]]; then
   declare -a health_env_files=()
@@ -260,8 +268,6 @@ if [[ -z "${HEALTH_SERVICES:-}" ]]; then
     mapfile -t health_env_files < <(
       env_file_chain__parse_list "${COMPOSE_ENV_FILES}"
     )
-  elif [[ -n "${COMPOSE_ENV_FILE:-}" ]]; then
-    health_env_files=("$COMPOSE_ENV_FILE")
   fi
 
   if [[ ${#health_env_files[@]} -gt 0 ]]; then
@@ -319,8 +325,6 @@ if [[ -n "${COMPOSE_ENV_FILES:-}" ]]; then
     [[ -z "$env_entry" ]] && continue
     BUILD_COMPOSE_CMD+=(--env-file "$env_entry")
   done <<<"${COMPOSE_ENV_FILES//$'\n'/ }"
-elif [[ -n "${COMPOSE_ENV_FILE:-}" ]]; then
-  BUILD_COMPOSE_CMD+=(--env-file "$COMPOSE_ENV_FILE")
 fi
 
 if ! "${BUILD_COMPOSE_CMD[@]}" >/dev/null; then

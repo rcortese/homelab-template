@@ -93,9 +93,6 @@ def test_defaults_for_core_instance(
     ]
     assert env_files == expected_env_files
 
-    env_file = _extract_value(r'COMPOSE_ENV_FILE="([^"]*)"', stdout)
-    assert env_file == (expected_env_files[-1] if expected_env_files else "")
-
     compose_cmd = _extract_compose_cmd(stdout)
     assert compose_cmd[:2] == ["docker", "compose"]
     env_args = [
@@ -111,7 +108,6 @@ def test_fallbacks_when_instance_missing(repo_copy: Path) -> None:
     script_path = repo_copy / SCRIPT_RELATIVE
     env = os.environ.copy()
     env.pop("COMPOSE_FILES", None)
-    env.pop("COMPOSE_ENV_FILE", None)
     env.pop("COMPOSE_ENV_FILES", None)
     env.pop("COMPOSE_EXTRA_FILES", None)
 
@@ -135,9 +131,6 @@ def test_fallbacks_when_instance_missing(repo_copy: Path) -> None:
     ]
     assert env_args == [expected_env_file]
 
-    env_file = _extract_value(r'COMPOSE_ENV_FILE="([^"]*)"', stdout)
-    assert env_file == expected_env_file
-
 
 def test_preserves_existing_environment(repo_copy: Path) -> None:
     script_path = repo_copy / SCRIPT_RELATIVE
@@ -148,7 +141,7 @@ def test_preserves_existing_environment(repo_copy: Path) -> None:
     env.update(
         {
             "COMPOSE_FILES": "compose/base.yml compose/custom.yml",
-            "COMPOSE_ENV_FILE": str(custom_env_file),
+            "COMPOSE_ENV_FILES": str(custom_env_file),
         }
     )
 
@@ -159,9 +152,6 @@ def test_preserves_existing_environment(repo_copy: Path) -> None:
 
     env_files = _extract_env_files(stdout)
     assert env_files == [str(custom_env_file.resolve())]
-
-    env_file = _extract_value(r'COMPOSE_ENV_FILE="([^"]*)"', stdout)
-    assert env_file == str(custom_env_file)
 
     compose_cmd = _extract_compose_cmd(stdout)
     assert compose_cmd[:2] == ["docker", "compose"]

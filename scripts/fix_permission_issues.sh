@@ -87,11 +87,11 @@ target_gid="${DEPLOY_CONTEXT[DATA_GID]}"
 target_owner="${DEPLOY_CONTEXT[APP_DATA_UID_GID]}"
 app_data_dir="${DEPLOY_CONTEXT[APP_DATA_DIR]}"
 app_data_dir_mount="${DEPLOY_CONTEXT[APP_DATA_DIR_MOUNT]}"
-compose_env_file="${DEPLOY_CONTEXT[COMPOSE_ENV_FILE]}"
+compose_env_files="${DEPLOY_CONTEXT[COMPOSE_ENV_FILES]}"
 
 cat <<SUMMARY
 [*] Instância: $INSTANCE
-[*] Arquivo .env: $compose_env_file
+[*] Cadeia de .env: ${compose_env_files//$'\n'/ }
 [*] Diretório de dados configurado: $app_data_dir
 [*] Diretório de dados (absoluto): $app_data_dir_mount
 [*] Owner desejado: ${target_owner}

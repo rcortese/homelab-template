@@ -36,7 +36,6 @@ if ! deploy_context_eval="$(build_deploy_context "$REPO_ROOT" "$INSTANCE")"; the
 fi
 eval "$deploy_context_eval"
 
-export COMPOSE_ENV_FILE="${DEPLOY_CONTEXT[COMPOSE_ENV_FILE]}"
 export COMPOSE_ENV_FILES="${DEPLOY_CONTEXT[COMPOSE_ENV_FILES]}"
 export COMPOSE_FILES="${DEPLOY_CONTEXT[COMPOSE_FILES]}"
 export APP_DATA_DIR="${DEPLOY_CONTEXT[APP_DATA_DIR]}"

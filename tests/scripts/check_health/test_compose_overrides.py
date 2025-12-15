@@ -19,7 +19,7 @@ def test_invokes_ps_and_logs_with_custom_files(docker_stub: DockerStub) -> None:
 
     env = {
         "COMPOSE_FILES": "compose/base.yml compose/extra.yml",
-        "COMPOSE_ENV_FILE": "env/common.example.env",
+        "COMPOSE_ENV_FILES": "env/common.example.env",
     }
 
     result = run_check_health(env=env)
@@ -60,7 +60,7 @@ def test_loads_compose_extra_files_from_env_file(
 
     env = {
         "COMPOSE_FILES": "compose/base.yml",
-        "COMPOSE_ENV_FILE": str(env_file),
+        "COMPOSE_ENV_FILES": str(env_file),
     }
 
     result = run_check_health(env=env)
