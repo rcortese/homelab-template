@@ -23,6 +23,11 @@ append_unique_file() {
 }
 
 # Build the ordered list of compose files for the provided instance.
+#
+# Order: BASE_COMPOSE_FILE (if set) -> COMPOSE_INSTANCE_FILES[instance] -> extras
+# supplied by the caller. Callers are expected to load compose metadata before
+# invoking this helper; no legacy env toggles are consulted here.
+#
 # Arguments:
 #   $1 - Instance name.
 #   $2 - Name of the array variable that receives the resulting file list.

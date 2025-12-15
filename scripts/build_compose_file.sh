@@ -124,7 +124,7 @@ fi
 declare -a compose_files_list=()
 metadata_loaded=0
 
-if [[ -n "$INSTANCE_NAME" && -z "${COMPOSE_FILES:-}" ]]; then
+if [[ -n "$INSTANCE_NAME" ]]; then
   if ! compose_metadata="$("$SCRIPT_DIR/lib/compose_instances.sh" "$REPO_ROOT")"; then
     echo "Error: could not load instance metadata." >&2
     exit 1
@@ -141,8 +141,7 @@ if [[ -n "$INSTANCE_NAME" && -z "${COMPOSE_FILES:-}" ]]; then
 fi
 
 if [[ -n "${COMPOSE_FILES:-}" ]]; then
-  # shellcheck disable=SC2206
-  compose_files_list=(${COMPOSE_FILES})
+  mapfile -t compose_files_list < <(env_file_chain__parse_list "$COMPOSE_FILES")
   if ((${#EXTRA_COMPOSE_FILES[@]} > 0)); then
     compose_files_list+=("${EXTRA_COMPOSE_FILES[@]}")
   fi
