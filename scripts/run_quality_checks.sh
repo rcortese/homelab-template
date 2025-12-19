@@ -74,7 +74,7 @@ require_command() {
   local env_var="$3"
 
   if ! command -v "$bin" >/dev/null 2>&1; then
-    echo "Error: dependency '${tool}' not found (tried to use '${bin}'). Install the binary or set ${env_var}." >&2
+    echo "Erro: dependência '${tool}' não encontrada (tentou usar '${bin}'). Instale o binário ou defina ${env_var}." >&2
     exit 1
   fi
 }
