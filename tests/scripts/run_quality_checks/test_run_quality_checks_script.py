@@ -98,11 +98,11 @@ def _prepare_repo(
 
     # Create dummy shell scripts so the wrapper has something to lint.
     (scripts_dir / "check_all.sh").write_text(
-        "#!/usr/bin/env bash\nexit 0\n",
+        "#!/bin/sh\nexit 0\n",
         encoding="utf-8",
     )
     (lib_dir / "helpers.sh").write_text(
-        "#!/usr/bin/env bash\nexit 0\n",
+        "#!/bin/sh\nexit 0\n",
         encoding="utf-8",
     )
 
