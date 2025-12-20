@@ -275,7 +275,7 @@ def test_run_quality_checks_reports_missing_linter(tmp_path: Path) -> None:
     result = _run_script(script, repo_dir, env)
 
     assert result.returncode == 1
-    assert "Erro: dependência 'shfmt' não encontrada" in result.stderr
+    assert "Error: dependency 'shfmt' not found" in result.stderr
     assert not log_file.exists()
 
 
