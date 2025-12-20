@@ -413,6 +413,25 @@ EOF
     assert str(missing_path) in result.stderr
 
 
+def test_check_env_sync_reports_metadata_error_from_compose_script(repo_copy: Path) -> None:
+    script_path = repo_copy / "scripts" / "lib" / "compose_instances.sh"
+    stub_error = "Erro simulado ao carregar instâncias."
+    script_path.write_text(
+        f"""#!/usr/bin/env bash
+echo "{stub_error}" >&2
+exit 1
+""",
+        encoding="utf-8",
+    )
+    script_path.chmod(0o755)
+
+    result = run_check(repo_copy)
+
+    assert result.returncode == 1
+    assert stub_error in result.stderr
+    assert "[!]" in result.stderr
+
+
 def test_check_env_sync_errors_when_declared_base_missing(repo_copy: Path) -> None:
     script_path = repo_copy / "scripts" / "lib" / "compose_instances.sh"
     script_path.write_text(
