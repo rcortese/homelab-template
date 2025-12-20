@@ -1,12 +1,12 @@
 # {{APP_TITLE}} ({{APP}})
 
-> Substitua os blocos abaixo com detalhes reais da aplicação assim que o bootstrap for concluído. Consulte `docs/apps/README.md` para orientações gerais sobre como manter os runbooks de aplicações organizados.
+> Replace the blocks below with real application details as soon as the bootstrap is complete. See `docs/apps/README.md` for general guidance on keeping application runbooks organized.
 
-## Visão geral
+## Overview
 
-- Papel na stack:
-- Dependências externas:
-- Critérios de disponibilidade:
+- Role in the stack:
+- External dependencies:
+- Availability criteria:
 
 ## Manifests
 
@@ -14,25 +14,25 @@
 - `compose/apps/{{APP}}/{{INSTANCE}}.yml`
 - `compose/base.yml`
 
-## Variáveis de ambiente
+## Environment variables
 
 - `env/common.example.env`
 - `env/{{INSTANCE}}.example.env`
 
-## Fluxos operacionais
+## Operational flows
 
-1. Atualize `compose/apps/{{APP}}/{{INSTANCE}}.yml` com portas, volumes e secrets reais.
-2. Preencha `env/{{INSTANCE}}.example.env` com orientações específicas do ambiente.
-3. Rode `scripts/validate_compose.sh` garantindo que a nova combinação está válida.
-4. Registre verificações adicionais no `docs/OPERATIONS.md` conforme necessário.
+1. Update `compose/apps/{{APP}}/{{INSTANCE}}.yml` with real ports, volumes, and secrets.
+2. Fill in `env/{{INSTANCE}}.example.env` with environment-specific guidance.
+3. Run `scripts/validate_compose.sh` to ensure the new combination is valid.
+4. Record additional checks in `docs/OPERATIONS.md` as needed.
 
-## Monitoramento e alertas
+## Monitoring and alerts
 
-- Serviços monitorados:
-- Dashboards e painéis:
-- Alertas críticos:
+- Monitored services:
+- Dashboards and panels:
+- Critical alerts:
 
-## Referências
+## References
 
-- Links úteis:
-- Documentação adicional:
+- Useful links:
+- Additional documentation:

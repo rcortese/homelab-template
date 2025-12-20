@@ -1,11 +1,11 @@
-# Este arquivo complementa env/common.example.env. Copie ambos para env/local/.
-# Obrigatório ao expor URLs públicas • Endereço base divulgado para usuários desta instância.
+# This file complements env/common.example.env. Copy both to env/local/.
+# Required when exposing public URLs • Base address shared with users of this instance.
 APP_PUBLIC_URL=https://{{APP}}.domain.example
-# Opcional • URL dedicada para webhooks ou callbacks externos.
+# Optional • Dedicated URL for webhooks or external callbacks.
 APP_WEBHOOK_URL=https://hooks.domain.example/{{APP}}
-# Opcional • Porta exposta no host para acesso à aplicação.
+# Optional • Host-exposed port for application access.
 {{PORT_VAR}}=8080
-# Opcional • Liste serviços monitorados pelo health-check automático.
+# Optional • List services monitored by the automatic health check.
 # HEALTH_SERVICES={{APP}}
-# Opcional • Inclua overlays adicionais após o override principal da instância.
+# Optional • Include additional overlays after the instance primary override.
 # COMPOSE_EXTRA_FILES=compose/overlays/observability.yml
