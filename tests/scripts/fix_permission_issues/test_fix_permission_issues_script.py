@@ -79,7 +79,7 @@ def test_dry_run_outputs_planned_actions(repo_copy: Path) -> None:
 
     owner = f"{uid}:{gid}"
 
-    assert "[*] Instância: core" in stdout
+    assert "[*] Instance: core" in stdout
     assert f"mkdir -p {data_mount}" in stdout
     assert f"mkdir -p {backups_dir}" in stdout
     assert f"chown {owner} {data_mount} {backups_dir}" in stdout
@@ -128,4 +128,4 @@ def test_script_creates_directories_and_applies_owner(repo_copy: Path) -> None:
         assert backups_stat.st_uid == uid
         assert backups_stat.st_gid == gid
 
-    assert "Correções de permissão concluídas" in stdout
+    assert "Permission fixes completed" in stdout
