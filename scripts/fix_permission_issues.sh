@@ -1,20 +1,20 @@
 #!/usr/bin/env bash
 # shellcheck source-path=SCRIPTDIR
-# Uso: scripts/fix_permission_issues.sh <instancia> [opcoes]
+# Usage: scripts/fix_permission_issues.sh <instance> [options]
 #
-# Ajusta permissões e prepara diretórios persistentes para a instância
-# informada, reaproveitando os valores configurados nos arquivos `.env`.
+# Adjusts permissions and prepares persistent directories for the selected
+# instance, reusing the values configured in the `.env` files.
 set -euo pipefail
 
 print_help() {
   cat <<'USAGE'
-Uso: scripts/fix_permission_issues.sh <instancia> [opcoes]
+Usage: scripts/fix_permission_issues.sh <instance> [options]
 
-Aplica correções em permissões de diretórios persistentes associados à instância.
+Applies permission fixes for persistent directories tied to the instance.
 
-Opcoes disponiveis:
-  --dry-run   Apenas exibe as ações planejadas sem executar comandos.
-  -h, --help  Mostra esta mensagem e sai.
+Available options:
+  --dry-run   Shows planned actions without running commands.
+  -h, --help  Shows this message and exits.
 USAGE
 }
 
@@ -40,13 +40,13 @@ while [[ $# -gt 0 ]]; do
     exit 0
     ;;
   -*)
-    echo "[!] Opção desconhecida: $1" >&2
+    echo "[!] Unknown option: $1" >&2
     print_help >&2
     exit 1
     ;;
   *)
     if [[ -n "$INSTANCE" ]]; then
-      echo "[!] Instância duplicada detectada: $1" >&2
+      echo "[!] Duplicate instance detected: $1" >&2
       print_help >&2
       exit 1
     fi
@@ -57,7 +57,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [[ -z "$INSTANCE" ]]; then
-  echo "[!] Nenhuma instância informada." >&2
+  echo "[!] No instance provided." >&2
   print_help >&2
   exit 1
 fi
@@ -78,7 +78,7 @@ if [[ -n "$persistent_dirs_raw" ]]; then
 fi
 
 if [[ ${#persistent_dirs[@]} -eq 0 ]]; then
-  echo "[!] Nenhum diretório persistente foi detectado para a instância '$INSTANCE'." >&2
+  echo "[!] No persistent directories detected for instance '$INSTANCE'." >&2
   exit 1
 fi
 
@@ -90,19 +90,19 @@ app_data_dir_mount="${DEPLOY_CONTEXT[APP_DATA_DIR_MOUNT]}"
 compose_env_files="${DEPLOY_CONTEXT[COMPOSE_ENV_FILES]}"
 
 cat <<SUMMARY
-[*] Instância: $INSTANCE
-[*] Cadeia de .env: ${compose_env_files//$'\n'/ }
-[*] Diretório de dados configurado: $app_data_dir
-[*] Diretório de dados (absoluto): $app_data_dir_mount
-[*] Owner desejado: ${target_owner}
-[*] Diretórios persistentes:
+[*] Instance: $INSTANCE
+[*] .env chain: ${compose_env_files//$'\n'/ }
+[*] Configured data directory: $app_data_dir
+[*] Data directory (absolute): $app_data_dir_mount
+[*] Desired owner: ${target_owner}
+[*] Persistent directories:
 SUMMARY
 for dir in "${persistent_dirs[@]}"; do
   printf '    - %s\n' "$dir"
 done
 
 if [[ "$DRY_RUN" -eq 1 ]]; then
-  echo "[*] Dry-run habilitado. Nenhuma alteração será aplicada."
+  echo "[*] Dry-run enabled. No changes will be applied."
   for dir in "${persistent_dirs[@]}"; do
     printf '    mkdir -p %q\n' "$dir"
   done
@@ -117,39 +117,39 @@ if [[ "$DRY_RUN" -eq 1 ]]; then
     for dir in "${persistent_dirs[@]}"; do
       printf ' %q' "$dir"
     done
-    printf ' (requer privilégios)\n'
+    printf ' (requires privileges)\n'
   fi
   exit 0
 fi
 
 for dir in "${persistent_dirs[@]}"; do
-  if ! STEP_RUNNER_DRY_RUN=0 run_step "Garantindo diretório ${dir}" mkdir -p "$dir"; then
+  if ! STEP_RUNNER_DRY_RUN=0 run_step "Ensuring directory ${dir}" mkdir -p "$dir"; then
     exit $?
   fi
 done
 
 if [[ "$(id -u)" -eq 0 ]]; then
-  if ! STEP_RUNNER_DRY_RUN=0 run_step "Aplicando owner ${target_owner}" chown "$target_owner" "${persistent_dirs[@]}"; then
+  if ! STEP_RUNNER_DRY_RUN=0 run_step "Applying owner ${target_owner}" chown "$target_owner" "${persistent_dirs[@]}"; then
     exit $?
   fi
 else
-  echo "[!] Aviso: execução sem privilégios. Owner desejado ${target_owner} não aplicado." >&2
+  echo "[!] Warning: running without privileges. Desired owner ${target_owner} not applied." >&2
 fi
 
 for dir in "${persistent_dirs[@]}"; do
   if [[ ! -d "$dir" ]]; then
-    echo "[!] Diretório $dir não encontrado após ajustes." >&2
+    echo "[!] Directory $dir not found after adjustments." >&2
     exit 1
   fi
 
   current_uid="$(stat -c '%u' "$dir")"
   current_gid="$(stat -c '%g' "$dir")"
   if [[ "$current_uid" == "$target_uid" && "$current_gid" == "$target_gid" ]]; then
-    echo "[*] Permissões alinhadas em $dir (${current_uid}:${current_gid})."
+    echo "[*] Permissions aligned on $dir (${current_uid}:${current_gid})."
   else
-    echo "[!] Aviso: $dir está com owner ${current_uid}:${current_gid} (esperado ${target_owner})." >&2
+    echo "[!] Warning: $dir is owned by ${current_uid}:${current_gid} (expected ${target_owner})." >&2
   fi
 
 done
 
-echo "[*] Correções de permissão concluídas para a instância '$INSTANCE'."
+echo "[*] Permission fixes completed for instance '$INSTANCE'."
