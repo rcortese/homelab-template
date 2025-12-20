@@ -14,21 +14,21 @@ def _assert_restart_apps(stdout: str, expected_apps: list[str]) -> None:
             (
                 entry
                 for entry in stdout.splitlines()
-                if "Aplicações detectadas para religar:" in entry
+                if "Applications detected to restart:" in entry
             ),
             None,
         )
-        assert line is not None, f"Linha com aplicações não encontrada em: {stdout!r}"
+        assert line is not None, f"Expected applications line not found in: {stdout!r}"
         _, _, tail = line.partition(":")
         apps = tail.strip().split()
         assert apps == expected_apps
     else:
         assert (
-            "Nenhuma aplicação ativa identificada; nenhum serviço será religado." in stdout
-        ), f"Mensagem de ausência de serviços não encontrada em: {stdout!r}"
+            "No active applications detected; no services will be restarted." in stdout
+        ), f"Missing message about no services found in: {stdout!r}"
         assert (
-            "Aplicações detectadas para religar:" not in stdout
-        ), "Mensagem inesperada de aplicações detectadas encontrada"
+            "Applications detected to restart:" not in stdout
+        ), "Unexpected applications detected message found"
 
 
 def _install_compose_stub(
@@ -162,7 +162,7 @@ def test_successful_backup_creates_snapshot_and_restarts_stack(
     result = run_backup(repo_copy, "core")
 
     assert result.returncode == 0, result.stderr
-    assert "Backup da instância 'core' concluído" in result.stdout
+    assert "Backup for instance 'core' completed" in result.stdout
     _assert_restart_apps(result.stdout, expected_core_apps)
 
     backup_dir = repo_copy / "backups" / "core-20240101-030405"
@@ -213,7 +213,7 @@ def test_copy_failure_still_attempts_restart(
     result = run_backup(repo_copy, "core")
 
     assert result.returncode == 1
-    assert "Falha ao copiar os dados" in result.stderr
+    assert "Failed to copy data" in result.stderr
 
     backup_dir = repo_copy / "backups" / "core-20240101-030405"
     assert not backup_dir.exists()
@@ -265,7 +265,7 @@ def test_restart_failure_propagates_exit_code(
     result = run_backup(repo_copy, "core")
 
     assert result.returncode == 0
-    assert "Nenhuma aplicação ativa identificada" in result.stdout
+    assert "No active applications detected" in result.stdout
 
     _assert_compose_restart_calls(compose_log, expected_core_apps)
 
@@ -307,7 +307,7 @@ def test_detected_apps_prioritize_known_order(
         (
             entry
             for entry in result.stdout.splitlines()
-            if "Aplicações detectadas para religar:" in entry
+            if "Applications detected to restart:" in entry
         ),
         None,
     )
