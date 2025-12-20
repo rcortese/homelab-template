@@ -301,7 +301,7 @@ def test_detect_template_commits_fails_outside_git_repo(tmp_path):
     )
 
     assert result.returncode != 0
-    assert "este diretório não é um repositório Git." in result.stderr
+    assert "Error: this directory is not a Git repository." in result.stderr
 
 
 def test_detect_template_commits_fails_with_missing_remote(tmp_path):
@@ -318,7 +318,7 @@ def test_detect_template_commits_fails_with_missing_remote(tmp_path):
     )
 
     assert result.returncode != 0
-    assert "remote 'nonexistent' não está configurado." in result.stderr
+    assert "Error: remote 'nonexistent' is not configured." in result.stderr
 
 
 def test_detect_template_commits_fails_with_missing_target_branch(tmp_path):
@@ -339,4 +339,4 @@ def test_detect_template_commits_fails_with_missing_target_branch(tmp_path):
     )
 
     assert result.returncode != 0
-    assert "branch 'main' não encontrado no remote 'origin'." in result.stderr
+    assert "Error: branch 'main' not found on remote 'origin'." in result.stderr
