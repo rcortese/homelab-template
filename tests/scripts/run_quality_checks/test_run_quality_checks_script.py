@@ -200,6 +200,44 @@ def test_run_quality_checks_invokes_commands(tmp_path: Path) -> None:
     ]
 
 
+def test_run_quality_checks_uses_python_runtime_wrapper(tmp_path: Path) -> None:
+    """The wrapper should defer to python_runtime__run when available."""
+
+    script, log_file, repo_dir = _prepare_repo(tmp_path)
+    python_runtime = repo_dir / "scripts" / "lib" / "python_runtime.sh"
+    log_target = str(log_file)
+    python_runtime.write_text(
+        "\n".join(
+            [
+                "#!/usr/bin/env bash",
+                "set -euo pipefail",
+                "python_runtime__run() {",
+                f"  echo python_runtime__run >> {log_target!r}",
+                f"  for arg in \"$@\"; do echo \"$arg\" >> {log_target!r}; done",
+                "}",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    env = _build_env(repo_dir)
+
+    result = _run_script(script, repo_dir, env, "--no-lint")
+
+    assert result.returncode == 0, result.stderr
+    log_lines = log_file.read_text(encoding="utf-8").splitlines()
+    assert log_lines == [
+        "python_runtime__run",
+        str(repo_dir),
+        "",
+        "--",
+        "-m",
+        "pytest",
+    ]
+    assert "python" not in log_lines
+
+
 def test_run_quality_checks_stops_after_failed_pytest(tmp_path: Path) -> None:
     """If pytest fails, shellcheck should not run."""
 
