@@ -262,7 +262,7 @@ def test_exits_when_no_databases(
     )
 
     assert result.returncode == 0, result.stderr
-    assert "Nenhum arquivo .db encontrado" in result.stdout
+    assert "No .db files found" in result.stdout
     calls = compose_log.read_text(encoding="utf-8").splitlines()
     assert any(" ps " in call or call.rstrip().endswith(" ps") for call in calls)
     assert not any(" pause" in call for call in calls)
@@ -293,7 +293,7 @@ def test_pauses_and_checks_integrity(
     )
 
     assert result.returncode == 0, result.stderr
-    assert "Integridade OK" in result.stdout
+    assert "Integrity OK" in result.stdout
 
     calls = compose_log.read_text(encoding="utf-8").splitlines()
     assert any(" pause " in call or call.rstrip().endswith(" pause") for call in calls)
@@ -335,8 +335,8 @@ def test_json_output_contains_results(
     assert str(db_path) in databases
     entry = databases[str(db_path)]
     assert entry["status"] == "ok"
-    assert entry["message"] == "Integridade OK"
-    assert entry["action"] == "Nenhuma ação necessária"
+    assert entry["message"] == "Integrity OK"
+    assert entry["action"] == "No action required"
 
 
 def test_handles_compose_ps_failure(
@@ -367,8 +367,8 @@ def test_handles_compose_ps_failure(
     )
 
     assert result.returncode == 0, result.stderr
-    assert "[!] Não foi possível listar serviços ativos da instância" in result.stderr
-    assert "Integridade OK" in result.stdout
+    assert "[!] Unable to list active services for instance" in result.stderr
+    assert "Integrity OK" in result.stdout
 
     compose_output = compose_log.read_text(encoding="utf-8")
     assert "pause" not in compose_output
@@ -401,7 +401,7 @@ def test_no_resume_skips_unpause(
     )
 
     assert result.returncode == 0, result.stderr
-    assert "Integridade OK" in result.stdout
+    assert "Integrity OK" in result.stdout
 
     calls = compose_log.read_text(encoding="utf-8").splitlines()
     assert any(" pause " in call or call.rstrip().endswith(" pause") for call in calls)
@@ -441,8 +441,8 @@ def test_recovers_corrupted_database(
     )
 
     assert result.returncode == 0, result.stderr
-    assert "Banco '" in result.stderr
-    assert "recuperado" in result.stderr
+    assert "Database '" in result.stderr
+    assert "recovered" in result.stderr
 
     backups = list(db_path.parent.glob(f"{db_path.name}.*.bak"))
     assert backups, "Backup file should be created during recovery"
@@ -484,15 +484,15 @@ def test_json_output_reports_corrupted_database_alerts(
     )
 
     assert result.returncode == 2
-    assert "Falha ao recuperar" in result.stderr
+    assert "Failed to recover" in result.stderr
 
     payload = json.loads(result.stdout)
     assert payload["format"] == "json"
     assert payload["overall_status"] == 2
 
     expected_alerts = [
-        f"Falha de integridade: malformed em {db_path}",
-        f"Banco '{db_path}' permanece corrompido: sqlite3 .recover falhou: simulated recover failure",
+        f"Integrity check failed: malformed in {db_path}",
+        f"Database '{db_path}' remains corrupted: sqlite3 .recover failed: simulated recover failure",
     ]
     assert payload["alerts"] == expected_alerts
 
@@ -500,10 +500,10 @@ def test_json_output_reports_corrupted_database_alerts(
     assert str(db_path) in databases
     entry = databases[str(db_path)]
     assert entry["status"] == "failed"
-    assert entry["message"] == "Falha de integridade: malformed"
+    assert entry["message"] == "Integrity check failed: malformed"
     assert (
         entry["action"]
-        == "Recuperação automática falhou: sqlite3 .recover falhou: simulated recover failure"
+        == "Automatic recovery failed: sqlite3 .recover failed: simulated recover failure"
     )
 
 
@@ -537,11 +537,11 @@ def test_writes_text_report_to_output_file(
 
     assert result.returncode == 0, result.stderr
     report_content = output_path.read_text(encoding="utf-8")
-    assert "Resumo da verificação de bancos SQLite" in report_content
-    assert f"Banco: {db_path}" in report_content
+    assert "SQLite database integrity summary" in report_content
+    assert f"Database: {db_path}" in report_content
     assert "status: ok" in report_content
-    assert "mensagem: Integridade OK" in report_content
-    assert "acao: Nenhuma ação necessária" in report_content
+    assert "message: Integrity OK" in report_content
+    assert "action: No action required" in report_content
 
 
 def test_reports_failure_when_recovery_cannot_run(
@@ -581,7 +581,7 @@ def test_reports_failure_when_recovery_cannot_run(
     )
 
     assert result.returncode == 2
-    assert "Falha ao recuperar" in result.stderr
+    assert "Failed to recover" in result.stderr
     assert compose_log.read_text(encoding="utf-8").count("unpause") == 1
 
 
@@ -668,7 +668,7 @@ def test_binary_mode_requires_sqlite_binary(
             monkeypatch.setenv("PATH", original_path)
 
     assert result.returncode == 127
-    assert "Erro: sqlite3 não encontrado (binário:" in result.stderr
+    assert "Error: sqlite3 not found (binary:" in result.stderr
 
 
 def test_container_mode_errors_when_runtime_and_binary_missing(
@@ -714,7 +714,7 @@ def test_container_mode_errors_when_runtime_and_binary_missing(
 
     assert result.returncode == 127
     assert (
-        "Erro: runtime 'fake-runtime' indisponível e sqlite3 (binário:" in result.stderr
+        "Error: runtime 'fake-runtime' unavailable and sqlite3 (binary:" in result.stderr
     )
 
 
@@ -747,7 +747,7 @@ def test_falls_back_to_binary_when_container_unavailable(
     )
 
     assert result.returncode == 0, result.stderr
-    assert "Runtime 'nonexistent-docker' indisponível" in result.stderr
+    assert "Runtime 'nonexistent-docker' unavailable" in result.stderr
     stub_calls = [
         json.loads(line)["argv"]
         for line in sqlite_log.read_text(encoding="utf-8").splitlines()
@@ -810,4 +810,4 @@ def test_errors_when_data_dir_env_missing(
     )
 
     assert result.returncode == 1
-    assert "Erro: diretório de dados não encontrado" in result.stderr
+    assert "Error: data directory not found" in result.stderr
