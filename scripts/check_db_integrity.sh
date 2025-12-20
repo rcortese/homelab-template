@@ -90,16 +90,16 @@ generate_json_report() {
 
 generate_text_report() {
   local lines=()
-  lines+=("Resumo da verificação de bancos SQLite:")
+  lines+=("SQLite database integrity summary:")
   for entry in "${DB_RESULTS[@]}"; do
     IFS="$FIELD_SEPARATOR" read -r path status message action <<<"$entry"
-    lines+=("Banco: $path")
+    lines+=("Database: $path")
     lines+=("  status: $status")
-    lines+=("  mensagem: $message")
-    lines+=("  acao: $action")
+    lines+=("  message: $message")
+    lines+=("  action: $action")
   done
   if ((${#ALERTS[@]} > 0)); then
-    lines+=("Alertas:")
+    lines+=("Alerts:")
     for alert in "${ALERTS[@]}"; do
       lines+=("- $alert")
     done
@@ -109,30 +109,30 @@ generate_text_report() {
 
 print_help() {
   cat <<'USAGE'
-Uso: scripts/check_db_integrity.sh instancia [opções]
+Usage: scripts/check_db_integrity.sh instance [options]
 
-Pausa os serviços ativos da instância, verifica a integridade dos arquivos
-SQLite (*.db) dentro do diretório data (ou diretório customizado) e tenta
-recuperá-los quando necessário.
+Pauses active instance services, checks the integrity of SQLite (*.db) files
+inside the data directory (or a custom directory), and attempts recovery
+when needed.
 
-Argumentos posicionais:
-  instancia              Nome da instância definida nos manifests docker compose.
+Positional arguments:
+  instance               Name of the instance defined in docker compose manifests.
 
-Opções:
-  --data-dir <dir>       Diretório base contendo os arquivos .db (padrão: data/).
-  --format {text,json}   Define o formato de saída (padrão: text).
-  --no-resume            Não retoma os serviços após a verificação.
-  --output <arquivo>     Caminho para gravar o resumo final.
-  -h, --help             Exibe esta ajuda e sai.
+Options:
+  --data-dir <dir>       Base directory containing .db files (default: data/).
+  --format {text,json}   Sets the output format (default: text).
+  --no-resume            Do not resume services after verification.
+  --output <file>        Path to write the final summary.
+  -h, --help             Show this help and exit.
 
-Variáveis de ambiente relevantes:
-  SQLITE3_MODE           Força 'container', 'binary' ou 'auto' (padrão: container).
-  SQLITE3_CONTAINER_RUNTIME  Runtime de contêiner utilizado (padrão: docker).
-  SQLITE3_CONTAINER_IMAGE    Imagem do contêiner sqlite3 (padrão: keinos/sqlite3:latest).
-  SQLITE3_BIN            Caminho para um binário sqlite3 local (usado em modo binary ou fallback).
-  DATA_DIR               Alternativa para --data-dir.
+Relevant environment variables:
+  SQLITE3_MODE           Forces 'container', 'binary', or 'auto' (default: container).
+  SQLITE3_CONTAINER_RUNTIME  Container runtime to use (default: docker).
+  SQLITE3_CONTAINER_IMAGE    sqlite3 container image (default: keinos/sqlite3:latest).
+  SQLITE3_BIN            Path to a local sqlite3 binary (used in binary mode or fallback).
+  DATA_DIR               Alternative to --data-dir.
 
-Exemplos:
+Examples:
   scripts/check_db_integrity.sh core
   DATA_DIR="/mnt/storage/data" scripts/check_db_integrity.sh media --no-resume
 USAGE
@@ -148,7 +148,7 @@ resolve_sqlite_backend() {
       SQLITE3_BIN_PATH="$resolved_bin"
       return 0
     fi
-    echo "Erro: sqlite3 não encontrado (binário: $SQLITE3_BIN)." >&2
+    echo "Error: sqlite3 not found (binary: $SQLITE3_BIN)." >&2
     exit 127
     ;;
   container)
@@ -158,12 +158,12 @@ resolve_sqlite_backend() {
       return 0
     fi
     if resolved_bin="$(command -v "$SQLITE3_BIN" 2>/dev/null)"; then
-      echo "[!] Runtime '$SQLITE3_CONTAINER_RUNTIME' indisponível; usando binário '$resolved_bin'." >&2
+      echo "[!] Runtime '$SQLITE3_CONTAINER_RUNTIME' unavailable; using binary '$resolved_bin'." >&2
       SQLITE3_BACKEND="binary"
       SQLITE3_BIN_PATH="$resolved_bin"
       return 0
     fi
-    echo "Erro: runtime '$SQLITE3_CONTAINER_RUNTIME' indisponível e sqlite3 (binário: $SQLITE3_BIN) ausente." >&2
+    echo "Error: runtime '$SQLITE3_CONTAINER_RUNTIME' unavailable and sqlite3 (binary: $SQLITE3_BIN) missing." >&2
     exit 127
     ;;
   auto | *)
@@ -177,7 +177,7 @@ resolve_sqlite_backend() {
       SQLITE3_BIN_PATH="$resolved_bin"
       return 0
     fi
-    echo "Erro: sqlite3 não encontrado e runtime '$SQLITE3_CONTAINER_RUNTIME' indisponível." >&2
+    echo "Error: sqlite3 not found and runtime '$SQLITE3_CONTAINER_RUNTIME' unavailable." >&2
     exit 127
     ;;
   esac
@@ -230,9 +230,9 @@ trap '
   if ((PAUSED_STACK == 1 && RESUME_ON_EXIT == 1)); then
     if [[ ${#COMPOSE_CMD[@]} -gt 0 && ${#PAUSED_SERVICES[@]} -gt 0 ]]; then
       if ! "${COMPOSE_CMD[@]}" unpause "${PAUSED_SERVICES[@]}" >/dev/null 2>&1; then
-        echo "[!] Falha ao retomar serviços: ${PAUSED_SERVICES[*]}" >&2
+        echo "[!] Failed to resume services: ${PAUSED_SERVICES[*]}" >&2
       else
-        echo "[+] Serviços retomados: ${PAUSED_SERVICES[*]}" >&2
+        echo "[+] Services resumed: ${PAUSED_SERVICES[*]}" >&2
       fi
     fi
   fi
@@ -252,7 +252,7 @@ parse_args() {
     --format)
       shift
       if [[ $# -eq 0 ]]; then
-        echo "Erro: --format requer um argumento (text|json)." >&2
+        echo "Error: --format requires an argument (text|json)." >&2
         exit 1
       fi
       case "$1" in
@@ -260,7 +260,7 @@ parse_args() {
         OUTPUT_FORMAT="$1"
         ;;
       *)
-        echo "Erro: valor inválido para --format: $1" >&2
+        echo "Error: invalid value for --format: $1" >&2
         exit 1
         ;;
       esac
@@ -271,7 +271,7 @@ parse_args() {
         OUTPUT_FORMAT="${1#*=}"
         ;;
       *)
-        echo "Erro: valor inválido para --format: ${1#*=}" >&2
+        echo "Error: invalid value for --format: ${1#*=}" >&2
         exit 1
         ;;
       esac
@@ -279,7 +279,7 @@ parse_args() {
     --data-dir)
       shift
       if [[ $# -eq 0 ]]; then
-        echo "Erro: --data-dir requer um argumento." >&2
+        echo "Error: --data-dir requires an argument." >&2
         exit 1
       fi
       REQUESTED_DATA_DIR="$1"
@@ -291,7 +291,7 @@ parse_args() {
     --output)
       shift
       if [[ $# -eq 0 ]]; then
-        echo "Erro: --output requer um caminho." >&2
+        echo "Error: --output requires a path." >&2
         exit 1
       fi
       OUTPUT_FILE="$1"
@@ -304,14 +304,14 @@ parse_args() {
       break
       ;;
     -*)
-      echo "Erro: opção desconhecida '$1'." >&2
+      echo "Error: unknown option '$1'." >&2
       exit 1
       ;;
     *)
       if [[ -z "$INSTANCE_NAME" ]]; then
         INSTANCE_NAME="$1"
       else
-        echo "Erro: argumento inesperado '$1'." >&2
+        echo "Error: unexpected argument '$1'." >&2
         exit 1
       fi
       ;;
@@ -320,7 +320,7 @@ parse_args() {
   done
 
   if [[ -z "$INSTANCE_NAME" ]]; then
-    echo "Erro: informe a instância a ser analisada." >&2
+    echo "Error: provide the instance to analyze." >&2
     print_help >&2
     exit 1
   fi
@@ -334,7 +334,7 @@ attempt_recovery() {
   RECOVERY_DETAILS=""
 
   if ! tmp_dir="$(mktemp -d "${TMPDIR:-/tmp}/db-recovery.XXXXXX")"; then
-    RECOVERY_DETAILS="não foi possível criar diretório temporário"
+    RECOVERY_DETAILS="failed to create temporary directory"
     return 1
   fi
 
@@ -344,13 +344,13 @@ attempt_recovery() {
   local timestamp backup_file
 
   if ! sqlite3_exec "$db_file" ".recover" >"$dump_file" 2>"$log_file"; then
-    RECOVERY_DETAILS="sqlite3 .recover falhou: $(tr '\n' ' ' <"$log_file")"
+    RECOVERY_DETAILS="sqlite3 .recover failed: $(tr '\n' ' ' <"$log_file")"
     rm -rf "$tmp_dir"
     return 1
   fi
 
   if ! sqlite3_exec "$new_db" <"$dump_file" 2>>"$log_file"; then
-    RECOVERY_DETAILS="não foi possível recriar banco: $(tr '\n' ' ' <"$log_file")"
+    RECOVERY_DETAILS="failed to recreate database: $(tr '\n' ' ' <"$log_file")"
     rm -rf "$tmp_dir"
     return 1
   fi
@@ -359,13 +359,13 @@ attempt_recovery() {
   backup_file="${db_file}.${timestamp}.bak"
 
   if ! cp -p "$db_file" "$backup_file"; then
-    RECOVERY_DETAILS="falha ao salvar backup original em $backup_file"
+    RECOVERY_DETAILS="failed to save original backup to $backup_file"
     rm -rf "$tmp_dir"
     return 1
   fi
 
   if ! cp "$new_db" "$db_file"; then
-    RECOVERY_DETAILS="falha ao substituir banco corrompido"
+    RECOVERY_DETAILS="failed to replace corrupted database"
     cp -p "$backup_file" "$db_file" >/dev/null 2>&1 || true
     rm -rf "$tmp_dir"
     return 1
@@ -373,9 +373,9 @@ attempt_recovery() {
 
   RECOVERY_BACKUP_PATH="$backup_file"
   if [[ -s "$log_file" ]]; then
-    RECOVERY_DETAILS="recuperação concluída com observações: $(tr '\n' ' ' <"$log_file")"
+    RECOVERY_DETAILS="recovery completed with notes: $(tr '\n' ' ' <"$log_file")"
   else
-    RECOVERY_DETAILS="recuperação concluída via sqlite3 .recover"
+    RECOVERY_DETAILS="recovery completed via sqlite3 .recover"
   fi
 
   rm -rf "$tmp_dir"
@@ -396,55 +396,55 @@ if [[ "$DATA_DIR" != /* ]]; then
 fi
 
 if [[ ! -d "$DATA_DIR" ]]; then
-  echo "Erro: diretório de dados não encontrado: $DATA_DIR" >&2
+  echo "Error: data directory not found: $DATA_DIR" >&2
   exit 1
 fi
 
 resolve_sqlite_backend
 
 if [[ "$SQLITE3_BACKEND" == "container" ]]; then
-  echo "[i] Executando sqlite3 via contêiner '$SQLITE3_CONTAINER_IMAGE' (runtime: $SQLITE3_CONTAINER_RUNTIME)." >&2
+  echo "[i] Running sqlite3 via container '$SQLITE3_CONTAINER_IMAGE' (runtime: $SQLITE3_CONTAINER_RUNTIME)." >&2
 fi
 
 if ! compose_defaults_dump="$("$SCRIPT_DIR/lib/compose_defaults.sh" "$INSTANCE_NAME" ".")"; then
-  echo "[!] Não foi possível preparar variáveis padrão do docker compose." >&2
+  echo "[!] Unable to prepare docker compose default variables." >&2
   exit 1
 fi
 
 eval "$compose_defaults_dump"
 
 if [[ ${#COMPOSE_CMD[@]} -eq 0 ]]; then
-  echo "[!] Comando docker compose não configurado." >&2
+  echo "[!] docker compose command not configured." >&2
   exit 1
 fi
 
 if ! command -v "${COMPOSE_CMD[0]}" >/dev/null 2>&1; then
-  echo "Erro: ${COMPOSE_CMD[0]} não está disponível." >&2
+  echo "Error: ${COMPOSE_CMD[0]} is not available." >&2
   exit 127
 fi
 
 if ! app_detection__list_active_services PAUSED_SERVICES "${COMPOSE_CMD[@]}"; then
-  echo "[!] Não foi possível listar serviços ativos da instância '$INSTANCE_NAME'." >&2
+  echo "[!] Unable to list active services for instance '$INSTANCE_NAME'." >&2
   PAUSED_SERVICES=()
 fi
 
 if ((${#PAUSED_SERVICES[@]} > 0)); then
   if [[ "$OUTPUT_FORMAT" == "text" ]]; then
-    echo "[*] Pausando serviços ativos: ${PAUSED_SERVICES[*]}"
+    echo "[*] Pausing active services: ${PAUSED_SERVICES[*]}"
   else
-    echo "[*] Pausando serviços ativos: ${PAUSED_SERVICES[*]}" >&2
+    echo "[*] Pausing active services: ${PAUSED_SERVICES[*]}" >&2
   fi
   if ! "${COMPOSE_CMD[@]}" pause "${PAUSED_SERVICES[@]}"; then
-    echo "[!] Falha ao pausar serviços: ${PAUSED_SERVICES[*]}" >&2
+    echo "[!] Failed to pause services: ${PAUSED_SERVICES[*]}" >&2
   else
     # shellcheck disable=SC2034  # Lido pelo trap EXIT.
     PAUSED_STACK=1
   fi
 else
   if [[ "$OUTPUT_FORMAT" == "text" ]]; then
-    echo "[*] Nenhum serviço em execução encontrado para pausar."
+    echo "[*] No running services found to pause."
   else
-    echo "[*] Nenhum serviço em execução encontrado para pausar." >&2
+    echo "[*] No running services found to pause." >&2
   fi
 fi
 
@@ -455,9 +455,9 @@ done < <(find "$DATA_DIR" -type f -name '*.db' -print0)
 
 if ((${#DB_FILES[@]} == 0)); then
   if [[ "$OUTPUT_FORMAT" == "text" ]]; then
-    echo "[i] Nenhum arquivo .db encontrado em $DATA_DIR."
+    echo "[i] No .db files found in $DATA_DIR."
   else
-    echo "[i] Nenhum arquivo .db encontrado em $DATA_DIR." >&2
+    echo "[i] No .db files found in $DATA_DIR." >&2
   fi
   exit 0
 fi
@@ -466,9 +466,9 @@ overall_status=0
 
 for db_file in "${DB_FILES[@]}"; do
   if [[ "$OUTPUT_FORMAT" == "text" ]]; then
-    echo "[*] Verificando integridade de: $db_file"
+    echo "[*] Checking integrity of: $db_file"
   else
-    echo "[*] Verificando integridade de: $db_file" >&2
+    echo "[*] Checking integrity of: $db_file" >&2
   fi
   check_output=""
   check_status=0
@@ -477,39 +477,39 @@ for db_file in "${DB_FILES[@]}"; do
   fi
 
   if ((check_status != 0)) || [[ "$check_output" != "ok" ]]; then
-    local_message="Falha de integridade: ${check_output//$'\n'/; }"
-    ALERTS+=("$local_message em $db_file")
+    local_message="Integrity check failed: ${check_output//$'\n'/; }"
+    ALERTS+=("$local_message in $db_file")
     if attempt_recovery "$db_file"; then
-      action_message="Recuperação automática concluída. Backup salvo em $RECOVERY_BACKUP_PATH (${RECOVERY_DETAILS})."
-      ALERTS+=("Banco '$db_file' recuperado. Backup salvo em $RECOVERY_BACKUP_PATH (${RECOVERY_DETAILS}).")
+      action_message="Automatic recovery completed. Backup saved at $RECOVERY_BACKUP_PATH (${RECOVERY_DETAILS})."
+      ALERTS+=("Database '$db_file' recovered. Backup saved at $RECOVERY_BACKUP_PATH (${RECOVERY_DETAILS}).")
       record_result "$db_file" "recovered" "$local_message" "$action_message"
       echo "[!] $local_message" >&2
       if [[ "$OUTPUT_FORMAT" == "text" ]]; then
-        echo "[+] Banco recuperado, backup em $RECOVERY_BACKUP_PATH"
+        echo "[+] Database recovered, backup at $RECOVERY_BACKUP_PATH"
       else
-        echo "[+] Banco recuperado, backup em $RECOVERY_BACKUP_PATH" >&2
+        echo "[+] Database recovered, backup at $RECOVERY_BACKUP_PATH" >&2
       fi
     else
-      action_message="Recuperação automática falhou: $RECOVERY_DETAILS"
-      ALERTS+=("Banco '$db_file' permanece corrompido: $RECOVERY_DETAILS")
+      action_message="Automatic recovery failed: $RECOVERY_DETAILS"
+      ALERTS+=("Database '$db_file' remains corrupted: $RECOVERY_DETAILS")
       record_result "$db_file" "failed" "$local_message" "$action_message"
       echo "[!] $local_message" >&2
-      echo "[!] Falha ao recuperar $db_file: $RECOVERY_DETAILS" >&2
+      echo "[!] Failed to recover $db_file: $RECOVERY_DETAILS" >&2
       overall_status=2
     fi
   else
-    record_result "$db_file" "ok" "Integridade OK" "Nenhuma ação necessária"
+    record_result "$db_file" "ok" "Integrity OK" "No action required"
     if [[ "$OUTPUT_FORMAT" == "text" ]]; then
-      echo "[+] Integridade OK"
+      echo "[+] Integrity OK"
     else
-      echo "[+] Integridade OK" >&2
+      echo "[+] Integrity OK" >&2
     fi
   fi
 
 done
 
 if ((${#ALERTS[@]} > 0)); then
-  echo "=== ALERTAS GERADOS ===" >&2
+  echo "=== ALERTS GENERATED ===" >&2
   for alert in "${ALERTS[@]}"; do
     echo "- $alert" >&2
   done
