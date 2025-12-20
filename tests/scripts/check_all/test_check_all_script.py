@@ -32,12 +32,12 @@ exit {exit_code}
     path.chmod(0o755)
 
 
-
 def _prepare_repo(
     tmp_path: Path,
     *,
     failing_env_sync: bool = False,
     failing_validate_compose: bool = False,
+    failing_quality_checks: bool = False,
 ) -> tuple[Path, Path]:
     """Set up a temporary repository layout with stubbed scripts."""
 
@@ -70,14 +70,25 @@ def _prepare_repo(
         exit_code=1 if failing_validate_compose else 0,
     )
 
+    _create_shell_stub(
+        scripts_dir / "run_quality_checks.sh",
+        log_file,
+        "run_quality_checks",
+        exit_code=1 if failing_quality_checks else 0,
+    )
+
     return check_all_path, log_file
 
 
-def _run_check_all(check_all: Path, cwd: Path) -> subprocess.CompletedProcess[str]:
+def _run_check_all(
+    check_all: Path,
+    cwd: Path,
+    *args: str,
+) -> subprocess.CompletedProcess[str]:
     """Execute the copied ``check_all.sh`` script and return the result."""
 
     return subprocess.run(
-        [str(check_all)],
+        [str(check_all), *args],
         cwd=cwd,
         check=False,
         text=True,
@@ -97,6 +108,26 @@ def test_check_all_invokes_scripts_in_order(tmp_path: Path) -> None:
         "check_structure",
         "check_env_sync",
         "validate_compose",
+    ]
+
+
+def test_check_all_can_run_quality_checks(tmp_path: Path) -> None:
+    """The wrapper should optionally run quality checks after compose validation."""
+
+    check_all, log_file = _prepare_repo(tmp_path)
+    result = _run_check_all(
+        check_all,
+        check_all.parent.parent,
+        "--with-quality-checks",
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert log_file.exists()
+    assert log_file.read_text(encoding="utf-8").splitlines() == [
+        "check_structure",
+        "check_env_sync",
+        "validate_compose",
+        "run_quality_checks",
     ]
 
 

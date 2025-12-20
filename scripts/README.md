@@ -20,7 +20,7 @@ Utilities under `scripts/lib/` are never executed alone: they expose reusable fu
 
 | Script | Summary | Reference |
 | --- | --- | --- |
-| `check_all.sh` | Chains structure, variable sync, and Compose validation in a single call before PRs. | [`docs/OPERATIONS.md#scriptscheck_allsh`](../docs/OPERATIONS.md#scriptscheck_allsh) |
+| `check_all.sh` | Chains structure, variable sync, and Compose validation in a single call before PRs (use `--with-quality-checks` to append the full quality suite). | [`docs/OPERATIONS.md#scriptscheck_allsh`](../docs/OPERATIONS.md#scriptscheck_allsh) |
 | `check_structure.sh` | Ensures mandatory template directories and files are present. | [`docs/OPERATIONS.md#scriptscheck_structuresh`](../docs/OPERATIONS.md#scriptscheck_structuresh) |
 | `check_env_sync.sh` | Compares Compose manifests with `env/*.example.env`, flagging missing or obsolete variables. | [`docs/OPERATIONS.md#scriptscheck_env_syncpy`](../docs/OPERATIONS.md#scriptscheck_env_syncpy) |
 | `run_quality_checks.sh` | Gathers `pytest`, `shfmt`, `shellcheck`, and `checkbashisms` for quality validations. | [`docs/OPERATIONS.md#scriptsrun_quality_checkssh`](../docs/OPERATIONS.md#scriptsrun_quality_checkssh) |
