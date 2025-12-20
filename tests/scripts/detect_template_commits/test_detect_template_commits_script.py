@@ -131,8 +131,8 @@ def test_detect_template_commits_help_flags(tmp_path, flag):
 @pytest.mark.parametrize(
     "args, expected_error",
     [
-        (["--remote"], "--remote requer um argumento."),
-        (["--unknown"], "argumento desconhecido: --unknown"),
+        (["--remote"], "Error: --remote requires an argument."),
+        (["--unknown"], "Error: unknown argument: --unknown"),
     ],
 )
 def test_detect_template_commits_argument_errors(tmp_path, args, expected_error):
