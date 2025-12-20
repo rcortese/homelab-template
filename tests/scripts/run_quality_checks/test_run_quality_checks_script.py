@@ -144,6 +144,33 @@ def _build_env(repo_dir: Path, **overrides: str) -> dict[str, str]:
     return env
 
 
+def test_run_quality_checks_reports_usage_for_help(tmp_path: Path) -> None:
+    """``--help`` should print usage information and exit successfully."""
+
+    script, log_file, repo_dir = _prepare_repo(tmp_path)
+    env = _build_env(repo_dir)
+
+    result = _run_script(script, repo_dir, env, "--help")
+
+    assert result.returncode == 0
+    assert "Usage: scripts/run_quality_checks.sh [--no-lint]" in result.stdout
+    assert not log_file.exists()
+
+
+def test_run_quality_checks_reports_usage_for_unknown_args(tmp_path: Path) -> None:
+    """Unknown arguments should error and display usage on stderr."""
+
+    script, log_file, repo_dir = _prepare_repo(tmp_path)
+    env = _build_env(repo_dir)
+
+    result = _run_script(script, repo_dir, env, "--bogus")
+
+    assert result.returncode == 1
+    assert "Unknown argument: --bogus" in result.stderr
+    assert "Usage: scripts/run_quality_checks.sh [--no-lint]" in result.stderr
+    assert not log_file.exists()
+
+
 def test_run_quality_checks_invokes_commands(tmp_path: Path) -> None:
     """The wrapper should call pytest first and run shfmt before shell linters."""
 
