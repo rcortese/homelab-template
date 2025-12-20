@@ -35,7 +35,7 @@ def test_help_displays_usage(flag):
     )
 
     assert result.returncode == 0
-    assert "Uso: scripts/check_structure.sh" in result.stdout
+    assert "Usage: scripts/check_structure.sh" in result.stdout
 
 
 def test_script_succeeds_on_repository_root():
@@ -48,7 +48,7 @@ def test_script_succeeds_on_repository_root():
     )
 
     assert result.returncode == 0
-    assert "Estrutura do repositório validada com sucesso." in result.stdout
+    assert "Repository structure validated successfully." in result.stdout
 
 
 def test_script_succeeds_from_subdirectory():
@@ -61,7 +61,7 @@ def test_script_succeeds_from_subdirectory():
     )
 
     assert result.returncode == 0
-    assert "Estrutura do repositório validada com sucesso." in result.stdout
+    assert "Repository structure validated successfully." in result.stdout
 
 
 @pytest.mark.parametrize("repo_copy", [(
@@ -83,7 +83,7 @@ def test_missing_required_item_returns_error(repo_copy: Path, missing_relative: 
             missing_path.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(source, missing_path)
         else:
-            pytest.fail(f"O caminho {missing_relative} não foi copiado para o diretório temporário.")
+            pytest.fail(f"Path {missing_relative} was not copied to the temporary directory.")
 
     if missing_relative == "scripts":
         backup_dir = missing_path.with_name("scripts.bak")
@@ -132,4 +132,4 @@ def test_missing_required_item_returns_error(repo_copy: Path, missing_relative: 
 
     assert result.returncode == 1
     assert missing_relative in result.stderr
-    assert "não foram encontrados" in result.stderr
+    assert "were not found" in result.stderr
