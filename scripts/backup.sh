@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # shellcheck source-path=SCRIPTDIR
-# Uso: scripts/backup.sh <instancia>
+# Usage: scripts/backup.sh <instance>
 #
-# Executa um backup simples pausando a stack correspondente, copiando os dados
-# persistidos para o diretório `backups/` e religando a stack ao final.
+# Runs a simple backup by stopping the related stack, copying persisted data
+# to the `backups/` directory, and restarting the stack at the end.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -11,10 +11,10 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 if [[ $# -lt 1 ]]; then
   cat <<'USAGE' >&2
-Uso: scripts/backup.sh <instancia>
+Usage: scripts/backup.sh <instance>
 
-Interrompe a stack da instância informada, copia os dados persistidos para um
-snapshot em backups/<instancia>-<timestamp> e sobe os serviços novamente.
+Stops the stack for the given instance, copies persisted data into a snapshot
+in backups/<instance>-<timestamp>, then starts the services again.
 USAGE
   exit 1
 fi
@@ -60,14 +60,14 @@ if [[ -n "${DEPLOY_CONTEXT[APP_NAMES]:-}" ]]; then
 fi
 
 if ! "${BUILD_COMPOSE_CMD[@]}"; then
-  echo "[!] Falha ao gerar docker-compose.yml antes do backup." >&2
+  echo "[!] Failed to generate docker-compose.yml before the backup." >&2
   exit 1
 fi
 
 export COMPOSE_FILES="$COMPOSE_ROOT_FILE"
 
 if ! app_detection__list_active_services ACTIVE_APP_SERVICES "${COMPOSE_CMD[@]}"; then
-  echo "[!] Não foi possível listar serviços ativos antes do backup." >&2
+  echo "[!] Unable to list active services before the backup." >&2
   ACTIVE_APP_SERVICES=()
 fi
 
@@ -100,14 +100,14 @@ restart_stack() {
   if [[ $stack_was_stopped -eq 1 ]]; then
     if ((${#ACTIVE_APP_SERVICES[@]} > 0)); then
       if "${COMPOSE_CMD[@]}" up -d "${ACTIVE_APP_SERVICES[@]}"; then
-        echo "[*] Aplicações '${ACTIVE_APP_SERVICES[*]}' reativadas."
+        echo "[*] Applications '${ACTIVE_APP_SERVICES[*]}' restarted."
       else
-        echo "[!] Falha ao religar as aplicações '${ACTIVE_APP_SERVICES[*]}' da instância '$INSTANCE'. Verifique manualmente." >&2
+        echo "[!] Failed to restart applications '${ACTIVE_APP_SERVICES[*]}' for instance '$INSTANCE'. Please check manually." >&2
         restart_failed=1
         restart_status=1
       fi
     else
-      echo "[*] Nenhum serviço será religado; nenhum estava ativo no início do backup."
+      echo "[*] No services will be restarted; none were active at the start of the backup."
     fi
     stack_was_stopped=0
   fi
@@ -115,51 +115,51 @@ restart_stack() {
 }
 trap restart_stack EXIT
 
-echo "[*] Parando stack '$INSTANCE' antes do backup..."
+echo "[*] Stopping stack '$INSTANCE' before the backup..."
 if "${COMPOSE_CMD[@]}" down; then
   stack_was_stopped=1
 else
-  echo "[!] Falha ao parar a stack '$INSTANCE'." >&2
+  echo "[!] Failed to stop stack '$INSTANCE'." >&2
   exit 1
 fi
 
 app_data_dir_rel="${DEPLOY_CONTEXT[APP_DATA_DIR]}"
 app_data_dir_mount="${DEPLOY_CONTEXT[APP_DATA_DIR_MOUNT]}"
 
-echo "[*] Diretório de dados (base relativa): ${app_data_dir_rel:-<não configurado>}"
+echo "[*] Data directory (relative base): ${app_data_dir_rel:-<not configured>}"
 
 if [[ -z "$app_data_dir_mount" ]]; then
-  echo "[!] Diretório de dados não identificado para a instância '$INSTANCE'." >&2
+  echo "[!] Data directory not identified for instance '$INSTANCE'." >&2
   exit 1
 fi
 
 data_src="$app_data_dir_mount"
 
 if [[ ! -d "$data_src" ]]; then
-  echo "[!] Diretório de dados '$data_src' inexistente." >&2
+  echo "[!] Data directory '$data_src' does not exist." >&2
   exit 1
 fi
 
 if ((${#ACTIVE_APP_SERVICES[@]} > 0)); then
-  echo "[*] Aplicações detectadas para religar: ${ACTIVE_APP_SERVICES[*]}"
+  echo "[*] Applications detected to restart: ${ACTIVE_APP_SERVICES[*]}"
 else
-  echo "[*] Nenhuma aplicação ativa identificada; nenhum serviço será religado."
+  echo "[*] No active applications detected; no services will be restarted."
 fi
 
 timestamp="$(date +%Y%m%d-%H%M%S)"
 backup_dir="$REPO_ROOT/backups/${INSTANCE}-${timestamp}"
 mkdir -p "$backup_dir"
 
-echo "[*] Copiando dados de '$data_src' para '$backup_dir'..."
+echo "[*] Copying data from '$data_src' to '$backup_dir'..."
 if ! cp -a "$data_src/." "$backup_dir/"; then
   rm -rf "$backup_dir"
-  echo "[!] Falha ao copiar os dados para '$backup_dir'." >&2
+  echo "[!] Failed to copy data to '$backup_dir'." >&2
   exit 1
 fi
 
-echo "[*] Backup da instância '$INSTANCE' concluído em '$backup_dir'."
+echo "[*] Backup for instance '$INSTANCE' completed at '$backup_dir'."
 
-# religar stack (trap cuida em caso de erro anterior)
+# Restart the stack (trap handles it on earlier errors).
 restart_stack || true
 trap - EXIT
 
@@ -167,4 +167,4 @@ if [[ $restart_failed -eq 1 ]]; then
   exit 1
 fi
 
-echo "[*] Processo finalizado com sucesso."
+echo "[*] Process finished successfully."
