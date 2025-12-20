@@ -1,25 +1,25 @@
 #!/usr/bin/env bash
-# Uso: scripts/bootstrap_instance.sh <aplicacao> <instancia> [opcoes]
+# Usage: scripts/bootstrap_instance.sh <application> <instance> [options]
 #
-# Inicializa a estrutura padrão de uma nova aplicação/instância no template,
-# gerando manifests Compose, modelo de variáveis e documentação opcional.
+# Initializes the default structure for a new application/instance in the template,
+# generating Compose manifests, variable template, and optional documentation.
 set -euo pipefail
 
 print_usage() {
   cat <<'USAGE'
-Uso: scripts/bootstrap_instance.sh <aplicacao> <instancia> [opcoes]
+Usage: scripts/bootstrap_instance.sh <application> <instance> [options]
 
-Gera arquivos base para uma nova aplicação/instância seguindo o padrão do template.
+Generates base files for a new application/instance following the template standard.
 
-Argumentos posicionais:
-  aplicacao   Nome da aplicação (letras minúsculas, números, hífens ou underscores).
-  instancia   Nome da instância (letras minúsculas, números, hífens ou underscores).
+Positional arguments:
+  application   Application name (lowercase letters, numbers, hyphens, or underscores).
+  instance      Instance name (lowercase letters, numbers, hyphens, or underscores).
 
-Opções:
-  --base-dir <dir>   Diretório raiz do repositório a ser utilizado (padrão: diretório do script/..).
-  --with-docs        Cria também docs/apps/<aplicacao>.md e adiciona o link em docs/README.md.
-  --override-only    Pula a criação de compose/apps/<aplicacao>/base.yml (modo apenas overrides).
-  -h, --help         Exibe esta mensagem e sai.
+Options:
+  --base-dir <dir>   Repository root directory to use (default: script directory/..).
+  --with-docs        Also creates docs/apps/<application>.md and adds the link to docs/README.md.
+  --override-only    Skips creating compose/apps/<application>/base.yml (override-only mode).
+  -h, --help         Show this message and exit.
 USAGE
 }
 
@@ -31,7 +31,7 @@ require_valid_name() {
   local value="$1"
   local label="$2"
   if [[ ! $value =~ ^[a-z0-9][a-z0-9_-]*$ ]]; then
-    error "Erro: $label deve começar com letra minúscula ou número e conter apenas letras minúsculas, números, hífens ou underscores."
+    error "Error: $label must start with a lowercase letter or number and contain only lowercase letters, numbers, hyphens, or underscores."
     exit 1
   fi
 }
@@ -83,11 +83,11 @@ while [[ $# -gt 0 ]]; do
   --base-dir)
     shift
     if [[ $# -eq 0 ]]; then
-      error "Erro: --base-dir requer um argumento."
+      error "Error: --base-dir requires an argument."
       exit 1
     fi
     if ! BASE_DIR="$(cd "$1" && pwd)"; then
-      error "Erro: diretório base inválido: $1"
+      error "Error: invalid base directory: $1"
       exit 1
     fi
     ;;
@@ -98,7 +98,7 @@ while [[ $# -gt 0 ]]; do
     OVERRIDE_ONLY=1
     ;;
   --*)
-    error "Erro: opção desconhecida: $1"
+    error "Error: unknown option: $1"
     print_usage >&2
     exit 1
     ;;
@@ -108,7 +108,7 @@ while [[ $# -gt 0 ]]; do
     elif [[ -z $INSTANCE_NAME ]]; then
       INSTANCE_NAME="$1"
     else
-      error "Erro: argumentos extras não reconhecidos: $1"
+      error "Error: unrecognized extra arguments: $1"
       print_usage >&2
       exit 1
     fi
@@ -118,13 +118,13 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [[ -z $APP_NAME || -z $INSTANCE_NAME ]]; then
-  error "Erro: é necessário informar <aplicacao> e <instancia>."
+  error "Error: <application> and <instance> are required."
   print_usage >&2
   exit 1
 fi
 
-require_valid_name "$APP_NAME" "O nome da aplicação"
-require_valid_name "$INSTANCE_NAME" "O nome da instância"
+require_valid_name "$APP_NAME" "Application name"
+require_valid_name "$INSTANCE_NAME" "Instance name"
 
 APP_UPPER="$(uppercase_token "$APP_NAME")"
 INSTANCE_UPPER="$(uppercase_token "$INSTANCE_NAME")"
@@ -170,11 +170,11 @@ if [[ $WITH_DOCS -eq 1 ]]; then
 fi
 
 if [[ ${#conflicts[@]} -gt 0 ]]; then
-  error "Erro: os seguintes arquivos já existem e impedem a criação da instância:"
+  error "Error: the following files already exist and block instance creation:"
   for path in "${conflicts[@]}"; do
     error "  - $path"
   done
-  error "Interrompendo para evitar sobrescritas."
+  error "Aborting to avoid overwrites."
   exit 1
 fi
 
@@ -191,7 +191,7 @@ render_template() {
   local destination="$2"
   local template_path="$templates_root/$template_name"
   if [[ ! -f $template_path ]]; then
-    error "Erro: template não encontrado: $template_path"
+    error "Error: template not found: $template_path"
     exit 1
   fi
   local content
@@ -212,14 +212,14 @@ render_template "compose-instance.yml.tpl" "$compose_instance_file"
 if [[ $create_env_example -eq 1 ]]; then
   render_template "env-example.tpl" "$env_example_file"
 else
-  echo "[*] Arquivo de variáveis env/${INSTANCE_NAME}.example.env já existe; mantendo inalterado."
+  echo "[*] env/${INSTANCE_NAME}.example.env already exists; keeping unchanged."
 fi
 
 if [[ $SKIP_BASE -eq 1 ]]; then
   if [[ $OVERRIDE_ONLY -eq 1 ]]; then
-    echo "[*] Modo override-only: compose/apps/${APP_NAME}/base.yml não será criado."
+    echo "[*] Override-only mode: compose/apps/${APP_NAME}/base.yml will not be created."
   else
-    echo "[*] Diretório existente sem base.yml detectado; pulando criação de compose/apps/${APP_NAME}/base.yml."
+    echo "[*] Existing directory without base.yml detected; skipping creation of compose/apps/${APP_NAME}/base.yml."
   fi
 fi
 
@@ -242,9 +242,9 @@ DOCS_SECTION
   fi
 fi
 
-echo "[*] Aplicação: $APP_NAME"
-echo "[*] Instância: $INSTANCE_NAME"
-echo "[*] Arquivos criados:"
+echo "[*] Application: $APP_NAME"
+echo "[*] Instance: $INSTANCE_NAME"
+echo "[*] Files created:"
 if [[ $SKIP_BASE -eq 0 ]]; then
   printf '  - %s\n' "${compose_base_file#"$BASE_DIR"/}"
 fi
@@ -256,4 +256,4 @@ if [[ $WITH_DOCS -eq 1 ]]; then
   printf '  - %s\n' "${app_doc_file#"$BASE_DIR"/}"
 fi
 
-echo "[*] Bootstrap concluído com sucesso."
+echo "[*] Bootstrap completed successfully."
