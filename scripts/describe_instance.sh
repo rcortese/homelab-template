@@ -4,18 +4,18 @@ set -euo pipefail
 
 print_help() {
   cat <<'USAGE'
-Uso: scripts/describe_instance.sh [--list] <instancia> [--format <formato>]
+Usage: scripts/describe_instance.sh [--list] <instance> [--format <format>]
 
-Gera um resumo dos serviços, portas e volumes da instância solicitada a
-partir de `docker compose config`, reutilizando as convenções do template.
+Generates a summary of services, ports, and volumes for the requested instance
+from `docker compose config`, reusing the template conventions.
 
-Argumentos posicionais:
-  instancia            Nome da instância (ex.: core, media).
+Positional arguments:
+  instance             Instance name (e.g. core, media).
 
 Flags:
-  -h, --help           Exibe esta ajuda e sai.
-  --list               Lista as instâncias disponíveis e sai.
-  --format <formato>   Define o formato da saída. Valores aceitos: table (padrão), json.
+  -h, --help           Show this help and exit.
+  --list               List available instances and exit.
+  --format <format>    Set output format. Accepted values: table (default), json.
 USAGE
 }
 
@@ -42,7 +42,7 @@ while [[ $# -gt 0 ]]; do
   --format)
     shift
     if [[ $# -eq 0 ]]; then
-      echo "Error: --format requer um valor (table ou json)." >&2
+      echo "Error: --format requires a value (table or json)." >&2
       exit 1
     fi
     FORMAT="$1"
@@ -53,14 +53,14 @@ while [[ $# -gt 0 ]]; do
     shift
     ;;
   --*)
-    echo "Error: flag desconhecida '$1'." >&2
+    echo "Error: unknown flag '$1'." >&2
     exit 1
     ;;
   *)
     if [[ -z "$INSTANCE_NAME" ]]; then
       INSTANCE_NAME="$1"
     else
-      echo "Error: parâmetros extras não reconhecidos: '$1'." >&2
+      echo "Error: extra arguments not recognized: '$1'." >&2
       exit 1
     fi
     shift
@@ -69,7 +69,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [[ "$LIST_ONLY" == true && -n "$INSTANCE_NAME" ]]; then
-  echo "Error: --list não pode ser combinado com o nome da instância." >&2
+  echo "Error: --list cannot be combined with an instance name." >&2
   exit 1
 fi
 
@@ -78,13 +78,13 @@ if [[ "$LIST_ONLY" == true ]]; then
   source "$SCRIPT_DIR/lib/compose_instances.sh"
 
   if ! load_compose_instances "$REPO_ROOT"; then
-    echo "Error: falha ao carregar as instâncias disponíveis." >&2
+    echo "Error: failed to load available instances." >&2
     exit 1
   fi
 
-  echo "Instâncias disponíveis:"
+  echo "Available instances:"
   if [[ ${#COMPOSE_INSTANCE_NAMES[@]} -eq 0 ]]; then
-    echo "  (nenhuma instância encontrada)"
+    echo "  (no instances found)"
   else
     for name in "${COMPOSE_INSTANCE_NAMES[@]}"; do
       echo "  • $name"
@@ -94,14 +94,14 @@ if [[ "$LIST_ONLY" == true ]]; then
 fi
 
 if [[ -z "$INSTANCE_NAME" ]]; then
-  echo "Error: informe o nome da instância." >&2
+  echo "Error: provide the instance name." >&2
   print_help >&2
   exit 1
 fi
 
 FORMAT_LOWER="${FORMAT,,}"
 if [[ "$FORMAT_LOWER" != "table" && "$FORMAT_LOWER" != "json" ]]; then
-  echo "Error: formato inválido '$FORMAT'. Utilize 'table' ou 'json'." >&2
+  echo "Error: invalid format '$FORMAT'. Use 'table' or 'json'." >&2
   exit 1
 fi
 
@@ -109,7 +109,7 @@ fi
 source "$SCRIPT_DIR/lib/compose_defaults.sh"
 
 if ! setup_compose_defaults "$INSTANCE_NAME" "$REPO_ROOT"; then
-  echo "Error: falha ao montar a configuração de compose para '$INSTANCE_NAME'." >&2
+  echo "Error: failed to assemble compose configuration for '$INSTANCE_NAME'." >&2
   exit 1
 fi
 
@@ -123,7 +123,7 @@ config_status=$?
 set -e
 
 if [[ $config_status -ne 0 ]]; then
-  echo "Error: falha ao executar docker compose config." >&2
+  echo "Error: failed to run docker compose config." >&2
   if [[ -s "$tmp_stderr" ]]; then
     cat "$tmp_stderr" >&2
   fi
@@ -158,7 +158,7 @@ extra_files_raw = os.environ.get("DESCRIBE_INSTANCE_EXTRA_FILES", "")
 repo_root = Path(os.environ.get("DESCRIBE_INSTANCE_REPO_ROOT", ".")).resolve()
 
 if not instance_name:
-    print("Erro interno: instância não informada.", file=sys.stderr)
+    print("Internal error: instance not provided.", file=sys.stderr)
     sys.exit(1)
 
 raw_config = sys.argv[1] if len(sys.argv) > 1 else ""
@@ -168,7 +168,7 @@ if not raw_config:
 try:
     config = json.loads(raw_config)
 except json.JSONDecodeError as exc:  # pragma: no cover - defensive path
-    print(f"Erro ao interpretar saída do docker compose config: {exc}", file=sys.stderr)
+    print(f"Error parsing docker compose config output: {exc}", file=sys.stderr)
     sys.exit(1)
 
 services = config.get("services", {}) if isinstance(config, dict) else {}
@@ -325,42 +325,42 @@ if format_arg == "json":
     sys.stdout.write("\n")
     sys.exit(0)
 
-print(f"Instância: {instance_name}")
+print(f"Instance: {instance_name}")
 print("")
-print("Arquivos Compose (-f):")
+print("Compose files (-f):")
 if compose_summary:
     for entry in compose_summary:
-        marker = " (overlay extra)" if entry["is_extra"] else ""
+        marker = " (extra overlay)" if entry["is_extra"] else ""
         print(f"  • {entry['path']}{marker}")
 else:
-    print("  (nenhum arquivo encontrado)")
+    print("  (no files found)")
 
 if extra_summary:
     print("")
-    print("Overlays extras aplicados:")
+    print("Extra overlays applied:")
     for overlay in extra_summary:
         print(f"  • {overlay}")
 
 print("")
-print("Serviços:")
+print("Services:")
 if not service_items:
-    print("  (nenhum serviço configurado)")
+    print("  (no services configured)")
 else:
     for item in service_items:
         print(f"  - {item['name']}")
         ports = item["ports"]
         if ports:
-            print("      Portas publicadas:")
+            print("      Published ports:")
             for port in ports:
                 print(f"        • {port}")
         else:
-            print("      Portas publicadas: (nenhuma)")
+            print("      Published ports: (none)")
         volumes = item["volumes"]
         if volumes:
-            print("      Volumes montados:")
+            print("      Mounted volumes:")
             for volume in volumes:
                 print(f"        • {volume}")
         else:
-            print("      Volumes montados: (nenhum)")
+            print("      Mounted volumes: (none)")
 
 PYTHON

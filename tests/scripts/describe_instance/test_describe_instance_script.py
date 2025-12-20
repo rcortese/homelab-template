@@ -198,7 +198,7 @@ def test_format_flag_requires_value(repo_copy: Path, tmp_path: Path) -> None:
     result = _run_script(repo_copy, "--format", env=env)
 
     assert result.returncode == 1
-    assert "Error: --format requer um valor" in result.stderr
+    assert "Error: --format requires a value" in result.stderr
 
 
 def test_invalid_format_value_errors(repo_copy: Path, tmp_path: Path) -> None:
@@ -216,7 +216,7 @@ def test_invalid_format_value_errors(repo_copy: Path, tmp_path: Path) -> None:
     result = _run_script(repo_copy, "--format", "yaml", "core", env=env)
 
     assert result.returncode == 1
-    assert "Error: formato inválido 'yaml'. Utilize 'table' ou 'json'." in result.stderr
+    assert "Error: invalid format 'yaml'. Use 'table' or 'json'." in result.stderr
 
 
 def test_list_flag_cannot_receive_instance(repo_copy: Path, tmp_path: Path) -> None:
@@ -234,7 +234,7 @@ def test_list_flag_cannot_receive_instance(repo_copy: Path, tmp_path: Path) -> N
     result = _run_script(repo_copy, "--list", "core", env=env)
 
     assert result.returncode == 1
-    assert "Error: --list não pode ser combinado com o nome da instância." in result.stderr
+    assert "Error: --list cannot be combined with an instance name." in result.stderr
 
 
 def test_instance_name_is_required(repo_copy: Path, tmp_path: Path) -> None:
@@ -252,8 +252,8 @@ def test_instance_name_is_required(repo_copy: Path, tmp_path: Path) -> None:
     result = _run_script(repo_copy, env=env)
 
     assert result.returncode == 1
-    assert "Error: informe o nome da instância." in result.stderr
-    assert "Uso: scripts/describe_instance.sh" in result.stderr
+    assert "Error: provide the instance name." in result.stderr
+    assert "Usage: scripts/describe_instance.sh" in result.stderr
 
 
 def test_list_flag_prints_available_instances(
@@ -267,7 +267,7 @@ def test_list_flag_prints_available_instances(
 
     lines = [line.strip() for line in result.stdout.splitlines() if line.strip()]
     assert lines, "esperado conteúdo na saída"
-    assert lines[0] == "Instâncias disponíveis:"
+    assert lines[0] == "Available instances:"
 
     bullets = [line[2:].strip() for line in lines[1:] if line.startswith("• ")]
     assert bullets == compose_instances_data.instance_names
@@ -351,7 +351,7 @@ def test_table_summary_highlights_overlays(
     assert result.returncode == 0, result.stderr
 
     stdout = result.stdout
-    assert "Instância: core" in stdout
+    assert "Instance: core" in stdout
     expected_plan = compose_instances_data.compose_plan("core")
     for relative_path in expected_plan:
         assert relative_path in stdout
@@ -360,15 +360,15 @@ def test_table_summary_highlights_overlays(
     )
     for overlay in extra_overlays:
         assert overlay in stdout
-        assert f"{overlay} (overlay extra)" in stdout
-    assert "Overlays extras aplicados:" in stdout
+        assert f"{overlay} (extra overlay)" in stdout
+    assert "Extra overlays applied:" in stdout
     for overlay in extra_overlays:
         assert overlay in stdout
-    assert "Portas publicadas:" in stdout
+    assert "Published ports:" in stdout
     for port in compose_payload["services"][service_with_ports]["ports"]:
         formatted = _format_port(port)
         assert formatted in stdout
-    assert "Volumes montados:" in stdout
+    assert "Mounted volumes:" in stdout
     primary_volumes = compose_payload["services"][service_with_ports]["volumes"]
     for volume in primary_volumes:
         formatted = _format_volume(volume)
@@ -545,7 +545,7 @@ def test_compose_config_failure_is_propagated(repo_copy: Path, tmp_path: Path) -
     result = _run_script(repo_copy, "core", env=env)
 
     assert result.returncode == 42
-    assert "Error: falha ao executar docker compose config." in result.stderr
+    assert "Error: failed to run docker compose config." in result.stderr
     assert "docker compose config failed" in result.stderr
     assert result.stdout == ""
 
