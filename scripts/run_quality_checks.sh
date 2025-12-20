@@ -108,6 +108,18 @@ if ((RUN_LINT)); then
       exit 1
     fi
     "${SHELLCHECK_BIN}" "${shellcheck_targets[@]}"
-    "${CHECKBASHISMS_BIN}" "${shellcheck_targets[@]}"
+    checkbashisms_targets=()
+    for shell_script in "${shellcheck_targets[@]}"; do
+      shebang="$(head -n 1 "$shell_script")"
+      # Limit checkbashisms to POSIX shells (#!/bin/sh) or files without shebangs
+      # so that non-POSIX scripts do not require bashism maintenance.
+      if [[ -z "$shebang" || "$shebang" == "#!"*"/bin/sh"* ]]; then
+        checkbashisms_targets+=("$shell_script")
+      fi
+    done
+
+    if ((${#checkbashisms_targets[@]} > 0)); then
+      "${CHECKBASHISMS_BIN}" "${checkbashisms_targets[@]}"
+    fi
   fi
 fi
