@@ -1,4 +1,4 @@
 services:
   {{APP}}:
-    # Defina aqui imagem, volumes e variáveis compartilhadas por todas as instâncias.
-    # compose/base.yml mantém apenas recursos globais (redes/volumes nomeados).
+    # Define image, volumes, and variables shared across all instances here.
+    # compose/base.yml keeps only global resources (networks/named volumes).
