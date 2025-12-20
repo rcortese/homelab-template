@@ -24,7 +24,7 @@ USAGE
 }
 
 error() {
-  echo "Erro: $1" >&2
+  echo "Error: $1" >&2
   exit 1
 }
 
@@ -45,17 +45,17 @@ while [[ $# -gt 0 ]]; do
     exit 0
     ;;
   --remote)
-    [[ $# -lt 2 ]] && error "--remote requer um argumento."
+    [[ $# -lt 2 ]] && error "--remote requires an argument."
     remote="$2"
     shift 2
     ;;
   --target-branch)
-    [[ $# -lt 2 ]] && error "--target-branch requer um argumento."
+    [[ $# -lt 2 ]] && error "--target-branch requires an argument."
     target_branch="$2"
     shift 2
     ;;
   --output)
-    [[ $# -lt 2 ]] && error "--output requer um argumento."
+    [[ $# -lt 2 ]] && error "--output requires an argument."
     output_file="$2"
     shift 2
     ;;
@@ -64,7 +64,7 @@ while [[ $# -gt 0 ]]; do
     shift
     ;;
   *)
-    error "argumento desconhecido: $1"
+    error "unknown argument: $1"
     ;;
   esac
 done
@@ -72,17 +72,17 @@ done
 cd "$REPO_ROOT"
 
 if ! template_validate_git_repository; then
-  error "este diretório não é um repositório Git."
+  error "this directory is not a Git repository."
 fi
 
 if [[ -z "$remote" ]]; then
   remote="$(template_remote_detect)"
 fi
 
-[[ -n "$remote" ]] || error "nenhum remote detectado automaticamente. Use --remote ou defina TEMPLATE_REMOTE."
+[[ -n "$remote" ]] || error "no remote detected automatically. Use --remote or set TEMPLATE_REMOTE."
 
 if ! template_validate_remote_exists "$remote"; then
-  error "remote '$remote' não está configurado."
+  error "remote '$remote' is not configured."
 fi
 
 if [[ "$fetch_remote" == true ]]; then
@@ -93,19 +93,19 @@ if [[ -z "$target_branch" ]]; then
   target_branch="$(template_remote_detect_head_branch "$remote")"
 fi
 
-[[ -n "$target_branch" ]] || error "não foi possível determinar a branch do template. Use --target-branch."
+[[ -n "$target_branch" ]] || error "unable to determine the template branch. Use --target-branch."
 
 if ! template_validate_remote_branch_exists "$remote" "$target_branch"; then
-  error "branch '$target_branch' não encontrado no remote '$remote'."
+  error "branch '$target_branch' not found on remote '$remote'."
 fi
 
 remote_ref="$remote/$target_branch"
 
 original_commit="$(git merge-base HEAD "$remote_ref" 2>/dev/null || true)"
-[[ -n "$original_commit" ]] || error "não foi possível determinar o ancestral comum entre HEAD e $remote_ref."
+[[ -n "$original_commit" ]] || error "unable to determine the common ancestor between HEAD and $remote_ref."
 
 first_commit="$(git rev-list --reverse --ancestry-path "${original_commit}..HEAD" | head -n 1)"
-[[ -n "$first_commit" ]] || error "nenhum commit exclusivo local encontrado após $original_commit."
+[[ -n "$first_commit" ]] || error "no local-only commit found after $original_commit."
 
 mkdir -p "$(dirname "$output_file")"
 {
