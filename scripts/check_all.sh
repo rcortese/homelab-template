@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # Usage: scripts/check_all.sh
 #
-# Executa a sequência padrão de validações locais do template.
-# Encadeia os scripts essenciais na ordem recomendada e encerra
-# imediatamente se algum deles falhar.
+# Runs the default sequence of local validations for the template.
+# Chains the essential scripts in the recommended order and stops
+# immediately if any of them fails.
 #
-# Exemplos:
+# Examples:
 #   scripts/check_all.sh
 set -euo pipefail
 

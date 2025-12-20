@@ -2,23 +2,23 @@
 # shellcheck source-path=SCRIPTDIR
 # Usage: scripts/run_quality_checks.sh [--no-lint]
 #
-# Executa a bateria padrão de testes e linters do template.
-# A rotina valida código Python via ``pytest`` e executa ``shfmt``,
-# ``shellcheck`` e ``checkbashisms`` sobre os scripts de automação. Falha imediatamente se qualquer etapa
-# retornar código diferente de zero.
+# Runs the standard suite of tests and linters for the template.
+# The routine validates Python code via ``pytest`` and executes ``shfmt``,
+# ``shellcheck``, and ``checkbashisms`` across automation scripts. It fails
+# immediately if any step returns a non-zero status.
 #
-# Exemplo:
+# Example:
 #   scripts/run_quality_checks.sh
 set -euo pipefail
 
 usage() {
   cat <<'EOF'
-Uso: scripts/run_quality_checks.sh [--no-lint]
+Usage: scripts/run_quality_checks.sh [--no-lint]
 
-Executa ``pytest`` e aplica ``shfmt``/``shellcheck``/``checkbashisms`` sobre o template.
+Runs ``pytest`` and applies ``shfmt``/``shellcheck``/``checkbashisms`` to the template.
 
-Opções:
-  --no-lint    Pula a etapa de linting via ``shfmt``/``shellcheck``/``checkbashisms``.
+Options:
+  --no-lint    Skips the linting step via ``shfmt``/``shellcheck``/``checkbashisms``.
 EOF
 }
 
@@ -35,7 +35,7 @@ while (($# > 0)); do
     exit 0
     ;;
   *)
-    echo "Argumento desconhecido: $1" >&2
+    echo "Unknown argument: $1" >&2
     usage >&2
     exit 1
     ;;
@@ -85,12 +85,12 @@ if ((RUN_LINT)); then
   require_command "checkbashisms" "${CHECKBASHISMS_BIN}" "CHECKBASHISMS_BIN"
 fi
 
-# Executa a suíte de testes Python do template.
+# Runs the template's Python test suite.
 cd "${REPO_ROOT}"
 run_pytest "$@"
 
 if ((RUN_LINT)); then
-  # Prepara a lista de scripts shell para lint.
+  # Prepares the list of shell scripts for linting.
   mapfile -d '' -t raw_shellcheck_targets < <(
     find "${SCRIPT_DIR}" -type f -name '*.sh' -printf '%d\t%p\0' |
       sort -z -t $'\t' -k1,1n -k2,2
