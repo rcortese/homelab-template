@@ -9,11 +9,11 @@ source "${SCRIPT_DIR}/python_runtime.sh"
 
 print_usage() {
   cat <<'EOF'
-Uso: scripts/lib/env_loader.sh <arquivo.env> <VARIAVEL> [VARIAVEL...]
+Usage: scripts/lib/env_loader.sh <file.env> <VARIABLE> [VARIABLE...]
 
-Lê um arquivo .env simples e imprime pares chave=valor para as variáveis
-solicitadas. O script não altera o ambiente atual; cabe ao chamador decidir
-como aplicar os pares retornados.
+Reads a simple .env file and prints key=value pairs for the requested
+variables. The script does not alter the current environment; the caller is
+responsible for applying the returned pairs.
 EOF
 }
 

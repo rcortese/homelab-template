@@ -73,7 +73,7 @@ def test_env_loader_requires_variables(tmp_path: Path) -> None:
     result = run_env_loader(env_file=env_file)
 
     assert result.returncode == 2
-    assert "Uso:" in result.stderr
+    assert "Usage:" in result.stderr
 
 
 def test_env_loader_supports_hash_values(tmp_path: Path) -> None:
