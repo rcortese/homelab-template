@@ -26,7 +26,7 @@ def test_creates_files_and_updates_docs(repo_copy: Path) -> None:
 
     assert result.returncode == 0, result.stderr
     stdout = result.stdout
-    assert "[*] Bootstrap concluído com sucesso." in stdout
+    assert "[*] Bootstrap completed successfully." in stdout
 
     base_file = repo_copy / "compose" / "apps" / "analytics" / "base.yml"
     instance_file = repo_copy / "compose" / "apps" / "analytics" / "staging.yml"
@@ -73,7 +73,7 @@ def test_fails_when_targets_exist(repo_copy: Path) -> None:
 
     assert result.returncode == 1
     stderr = result.stderr
-    assert "já existem" in stderr
+    assert "already exist" in stderr
     assert str(base_file) in stderr
 
     instance_file = app_dir / "demo.yml"
@@ -132,7 +132,7 @@ def test_existing_env_file_is_preserved(repo_copy: Path) -> None:
 
     assert result.returncode == 0, result.stderr
     stdout = result.stdout
-    assert "mantendo inalterado" in stdout
+    assert "keeping unchanged" in stdout
 
     assert env_file.read_text(encoding="utf-8") == sentinel_content
 
@@ -150,10 +150,10 @@ def test_existing_env_file_is_preserved(repo_copy: Path) -> None:
 @pytest.mark.parametrize(
     "app_name, instance_name, expected_message",
     [
-        ("-demo", "valid", "Erro: O nome da aplicação"),
-        ("Invalid", "valid", "Erro: O nome da aplicação"),
-        ("demo", "-invalid", "Erro: O nome da instância"),
-        ("demo", "Invalid", "Erro: O nome da instância"),
+        ("-demo", "valid", "Error: Application name"),
+        ("Invalid", "valid", "Error: Application name"),
+        ("demo", "-invalid", "Error: Instance name"),
+        ("demo", "Invalid", "Error: Instance name"),
     ],
 )
 def test_rejects_invalid_names(
