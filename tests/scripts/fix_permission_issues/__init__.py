@@ -1,1 +1,1 @@
-"""Testes que exercitam o comando 'fix_permission_issues' do diretório scripts."""
+"""Tests that exercise the 'fix_permission_issues' command in the scripts directory."""

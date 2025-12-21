@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 
-# Lista serviços ativos (status running) utilizando o comando docker compose
-# informado. O primeiro argumento deve ser o nome de uma variável do tipo array
-# (nameref) que receberá o resultado. Os argumentos seguintes representam o
-# comando docker compose a ser executado (ex.: docker compose -f docker-compose.yml ...).
+# Lists active services (running status) using the provided docker compose command.
+# The first argument must be the name of an array variable (nameref) that will
+# receive the result. The following arguments represent the docker compose
+# command to be executed (e.g., docker compose -f docker-compose.yml ...).
 app_detection__list_active_services() {
   local __target_ref="$1"
   shift

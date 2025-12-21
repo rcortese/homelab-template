@@ -1,1 +1,1 @@
-"""Testes que exercitam o comando 'env_loader' do diretório scripts."""
+"""Tests that exercise the 'env_loader' command in the scripts directory."""

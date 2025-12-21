@@ -1,1 +1,1 @@
-"""Coleção de testes que cobrem os comandos do diretório ``scripts/``."""
+"""Collection of tests that cover the commands in the ``scripts/`` directory."""

@@ -1,1 +1,1 @@
-"""Testes que exercitam o comando 'check_all' do diretório scripts."""
+"""Tests that exercise the 'check_all' command in the scripts directory."""

@@ -1,1 +1,1 @@
-"""Testes que exercitam o comando 'update_from_template' do diretório scripts."""
+"""Tests that exercise the 'update_from_template' command in the scripts directory."""

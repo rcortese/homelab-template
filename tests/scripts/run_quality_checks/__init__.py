@@ -1,1 +1,1 @@
-"""Testes que exercitam o comando 'run_quality_checks' do diretório scripts."""
+"""Tests that exercise the 'run_quality_checks' command in the scripts directory."""

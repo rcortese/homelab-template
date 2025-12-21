@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # shellcheck source-path=SCRIPTDIR
-# Script de manutenção para verificar e recuperar bancos SQLite.
+# Maintenance script to check and recover SQLite databases.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -17,7 +17,7 @@ if [[ "$ORIGINAL_PWD" != "$REPO_ROOT" ]]; then
 fi
 
 INSTANCE_NAME=""
-REQUESTED_DATA_DIR="" # Utilizado pela rotina registrada em trap.
+REQUESTED_DATA_DIR="" # Used by the routine registered in trap.
 RESUME_ON_EXIT=1
 SQLITE3_BIN="${SQLITE3_BIN:-sqlite3}"
 SQLITE3_MODE="${SQLITE3_MODE:-container}"
@@ -31,7 +31,7 @@ SQLITE3_BACKEND=""
 SQLITE3_BIN_PATH=""
 
 declare -ag COMPOSE_CMD=()
-declare -ag PAUSED_SERVICES=() # Modificado quando serviços são pausados e lido no trap EXIT.
+declare -ag PAUSED_SERVICES=() # Updated when services are paused and read in the EXIT trap.
 PAUSED_STACK=0
 
 ALERTS=()
@@ -285,7 +285,7 @@ parse_args() {
       REQUESTED_DATA_DIR="$1"
       ;;
     --no-resume)
-      # shellcheck disable=SC2034  # Lido pelo trap EXIT.
+      # shellcheck disable=SC2034  # Read by the EXIT trap.
       RESUME_ON_EXIT=0
       ;;
     --output)
@@ -437,7 +437,7 @@ if ((${#PAUSED_SERVICES[@]} > 0)); then
   if ! "${COMPOSE_CMD[@]}" pause "${PAUSED_SERVICES[@]}"; then
     echo "[!] Failed to pause services: ${PAUSED_SERVICES[*]}" >&2
   else
-    # shellcheck disable=SC2034  # Lido pelo trap EXIT.
+    # shellcheck disable=SC2034  # Read by the EXIT trap.
     PAUSED_STACK=1
   fi
 else

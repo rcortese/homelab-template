@@ -1,1 +1,1 @@
-"""Testes que exercitam o comando 'detect_template_commits' do diretório scripts."""
+"""Tests that exercise the 'detect_template_commits' command in the scripts directory."""

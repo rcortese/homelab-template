@@ -68,7 +68,7 @@ def test_dry_run_outputs_planned_actions(repo_copy: Path) -> None:
             if hasattr(os, "getuid"):
                 pre_stats[directory] = directory.stat()
         else:
-            assert not directory.exists(), f"{directory} deveria estar ausente antes do dry-run"
+            assert not directory.exists(), f"{directory} should be absent before the dry-run"
 
     pre_dirs_snapshot, pre_files_snapshot = _snapshot_tree(repo_copy)
 
@@ -90,7 +90,7 @@ def test_dry_run_outputs_planned_actions(repo_copy: Path) -> None:
 
     for directory, existed_before in pre_existing.items():
         if existed_before:
-            assert directory.exists(), f"{directory} deveria permanecer existente após o dry-run"
+            assert directory.exists(), f"{directory} should remain present after the dry-run"
             post_contents = sorted(child.relative_to(directory) for child in directory.rglob("*"))
             assert post_contents == pre_contents[directory]
             if hasattr(os, "getuid") and directory in pre_stats:
@@ -99,7 +99,7 @@ def test_dry_run_outputs_planned_actions(repo_copy: Path) -> None:
                 assert stats.st_uid == previous_stats.st_uid
                 assert stats.st_gid == previous_stats.st_gid
         else:
-            assert not directory.exists(), f"{directory} não deveria ser criado em um dry-run"
+            assert not directory.exists(), f"{directory} should not be created during a dry-run"
 
 
 def test_script_creates_directories_and_applies_owner(repo_copy: Path) -> None:

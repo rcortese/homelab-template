@@ -1,1 +1,1 @@
-"""Testes que exercitam o comando 'compose' do diretório scripts."""
+"""Tests that exercise the 'compose' command in the scripts directory."""

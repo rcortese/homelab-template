@@ -1,1 +1,1 @@
-"""Testes que exercitam o comando 'bootstrap_instance' do diretório scripts."""
+"""Tests that exercise the 'bootstrap_instance' command in the scripts directory."""

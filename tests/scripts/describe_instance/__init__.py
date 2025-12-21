@@ -1,1 +1,1 @@
-"""Testes que exercitam o comando 'describe_instance' do diretório scripts."""
+"""Tests that exercise the 'describe_instance' command in the scripts directory."""
