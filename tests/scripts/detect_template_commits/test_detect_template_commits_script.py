@@ -124,7 +124,7 @@ def test_detect_template_commits_help_flags(tmp_path, flag):
     )
 
     assert result.returncode == 0
-    assert "Uso: scripts/detect_template_commits.sh [opções]" in result.stdout
+    assert "Usage: scripts/detect_template_commits.sh [options]" in result.stdout
     assert "-h, --help" in result.stdout
 
 
@@ -190,7 +190,7 @@ def test_detect_template_commits_respects_custom_output(tmp_path):
     assert result.returncode == 0
     assert f"ORIGINAL_COMMIT_ID={original_commit}" in result.stdout
     assert f"FIRST_COMMIT_ID={first_commit}" in result.stdout
-    assert f"Valores salvos em: {custom_output}" in result.stdout
+    assert f"Values saved to: {custom_output}" in result.stdout
 
     assert custom_output.exists()
     content = custom_output.read_text(encoding="utf-8")
