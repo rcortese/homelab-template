@@ -379,7 +379,7 @@ def test_table_summary_highlights_overlays(
         assert formatted in stdout
 
     log_lines = [line for line in log_path.read_text(encoding="utf-8").splitlines() if line.strip()]
-    assert log_lines, "esperado ao menos uma chamada ao stub do docker compose"
+    assert log_lines, "expected at least one call to the docker compose stub"
     parsed = [json.loads(line)["argv"] for line in log_lines]
     config_call = _find_config_json_call(parsed)
 
@@ -499,7 +499,7 @@ def test_json_summary_structure(
     ]
 
     log_lines = [line for line in log_path.read_text(encoding="utf-8").splitlines() if line.strip()]
-    assert log_lines, "esperado ao menos uma chamada ao stub do docker compose"
+    assert log_lines, "expected at least one call to the docker compose stub"
     parsed = [json.loads(line)["argv"] for line in log_lines]
     config_call = _find_config_json_call(parsed)
 
@@ -550,4 +550,4 @@ def test_compose_config_failure_is_propagated(repo_copy: Path, tmp_path: Path) -
     assert result.stdout == ""
 
     log_lines = [line for line in log_path.read_text(encoding="utf-8").splitlines() if line.strip()]
-    assert log_lines, "esperado ao menos uma chamada ao stub do docker compose"
+    assert log_lines, "expected at least one call to the docker compose stub"
