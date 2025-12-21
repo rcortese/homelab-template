@@ -1,1 +1,1 @@
-"""Testes que exercitam o comando 'deploy_instance' do diretório scripts."""
+"""Tests that exercise the 'deploy_instance' command in the scripts directory."""

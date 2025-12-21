@@ -1,1 +1,1 @@
-"""Testes que exercitam o comando 'check_db_integrity' do diretório scripts."""
+"""Tests that exercise the 'check_db_integrity' command in the scripts directory."""

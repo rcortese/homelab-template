@@ -1,1 +1,1 @@
-"""Testes que exercitam o comando 'check_structure' do diretório scripts."""
+"""Tests that exercise the 'check_structure' command in the scripts directory."""

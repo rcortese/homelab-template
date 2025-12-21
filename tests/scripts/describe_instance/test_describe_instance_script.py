@@ -266,7 +266,7 @@ def test_list_flag_prints_available_instances(
     assert result.returncode == 0, result.stderr
 
     lines = [line.strip() for line in result.stdout.splitlines() if line.strip()]
-    assert lines, "esperado conteúdo na saída"
+    assert lines, "expected output content"
     assert lines[0] == "Available instances:"
 
     bullets = [line[2:].strip() for line in lines[1:] if line.startswith("• ")]

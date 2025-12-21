@@ -1,1 +1,1 @@
-"""Testes que exercitam o comando 'env_helpers' do diretório scripts."""
+"""Tests that exercise the 'env_helpers' command in the scripts directory."""

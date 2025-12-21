@@ -1,1 +1,1 @@
-"""Testes que exercitam o comando 'backup' do diretório scripts."""
+"""Tests that exercise the 'backup' command in the scripts directory."""
