@@ -1,21 +1,6 @@
 #!/usr/bin/env bash
 # shellcheck source-path=SCRIPTDIR
 # Usage: scripts/check_health.sh [--format text|json] [--output <file>] [instance]
-#
-# Arguments:
-#   instance (optional): identifier used by compose/docker-compose.<instance>.yml manifests loaded from compose/base.yml.
-#                        When provided, the script also searches for env/local/<instance>.env.
-# Options:
-#   --format text|json    Controls the output format (default: text).
-#   --output <file>       Optional path to write the generated output.
-# Environment:
-#   COMPOSE_FILES        Additional Compose manifests to apply (space-separated).
-#   COMPOSE_ENV_FILES    Explicit env chain for docker compose. Separate entries
-#                        with spaces or newlines.
-#   HEALTH_SERVICES      List (comma- or space-separated) of services for log inspection.
-# Examples:
-#   scripts/check_health.sh core
-#   HEALTH_SERVICES="api worker" scripts/check_health.sh media
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -51,24 +36,15 @@ print_help() {
   cat <<'EOF'
 Usage: scripts/check_health.sh [options] [instance]
 
-Checks the basic status of an instance using multiple compose files (via COMPOSE_FILES).
-
-Positional arguments:
-  instance   Instance name (for example: core). Determines which compose/env files are loaded.
+Checks service status for an instance and prints logs for the monitored services.
 
 Options:
   --format {text,json}  Defines the output format (default: text).
   --output <file>       Writes the final output to the provided path in addition to stdout.
-  Relevant environment variables:
-  COMPOSE_FILES     Overrides the Compose manifests used. Separate entries with spaces.
-  COMPOSE_ENV_FILES Explicit env chain for docker compose. Separate entries with spaces.
-  HEALTH_SERVICES   List (comma- or space-separated) of services for log inspection.
 
 Examples:
   scripts/check_health.sh core
-  scripts/check_health.sh --format json core
   scripts/check_health.sh --format json --output status.json media
-  HEALTH_SERVICES="api worker" scripts/check_health.sh media
 EOF
 }
 
