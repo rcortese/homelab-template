@@ -213,7 +213,7 @@ def test_script_fails_with_pending_changes(tmp_path):
     ).stdout.strip()
 
     # Introduce an uncommitted change
-    (consumer / "local.txt").write_text("local change\nmodificação pendente\n", encoding="utf-8")
+    (consumer / "local.txt").write_text("local change\npending modification\n", encoding="utf-8")
 
     env = {
         **os.environ,
