@@ -39,7 +39,7 @@ def _resolve_compose_manifest(
             return candidate
 
     raise AssertionError(
-        f"Não foi possível localizar um manifest Compose para a instância {instance_name!r}."
+        f"Could not locate a Compose manifest for instance {instance_name!r}."
     )
 
 
