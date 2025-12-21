@@ -38,7 +38,7 @@ run_step() {
 
   if ! "${cmd_exec[@]}"; then
     local status=$?
-    echo "[!] Falha ao executar passo: ${description}" >&2
+    echo "[!] Failed to execute step: ${description}" >&2
     return $status
   fi
 

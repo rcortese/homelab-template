@@ -236,7 +236,7 @@ build_deploy_context() {
 
   local -a compose_files_list=()
   if ! build_compose_file_plan "$instance" compose_files_list extra_compose_files; then
-    echo "[!] Falha ao montar lista de arquivos Compose para '$instance'." >&2
+    echo "[!] Failed to assemble Compose file list for '$instance'." >&2
     return 1
   fi
 

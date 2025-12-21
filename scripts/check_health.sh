@@ -328,7 +328,7 @@ if [[ -n "${COMPOSE_ENV_FILES:-}" ]]; then
 fi
 
 if ! "${BUILD_COMPOSE_CMD[@]}" >/dev/null; then
-  echo "Error: falha ao gerar docker-compose.yml consolidado." >&2
+  echo "Error: failed to generate consolidated docker-compose.yml." >&2
   exit 1
 fi
 
