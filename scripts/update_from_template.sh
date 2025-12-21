@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
 # shellcheck source-path=SCRIPTDIR
-# Usage: scripts/update_from_template.sh [--remote <nome>] [--original-commit <hash>] [--first-local-commit <hash>] [--target-branch <branch>] [--dry-run]
+# Usage: scripts/update_from_template.sh [--remote <name>] [--original-commit <hash>] [--first-local-commit <hash>] [--target-branch <branch>] [--dry-run]
 #
-# Argumentos principais:
-#   --remote / TEMPLATE_REMOTE               Nome do remote que aponta para o template de origem.
-#   --original-commit / ORIGINAL_COMMIT_ID   Hash do commit do template onde o fork começou.
-#   --first-local-commit / FIRST_COMMIT_ID   Hash do primeiro commit exclusivo do repositório derivado.
-#   --target-branch / TARGET_BRANCH          Branch remoto que contém a versão atual do template.
+# Main arguments:
+#   --remote / TEMPLATE_REMOTE               Remote name pointing to the upstream template.
+#   --original-commit / ORIGINAL_COMMIT_ID   Commit hash of the template where the fork started.
+#   --first-local-commit / FIRST_COMMIT_ID   Hash of the first commit unique to the derived repository.
+#   --target-branch / TARGET_BRANCH          Remote branch that contains the current template version.
 #
-# Opções:
-#   --dry-run  Apenas mostra os comandos que seriam executados.
-#   --help     Exibe esta mensagem de ajuda.
+# Options:
+#   --dry-run  Only shows the commands that would be executed.
+#   --help     Shows this help message.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -18,24 +18,24 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 usage() {
   cat <<'EOF'
-Uso: scripts/update_from_template.sh [opções]
+Usage: scripts/update_from_template.sh [options]
 
-Sincroniza o repositório atual com o template de origem utilizando git rebase --onto.
+Syncs the current repository with the upstream template using git rebase --onto.
 
-Parâmetros obrigatórios (podem ser definidos via variáveis de ambiente ou informados interativamente quando o script é executado em um terminal):
-  --remote <nome>                 ou TEMPLATE_REMOTE
-  --original-commit <hash>        ou ORIGINAL_COMMIT_ID
-  --first-local-commit <hash>     ou FIRST_COMMIT_ID
-  --target-branch <branch>        ou TARGET_BRANCH
+Required parameters (can be set via environment variables or entered interactively when running in a terminal):
+  --remote <name>                 or TEMPLATE_REMOTE
+  --original-commit <hash>        or ORIGINAL_COMMIT_ID
+  --first-local-commit <hash>     or FIRST_COMMIT_ID
+  --target-branch <branch>        or TARGET_BRANCH
 
-Opções adicionais:
-  --dry-run   Exibe os comandos que seriam executados sem aplicar alterações.
-  -h, --help  Mostra esta ajuda e encerra a execução.
+Additional options:
+  --dry-run   Prints the commands that would be executed without applying changes.
+  -h, --help  Shows this help message and exits.
 
-Pré-condições:
-  • O diretório de trabalho deve estar limpo (sem alterações locais pendentes de commit).
+Pre-conditions:
+  • The working directory must be clean (no uncommitted local changes).
 
-Exemplos:
+Examples:
   TEMPLATE_REMOTE=template ORIGINAL_COMMIT_ID=abc1234 FIRST_COMMIT_ID=def5678 TARGET_BRANCH=main \\
     scripts/update_from_template.sh
 
@@ -49,7 +49,7 @@ EOF
 }
 
 error() {
-  echo "Erro: $1" >&2
+  echo "Error: $1" >&2
   echo >&2
   usage >&2
   exit 1
@@ -81,27 +81,27 @@ while [[ $# -gt 0 ]]; do
     shift
     ;;
   --remote)
-    [[ $# -lt 2 ]] && error "--remote requer um argumento."
+    [[ $# -lt 2 ]] && error "--remote requires an argument."
     template_remote="$2"
     shift 2
     ;;
   --original-commit)
-    [[ $# -lt 2 ]] && error "--original-commit requer um argumento."
+    [[ $# -lt 2 ]] && error "--original-commit requires an argument."
     original_commit="$2"
     shift 2
     ;;
   --first-local-commit)
-    [[ $# -lt 2 ]] && error "--first-local-commit requer um argumento."
+    [[ $# -lt 2 ]] && error "--first-local-commit requires an argument."
     first_local_commit="$2"
     shift 2
     ;;
   --target-branch)
-    [[ $# -lt 2 ]] && error "--target-branch requer um argumento."
+    [[ $# -lt 2 ]] && error "--target-branch requires an argument."
     target_branch="$2"
     shift 2
     ;;
   *)
-    error "argumento desconhecido: $1"
+    error "unknown argument: $1"
     ;;
   esac
 done
@@ -109,68 +109,68 @@ done
 cd "$REPO_ROOT"
 
 if ! template_validate_git_repository; then
-  error "este diretório não é um repositório Git."
+  error "this directory is not a Git repository."
 fi
 
 default_template_remote="$(template_remote_preferred_existing)"
 
 if [[ -z "$template_remote" ]]; then
-  require_interactive_input "remote do template não informado. Use --remote, defina TEMPLATE_REMOTE ou responda às perguntas interativas."
-  template_remote="$(prompt_value_with_default "Informe o nome do remote do template" "$default_template_remote")"
+  require_interactive_input "template remote not provided. Use --remote, set TEMPLATE_REMOTE, or answer the interactive prompts."
+  template_remote="$(prompt_value_with_default "Enter the template remote name" "$default_template_remote")"
 fi
 
 if [[ -z "$target_branch" ]]; then
-  require_interactive_input "branch alvo não informada. Use --target-branch, defina TARGET_BRANCH ou responda às perguntas interativas."
-  target_branch="$(prompt_value_with_default "Informe a branch do template" "main")"
+  require_interactive_input "target branch not provided. Use --target-branch, set TARGET_BRANCH, or answer the interactive prompts."
+  target_branch="$(prompt_value_with_default "Enter the template branch" "main")"
 fi
 
 if [[ -z "$original_commit" ]]; then
-  require_interactive_input "hash do commit original do template não informado. Use --original-commit, defina ORIGINAL_COMMIT_ID ou responda às perguntas interativas."
-  echo "Dica: utilize 'git merge-base <remote>/<branch> HEAD' para encontrar o ancestral comum." >&2
-  original_commit="$(prompt_required_value "Informe o hash do commit original do template")"
+  require_interactive_input "original template commit hash not provided. Use --original-commit, set ORIGINAL_COMMIT_ID, or answer the interactive prompts."
+  echo "Tip: use 'git merge-base <remote>/<branch> HEAD' to find the common ancestor." >&2
+  original_commit="$(prompt_required_value "Enter the original template commit hash")"
 fi
 
 if [[ -z "$first_local_commit" ]]; then
-  require_interactive_input "hash do primeiro commit local não informado. Use --first-local-commit, defina FIRST_COMMIT_ID ou responda às perguntas interativas."
-  echo "Dica: use 'git log --oneline <hash-original>..HEAD' para localizar o primeiro commit exclusivo." >&2
-  first_local_commit="$(prompt_required_value "Informe o hash do primeiro commit local exclusivo")"
+  require_interactive_input "first local commit hash not provided. Use --first-local-commit, set FIRST_COMMIT_ID, or answer the interactive prompts."
+  echo "Tip: use 'git log --oneline <original-hash>..HEAD' to locate the first unique commit." >&2
+  first_local_commit="$(prompt_required_value "Enter the first local-only commit hash")"
 fi
 
-[[ -n "$template_remote" ]] || error "remote do template não informado. Use --remote ou defina TEMPLATE_REMOTE."
-[[ -n "$original_commit" ]] || error "hash do commit original do template não informado. Use --original-commit ou defina ORIGINAL_COMMIT_ID."
-[[ -n "$first_local_commit" ]] || error "hash do primeiro commit local não informado. Use --first-local-commit ou defina FIRST_COMMIT_ID."
-[[ -n "$target_branch" ]] || error "branch alvo não informada. Use --target-branch ou defina TARGET_BRANCH."
+[[ -n "$template_remote" ]] || error "template remote not provided. Use --remote or set TEMPLATE_REMOTE."
+[[ -n "$original_commit" ]] || error "original template commit hash not provided. Use --original-commit or set ORIGINAL_COMMIT_ID."
+[[ -n "$first_local_commit" ]] || error "first local commit hash not provided. Use --first-local-commit or set FIRST_COMMIT_ID."
+[[ -n "$target_branch" ]] || error "target branch not provided. Use --target-branch or set TARGET_BRANCH."
 
 if ! template_validate_commit_exists "$original_commit"; then
-  error "commit original $original_commit não foi encontrado."
+  error "original commit $original_commit was not found."
 fi
 
 if ! template_validate_commit_exists "$first_local_commit"; then
-  error "primeiro commit local $first_local_commit não foi encontrado."
+  error "first local commit $first_local_commit was not found."
 fi
 
 if ! template_validate_remote_exists "$template_remote"; then
-  error "remote '$template_remote' não está configurado."
+  error "remote '$template_remote' is not configured."
 fi
 
 if ! template_validate_is_ancestor "$original_commit" "$first_local_commit"; then
-  error "o commit $original_commit não é ancestral de $first_local_commit. Verifique os identificadores informados."
+  error "commit $original_commit is not an ancestor of $first_local_commit. Check the provided identifiers."
 fi
 
 if ! template_validate_is_ancestor "$first_local_commit" HEAD; then
   current_branch_name="$(git rev-parse --abbrev-ref HEAD)"
-  error "o commit $first_local_commit não faz parte da branch atual ($current_branch_name)."
+  error "commit $first_local_commit is not part of the current branch ($current_branch_name)."
 fi
 
 if ! template_validate_remote_branch_exists "$template_remote" "$target_branch"; then
-  error "branch '$target_branch' não encontrado no remote '$template_remote'."
+  error "branch '$target_branch' not found on remote '$template_remote'."
 fi
 
 current_branch="$(git rev-parse --abbrev-ref HEAD)"
 remote_ref="$template_remote/$target_branch"
 
 if ! template_validate_worktree_clean; then
-  error "existem alterações locais não commitadas. finalize ou descarte-as antes de continuar."
+  error "there are uncommitted local changes. Finish or discard them before continuing."
 fi
 
 if [[ "$dry_run" == true ]]; then
@@ -180,4 +180,4 @@ fi
 
 template_sync_execute "$template_remote" "$target_branch" "$remote_ref" "$first_local_commit" "$current_branch"
 
-echo "Atualização concluída. Revise os commits reaplicados e execute os testes da stack."
+echo "Update completed. Review the rebased commits and run the stack tests."

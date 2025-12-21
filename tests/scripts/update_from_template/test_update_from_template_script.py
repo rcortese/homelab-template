@@ -62,7 +62,7 @@ def test_require_interactive_input_fallback_without_error_helper(tmp_path):
     script.write_text(
         """#!/usr/bin/env bash
 source \"{lib_path}\"
-require_interactive_input \"interação obrigatória não disponível\"
+require_interactive_input \"interactive input is required but unavailable\"
 exit $?
 """.format(lib_path=REPO_ROOT / "scripts" / "lib" / "template_prompts.sh"),
         encoding="utf-8",
@@ -74,7 +74,7 @@ exit $?
     )
 
     assert result.returncode != 0
-    assert "interação obrigatória não disponível" in result.stderr
+    assert "interactive input is required but unavailable" in result.stderr
 
 
 def test_require_interactive_input_returns_error_when_helper_does_not_exit(tmp_path):
@@ -86,7 +86,7 @@ error() {{
   return 0
 }}
 source "{REPO_ROOT / "scripts" / "lib" / "template_prompts.sh"}"
-require_interactive_input "entrada interativa necessária"
+require_interactive_input "interactive input is required"
 exit $?
 """,
         encoding="utf-8",
@@ -98,7 +98,7 @@ exit $?
     )
 
     assert result.returncode != 0
-    assert "[error] entrada interativa necessária" in result.stderr
+    assert "[error] interactive input is required" in result.stderr
 
 
 def test_script_requires_remote_argument(tmp_path):
@@ -115,7 +115,7 @@ def test_script_requires_remote_argument(tmp_path):
     )
 
     assert result.returncode != 0
-    assert "remote do template não informado" in result.stderr
+    assert "template remote not provided" in result.stderr
 
 
 def test_dry_run_outputs_expected_commands(tmp_path):
@@ -212,7 +212,7 @@ def test_script_fails_with_pending_changes(tmp_path):
         check=True,
     ).stdout.strip()
 
-    # Introduz uma alteração não commitada
+    # Introduce an uncommitted change
     (consumer / "local.txt").write_text("local change\nmodificação pendente\n", encoding="utf-8")
 
     env = {
@@ -233,7 +233,7 @@ def test_script_fails_with_pending_changes(tmp_path):
     )
 
     assert result.returncode != 0
-    assert "alterações locais não commitadas" in result.stderr
+    assert "there are uncommitted local changes" in result.stderr
 
 
 def test_script_errors_when_remote_missing(tmp_path):
@@ -269,7 +269,7 @@ def test_script_errors_when_remote_missing(tmp_path):
     )
 
     assert result.returncode != 0
-    assert "remote 'missing' não está configurado" in result.stderr
+    assert "remote 'missing' is not configured" in result.stderr
 
 
 def test_script_errors_when_target_branch_missing(tmp_path):
@@ -309,7 +309,7 @@ def test_script_errors_when_target_branch_missing(tmp_path):
     )
 
     assert result.returncode != 0
-    assert "branch 'nonexistent' não encontrado no remote 'template'" in result.stderr
+    assert "branch 'nonexistent' not found on remote 'template'" in result.stderr
 
 
 def test_script_errors_when_original_commit_is_invalid(tmp_path):
@@ -345,7 +345,7 @@ def test_script_errors_when_original_commit_is_invalid(tmp_path):
     )
 
     assert result.returncode != 0
-    assert "commit original deadbeef não foi encontrado" in result.stderr
+    assert "original commit deadbeef was not found" in result.stderr
 
 
 def test_script_errors_when_first_commit_not_descends_from_original(tmp_path):
@@ -419,5 +419,5 @@ def test_script_errors_when_first_commit_not_descends_from_original(tmp_path):
 
     assert result.returncode != 0
     assert (
-        f"o commit {original_commit} não é ancestral de {first_commit}" in result.stderr
+        f"commit {original_commit} is not an ancestor of {first_commit}" in result.stderr
     )
