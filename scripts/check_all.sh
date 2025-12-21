@@ -1,13 +1,6 @@
 #!/usr/bin/env bash
 # Usage: scripts/check_all.sh [--with-quality-checks]
-#
-# Runs the default sequence of local validations for the template.
-# Chains the essential scripts in the recommended order and stops
-# immediately if any of them fails.
-#
-# Examples:
-#   scripts/check_all.sh
-#   scripts/check_all.sh --with-quality-checks
+# Runs the core validation sequence for the template.
 set -euo pipefail
 
 usage() {
