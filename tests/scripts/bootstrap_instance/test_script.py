@@ -59,7 +59,7 @@ def test_creates_files_and_updates_docs(repo_copy: Path) -> None:
     assert "env/staging.example.env" in doc_content
 
     docs_index = docs_readme.read_text(encoding="utf-8")
-    assert "## Aplicações" in docs_index
+    assert "## Applications" in docs_index
     assert "[Analytics](./apps/analytics.md)" in docs_index
 
 
