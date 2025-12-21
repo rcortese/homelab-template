@@ -97,7 +97,7 @@ python_runtime__run() {
     return $?
   fi
 
-  echo "Error: nenhum runtime Python encontrado nem Docker disponível." >&2
+  echo "Error: no Python runtime found and Docker is unavailable." >&2
   return 1
 }
 
@@ -142,6 +142,6 @@ python_runtime__run_stdin() {
     return $?
   fi
 
-  echo "Error: nenhum runtime Python encontrado nem Docker disponível." >&2
+  echo "Error: no Python runtime found and Docker is unavailable." >&2
   return 1
 }
