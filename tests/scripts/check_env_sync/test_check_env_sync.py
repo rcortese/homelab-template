@@ -78,7 +78,7 @@ def test_check_env_sync_succeeds_when_everything_matches(repo_copy: Path) -> Non
     result = run_check(repo_copy)
 
     assert result.returncode == 0, result.stderr
-    assert "Todas as variáveis de ambiente estão sincronizadas." in result.stdout
+    assert "All environment variables are in sync." in result.stdout
 
 
 def test_load_metadata_accepts_instance_without_overrides(
@@ -107,7 +107,7 @@ def test_check_env_sync_detects_missing_variables(
     result = run_check(repo_copy)
 
     assert result.returncode == 1
-    assert f"Instância '{instance_name}'" in result.stdout
+    assert f"Instance '{instance_name}'" in result.stdout
     assert "CORE_MISSING_VAR" in result.stdout
 
 
@@ -209,7 +209,7 @@ def test_check_env_sync_detects_obsolete_variables(
     result = run_check(repo_copy)
 
     assert result.returncode == 1
-    assert "Variáveis obsoletas" in result.stdout
+    assert "Obsolete variables" in result.stdout
     assert "UNUSED_ONLY_FOR_TEST" in result.stdout
 
 
@@ -217,7 +217,7 @@ def test_check_env_sync_instance_option_limits_validation(
     repo_copy: Path, compose_instances_data: ComposeInstancesData
 ) -> None:
     if len(compose_instances_data.instance_names) < 2:
-        pytest.skip("É necessário ao menos duas instâncias para validar o filtro por instância.")
+        pytest.skip("At least two instances are required to validate instance filtering.")
 
     target_instance = compose_instances_data.instance_names[0]
     other_instance = compose_instances_data.instance_names[1]
@@ -241,7 +241,7 @@ def test_check_env_sync_deduplicates_instance_arguments(
     repo_copy: Path, compose_instances_data: ComposeInstancesData
 ) -> None:
     if len(compose_instances_data.instance_names) < 2:
-        pytest.skip("É necessário ao menos duas instâncias para validar o filtro por instância.")
+        pytest.skip("At least two instances are required to validate instance filtering.")
 
     target_instance = compose_instances_data.instance_names[0]
     error_instance = compose_instances_data.instance_names[1]
@@ -264,8 +264,8 @@ def test_check_env_sync_deduplicates_instance_arguments(
 
     assert result.returncode == 1
     assert missing_variable in result.stdout
-    assert result.stdout.count(f"Instância '{error_instance}'") == 1
-    assert f"Instância '{target_instance}'" not in result.stdout
+    assert result.stdout.count(f"Instance '{error_instance}'") == 1
+    assert f"Instance '{target_instance}'" not in result.stdout
 
 
 def test_build_sync_report_uses_runtime_provided_variables(
@@ -354,7 +354,7 @@ def test_check_env_sync_reports_unknown_instance(repo_copy: Path) -> None:
     result = run_check(repo_copy, ["--instance", "unknown-instance"])
 
     assert result.returncode == 1
-    assert "Instâncias desconhecidas" in result.stderr
+    assert "Unknown instances" in result.stderr
 
 
 def test_check_env_sync_detects_missing_template(
@@ -368,11 +368,11 @@ def test_check_env_sync_detects_missing_template(
 
     assert result.returncode == 1
     assert (
-        f"Instância '{instance_name}' não possui arquivo env/<instancia>.example.env documentado."
+        f"Instance '{instance_name}' does not have a documented env/<instance>.example.env file."
         in result.stdout
     )
-    assert "Divergências encontradas entre manifests Compose e arquivos .env exemplo." in result.stdout
-    assert "Todas as variáveis de ambiente estão sincronizadas." not in result.stdout
+    assert "Differences found between Compose manifests and example .env files." in result.stdout
+    assert "All environment variables are in sync." not in result.stdout
 
 
 def test_check_env_sync_allows_missing_base_file(repo_copy: Path) -> None:
@@ -384,7 +384,7 @@ def test_check_env_sync_allows_missing_base_file(repo_copy: Path) -> None:
 
     assert result.returncode == 0, result.stderr
     assert "compose/base.yml" not in result.stderr
-    assert "Todas as variáveis de ambiente estão sincronizadas." in result.stdout
+    assert "All environment variables are in sync." in result.stdout
 
 
 def test_check_env_sync_reports_missing_compose_override(repo_copy: Path) -> None:
@@ -409,13 +409,13 @@ EOF
     missing_path = (repo_copy / "compose" / "missing.yml").resolve()
     assert result.returncode == 1
     assert "[!]" in result.stderr
-    assert "Arquivo Compose ausente" in result.stderr
+    assert "Compose file missing" in result.stderr
     assert str(missing_path) in result.stderr
 
 
 def test_check_env_sync_reports_metadata_error_from_compose_script(repo_copy: Path) -> None:
     script_path = repo_copy / "scripts" / "lib" / "compose_instances.sh"
-    stub_error = "Erro simulado ao carregar instâncias."
+    stub_error = "Simulated error while loading instances."
     script_path.write_text(
         f"""#!/usr/bin/env bash
 echo "{stub_error}" >&2
@@ -452,7 +452,7 @@ EOF
     result = run_check(repo_copy)
 
     assert result.returncode == 1
-    assert "Arquivo base declarado ausente" in result.stderr
+    assert "Declared base file is missing" in result.stderr
 
 
 def test_main_filters_instances_before_build(monkeypatch, tmp_path: Path) -> None:
@@ -492,7 +492,7 @@ def test_main_filters_instances_before_build(monkeypatch, tmp_path: Path) -> Non
     exit_code = main(["--repo-root", str(tmp_path), "--instance", "beta"])
 
     assert exit_code == 0
-    assert captured_metadata, "build_sync_report não foi chamado"
+    assert captured_metadata, "build_sync_report was not called"
     filtered_metadata = captured_metadata[0]
     assert filtered_metadata.instances == ["beta"]
     assert set(filtered_metadata.files_by_instance.keys()) == {"beta"}
@@ -607,5 +607,5 @@ services:
     variables = extract_compose_variables([compose_file])
     stderr = capfd.readouterr().err
 
-    assert "Falha ao analisar YAML" in stderr
+    assert "Failed to parse YAML" in stderr
     assert "MALFORMED_VAR" in variables

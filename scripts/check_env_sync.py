@@ -91,7 +91,9 @@ def load_compose_metadata(repo_root: Path) -> ComposeMetadata:
         check=False,
     )
     if result.returncode != 0:
-        raise ComposeMetadataError(result.stderr.strip() or "Falha ao descobrir instâncias Compose.")
+        raise ComposeMetadataError(
+            result.stderr.strip() or "Failed to discover Compose instances."
+        )
 
     base_file: Path | None = None
     instances: List[str] = []
@@ -109,7 +111,7 @@ def load_compose_metadata(repo_root: Path) -> ComposeMetadata:
                 candidate = (repo_root / base_value).resolve()
                 if not candidate.exists():
                     raise ComposeMetadataError(
-                        f"Arquivo base declarado ausente: {candidate}"
+                        f"Declared base file is missing: {candidate}"
                     )
                 base_file = candidate
             else:
@@ -130,9 +132,9 @@ def load_compose_metadata(repo_root: Path) -> ComposeMetadata:
                 env_templates[instance] = (repo_root / value).resolve() if value else None
 
     if base_file is not None and not base_file.exists():
-        raise ComposeMetadataError("Arquivo compose/base.yml não encontrado.")
+        raise ComposeMetadataError("compose/base.yml file not found.")
     if not instances:
-        raise ComposeMetadataError("Nenhuma instância Compose detectada.")
+        raise ComposeMetadataError("No Compose instances detected.")
 
     normalized_files_map: Dict[str, Sequence[Path]] = {}
     for instance in instances:
@@ -302,14 +304,14 @@ def extract_compose_variables(paths: Iterable[Path]) -> Set[str]:
         try:
             content = path.read_text(encoding="utf-8")
         except FileNotFoundError as exc:
-            raise ComposeMetadataError(f"Arquivo Compose ausente: {path}") from exc
+            raise ComposeMetadataError(f"Compose file missing: {path}") from exc
         try:
             for document in yaml.safe_load_all(content):
                 for value in _iter_yaml_strings(document):
                     variables.update(_collect_substitution_variables(value))
         except yaml.YAMLError as exc:  # pragma: no cover - defensive parsing fallback
             print(
-                f"[!] Falha ao analisar YAML em {path}: {exc}. Utilizando fallback heurístico.",
+                f"[!] Failed to parse YAML in {path}: {exc}. Using heuristic fallback.",
                 file=sys.stderr,
             )
             variables.update(_collect_variables_from_text(content))
@@ -453,33 +455,35 @@ def build_sync_report(repo_root: Path, metadata: ComposeMetadata) -> SyncReport:
 
 def format_report(repo_root: Path, report: SyncReport) -> str:
     lines: List[str] = []
-    lines.append("Verificando variáveis de ambiente referenciadas pelos manifests Compose...")
+    lines.append("Checking environment variables referenced by Compose manifests...")
     lines.append("")
 
     for instance, missing in sorted(report.missing_by_instance.items()):
         if not missing:
             continue
-        lines.append(f"Instância '{instance}':")
+        lines.append(f"Instance '{instance}':")
         for var in sorted(missing):
-            lines.append(f"  - Variável ausente: {var}")
+            lines.append(f"  - Missing variable: {var}")
         lines.append("")
 
     for template in sorted(report.missing_templates):
-        lines.append(f"Instância '{template}' não possui arquivo env/<instancia>.example.env documentado.")
+        lines.append(
+            f"Instance '{template}' does not have a documented env/<instance>.example.env file."
+        )
     if report.missing_templates:
         lines.append("")
 
     for path, unused in sorted(report.unused_by_file.items(), key=lambda item: str(item[0])):
         rel_path = path.relative_to(repo_root)
-        lines.append(f"Variáveis obsoletas em {rel_path}:")
+        lines.append(f"Obsolete variables in {rel_path}:")
         for var in sorted(unused):
             lines.append(f"  - {var}")
         lines.append("")
 
     if not report.has_issues:
-        lines.append("Todas as variáveis de ambiente estão sincronizadas.")
+        lines.append("All environment variables are in sync.")
     else:
-        lines.append("Divergências encontradas entre manifests Compose e arquivos .env exemplo.")
+        lines.append("Differences found between Compose manifests and example .env files.")
 
     while lines and lines[-1] == "":
         lines.pop()
@@ -491,12 +495,14 @@ def determine_exit_code(report: SyncReport) -> int:
 
 
 def parse_args(argv: Sequence[str]) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Valida variáveis .env em relação aos manifests Compose.")
+    parser = argparse.ArgumentParser(
+        description="Validate .env variables against Compose manifests."
+    )
     parser.add_argument(
         "--repo-root",
         dest="repo_root",
         default=None,
-        help="Diretório raiz do repositório (padrão: diretório pai de scripts/).",
+        help="Repository root directory (default: parent of scripts/).",
     )
     parser.add_argument(
         "--instance",
@@ -504,7 +510,7 @@ def parse_args(argv: Sequence[str]) -> argparse.Namespace:
         action="append",
         default=None,
         help=(
-            "Restringe a validação às instâncias informadas. Pode ser repetido ou receber uma lista separada por vírgulas."
+            "Restrict validation to the provided instances. Can be repeated or supplied as a comma-separated list."
         ),
     )
     return parser.parse_args(argv)
@@ -529,14 +535,14 @@ def main(argv: Sequence[str] | None = None) -> int:
                         seen.add(candidate)
 
             if not requested_instances:
-                print("[!] Nenhuma instância válida foi informada.", file=sys.stderr)
+                print("[!] No valid instance was provided.", file=sys.stderr)
                 return 1
 
             known_instances = set(metadata.instances)
             missing_instances = sorted(set(requested_instances) - known_instances)
             if missing_instances:
                 formatted = ", ".join(missing_instances)
-                print(f"[!] Instâncias desconhecidas: {formatted}.", file=sys.stderr)
+                print(f"[!] Unknown instances: {formatted}.", file=sys.stderr)
                 return 1
 
             filtered_instances = [
@@ -563,7 +569,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(f"[!] {exc}", file=sys.stderr)
         return 1
     except FileNotFoundError as exc:
-        print(f"[!] Arquivo esperado não encontrado: {exc}", file=sys.stderr)
+        print(f"[!] Expected file not found: {exc}", file=sys.stderr)
         return 1
 
     output = format_report(repo_root, report)
