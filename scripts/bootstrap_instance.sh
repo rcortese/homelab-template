@@ -228,12 +228,12 @@ if [[ $WITH_DOCS -eq 1 ]]; then
   if [[ -f $docs_readme_file ]]; then
     doc_link="- [${APP_TITLE}](./apps/${APP_NAME}.md)"
     if ! grep -Fq "$doc_link" "$docs_readme_file"; then
-      if grep -q '^## Aplicações' "$docs_readme_file"; then
+      if grep -q '^## Applications' "$docs_readme_file"; then
         printf '\n%s\n' "$doc_link" >>"$docs_readme_file"
       else
         cat <<'DOCS_SECTION' >>"$docs_readme_file"
 
-## Aplicações
+## Applications
 
 DOCS_SECTION
         printf '%s\n' "$doc_link" >>"$docs_readme_file"
