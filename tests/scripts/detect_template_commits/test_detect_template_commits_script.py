@@ -231,8 +231,8 @@ def test_detect_template_commits_no_fetch_skips_fetch_invocation(tmp_path):
     env, log_file = create_git_stub(tmp_path)
 
     # PATH prioritizes our stub so the test can observe which git subcommands are
-    # executed, while REAL_GIT keeps merge-base, rev-list e afins funcionando
-    # ao delegar para o binário real.
+    # executed, while REAL_GIT keeps merge-base, rev-list, and similar commands
+    # working by delegating to the real binary.
     result = subprocess.run(
         [
             str(script),
