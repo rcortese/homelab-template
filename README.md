@@ -26,15 +26,13 @@ CI/CD pipelines, tests, and additional scripts can be added, but the directories
 2. Update the project name and metadata in the newly created `README.md` with your stack’s context.
 3. Review [`compose/`](docs/COMPOSE_GUIDE.md) and [`env/`](env/README.md) files to align services, ports, and variables with your needs.
 4. Adjust documentation in `docs/` following the guidance in the [Local documentation and customization](#local-documentation-and-customization) section of this template.
-5. Run the validation flow (`scripts/check_all.sh`) before the first commit.
-
-## Suggested flow for new repositories
-
-1. **Modeling** – record goals, requirements, and initial decisions in ADRs (`docs/ADR/`).
-2. **Infrastructure** – create manifests in `compose/` and map the corresponding variables in `env/`.
-3. **Automation** – adapt existing scripts to the new stack and document usage in `docs/OPERATIONS.md`.
-4. **Runbooks** – customize operational guides (`docs/core.md`, `docs/media.md`, etc.) to reflect real environments.
-5. **Quality** – keep `.github/workflows/` with `template-quality.yml` intact and add extra workflows as needed, documenting safe adjustments in [`docs/ci-overrides.md`](docs/ci-overrides.md). See also [`tests/README.md`](tests/README.md) to learn about the template’s default test suite.
+5. Configurar o projeto:
+   1. **Modeling** – record goals, requirements, and initial decisions in ADRs (`docs/ADR/`).
+   2. **Infrastructure** – create manifests in `compose/` and map the corresponding variables in `env/`.
+   3. **Automation** – adapt existing scripts to the new stack and document usage in `docs/OPERATIONS.md`.
+   4. **Runbooks** – customize operational guides (`docs/core.md`, `docs/media.md`, etc.) to reflect real environments.
+   5. **Quality** – keep `.github/workflows/` with `template-quality.yml` intact and add extra workflows as needed, documenting safe adjustments in [`docs/ci-overrides.md`](docs/ci-overrides.md). See also [`tests/README.md`](tests/README.md) to learn about the template’s default test suite.
+6. Run the validation flow (`scripts/check_all.sh`) before the first commit.
 
 <a id="local-documentation-and-customization"></a>
 ## Local documentation and customization
