@@ -37,6 +37,8 @@ compose_env_map__resolve_instance_env() {
     env_template_map["$instance"]="$env_template_rel"
   fi
 
+  : "${env_local_map[$instance]}" "${env_template_map[$instance]}"
+
   return 0
 }
 
