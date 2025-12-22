@@ -3,6 +3,43 @@
 # shellcheck source=scripts/lib/compose_paths.sh
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/compose_paths.sh"
 
+compose_env_map__resolve_instance_env() {
+  local repo_root="$1"
+  local instance="$2"
+  local env_dir_rel="$3"
+  local env_local_dir_rel="$4"
+  local -n global_env_files="$5"
+  local -n env_local_map="$6"
+  local -n env_template_map="$7"
+  local -n out_env_files_list="$8"
+
+  local env_local_rel="$env_local_dir_rel/${instance}.env"
+  local env_local_abs="$repo_root/$env_local_rel"
+  local env_template_rel="$env_dir_rel/${instance}.example.env"
+  local env_template_abs="$repo_root/$env_template_rel"
+
+  env_local_map["$instance"]=""
+  env_template_map["$instance"]=""
+  out_env_files_list=("${global_env_files[@]}")
+
+  if [[ -f "$env_local_abs" ]]; then
+    env_local_map["$instance"]="$env_local_rel"
+    out_env_files_list+=("$env_local_rel")
+  elif [[ -f "$env_template_abs" ]]; then
+    out_env_files_list+=("$env_template_rel")
+  else
+    echo "[!] No .env file found for instance '$instance'." >&2
+    echo "    Esperado: $env_local_rel ou $env_template_rel" >&2
+    return 1
+  fi
+
+  if [[ -f "$env_template_abs" ]]; then
+    env_template_map["$instance"]="$env_template_rel"
+  fi
+
+  return 0
+}
+
 load_compose_env_map() {
   if ! declare -p COMPOSE_INSTANCE_NAMES >/dev/null 2>&1; then
     echo "[!] COMPOSE_INSTANCE_NAMES not initialized. Run load_compose_discovery first." >&2
@@ -38,51 +75,30 @@ load_compose_env_map() {
     COMPOSE_ENV_GLOBAL_FILES=()
   fi
 
-  local instance env_local_rel env_local_abs env_template_rel env_template_abs
+  local instance
   for instance in "${COMPOSE_INSTANCE_NAMES[@]}"; do
-    env_local_rel="$env_local_dir_rel/${instance}.env"
-    env_local_abs="$repo_root/$env_local_rel"
-    env_template_rel="$env_dir_rel/${instance}.example.env"
-    env_template_abs="$repo_root/$env_template_rel"
-
     if [[ ! -v COMPOSE_INSTANCE_FILES[$instance] ]]; then
       echo "[!] Instance '$instance' not found in metadata." >&2
       return 1
     fi
 
-    if [[ -f "$env_local_abs" ]]; then
-      COMPOSE_INSTANCE_ENV_LOCAL[$instance]="$env_local_rel"
-    else
-      COMPOSE_INSTANCE_ENV_LOCAL[$instance]=""
-    fi
-
-    if [[ -f "$env_template_abs" ]]; then
-      COMPOSE_INSTANCE_ENV_TEMPLATES[$instance]="$env_template_rel"
-    else
-      COMPOSE_INSTANCE_ENV_TEMPLATES[$instance]=""
-    fi
-
-    local -a env_files_list=("${COMPOSE_ENV_GLOBAL_FILES[@]}")
-
-    if [[ -f "$env_local_abs" ]]; then
-      env_files_list+=("$env_local_rel")
-    elif [[ -f "$env_template_abs" ]]; then
-      env_files_list+=("$env_template_rel")
-    else
-      echo "[!] No .env file found for instance '$instance'." >&2
-      echo "    Esperado: $env_local_rel ou $env_template_rel" >&2
+    local -a env_files_list=()
+    if ! compose_env_map__resolve_instance_env \
+      "$repo_root" \
+      "$instance" \
+      "$env_dir_rel" \
+      "$env_local_dir_rel" \
+      COMPOSE_ENV_GLOBAL_FILES \
+      COMPOSE_INSTANCE_ENV_LOCAL \
+      COMPOSE_INSTANCE_ENV_TEMPLATES \
+      env_files_list; then
       return 1
     fi
 
     if ((${#env_files_list[@]} > 0)); then
-      local joined=""
-      local entry
-      for entry in "${env_files_list[@]}"; do
-        if [[ -n "$joined" ]]; then
-          joined+=$'\n'
-        fi
-        joined+="$entry"
-      done
+      local joined
+      local IFS=$'\n'
+      printf -v joined '%s' "${env_files_list[*]}"
       COMPOSE_INSTANCE_ENV_FILES[$instance]="$joined"
     else
       COMPOSE_INSTANCE_ENV_FILES[$instance]=""
