@@ -29,9 +29,6 @@ source "$SCRIPT_DIR/lib/env_helpers.sh"
 # shellcheck source=./lib/env_file_chain.sh
 source "$SCRIPT_DIR/lib/env_file_chain.sh"
 
-# shellcheck source=./lib/compose_instances.sh
-source "$SCRIPT_DIR/lib/compose_instances.sh"
-
 print_help() {
   cat <<'EOF'
 Usage: scripts/check_health.sh [options] [instance]
@@ -126,170 +123,38 @@ else
   set --
 fi
 
+COMPOSE_ROOT_FILE="$REPO_ROOT/docker-compose.yml"
 INSTANCE_NAME="${1:-}"
 
-if compose_defaults_dump="$("$SCRIPT_DIR/lib/compose_defaults.sh" "$INSTANCE_NAME" ".")"; then
-  :
-else
-  status=$?
-  echo "[!] Failed to prepare default docker compose variables." >&2
-  exit $status
-fi
+unset COMPOSE_FILES
+unset COMPOSE_EXTRA_FILES
 
-eval "$compose_defaults_dump"
-
-normalize_compose_context() {
-  if [[ -n "${COMPOSE_FILES:-}" ]]; then
-    local sanitized="${COMPOSE_FILES//$'\n'/ }"
-    local -a files_list=()
-    if [[ -n "$sanitized" ]]; then
-      read -r -a files_list <<<"$sanitized"
-    fi
-
-    if [[ ${#files_list[@]} -gt 0 ]]; then
-      local -a __filtered=()
-      declare -A __files_seen=()
-      local __file
-      for __file in "${files_list[@]}"; do
-        [[ -z "$__file" ]] && continue
-        if [[ -n "${__files_seen[$__file]:-}" ]]; then
-          continue
-        fi
-        __files_seen[$__file]=1
-        __filtered+=("$__file")
-      done
-      COMPOSE_FILES="${__filtered[*]}"
-    fi
-  fi
-
-  if [[ -n "${COMPOSE_EXTRA_FILES:-}" ]]; then
-    local extra_entry
-    local extra_input="${COMPOSE_EXTRA_FILES//$'\n'/ }"
-    extra_input="${extra_input//,/ }"
-    declare -A __extra_seen=()
-    local -a __extra_filtered=()
-    for extra_entry in $extra_input; do
-      [[ -z "$extra_entry" ]] && continue
-      if [[ -n "${__extra_seen[$extra_entry]:-}" ]]; then
-        continue
-      fi
-      __extra_seen[$extra_entry]=1
-      local resolved_extra="$extra_entry"
-      if [[ "$resolved_extra" != /* ]]; then
-        resolved_extra="$REPO_ROOT/$resolved_extra"
-      fi
-
-      local already_present=0
-      local idx=0
-      while ((idx < ${#COMPOSE_CMD[@]})); do
-        if [[ "${COMPOSE_CMD[$idx]}" == "-f" ]]; then
-          if ((idx + 1 < ${#COMPOSE_CMD[@]})); then
-            if [[ "${COMPOSE_CMD[$((idx + 1))]}" == "$resolved_extra" ]]; then
-              already_present=1
-              break
-            fi
-          fi
-          idx=$((idx + 2))
-          continue
-        fi
-        idx=$((idx + 1))
-      done
-
-      if ((already_present == 0)); then
-        COMPOSE_CMD+=(-f "$resolved_extra")
-      fi
-      __extra_filtered+=("$extra_entry")
-    done
-    if ((${#__extra_filtered[@]} > 0)); then
-      COMPOSE_EXTRA_FILES="${__extra_filtered[*]}"
-    fi
-  fi
-}
-
-normalize_compose_context
-
-COMPOSE_ROOT_FILE="$REPO_ROOT/docker-compose.yml"
 declare -a DOCKER_COMPOSE_CMD=()
 if ! compose_resolve_command DOCKER_COMPOSE_CMD; then
   exit $?
 fi
 
-export COMPOSE_FILES
-export COMPOSE_EXTRA_FILES
-export COMPOSE_ENV_FILES
-
-if [[ -z "${HEALTH_SERVICES:-}" ]]; then
-  declare -a health_env_files=()
-  if [[ -n "${COMPOSE_ENV_FILES:-}" ]]; then
-    mapfile -t health_env_files < <(
-      env_file_chain__parse_list "${COMPOSE_ENV_FILES}"
-    )
-  fi
-
-  if [[ ${#health_env_files[@]} -gt 0 ]]; then
-    declare -A __health_env_values=()
-    for env_candidate in "${health_env_files[@]}"; do
-      env_abs="$env_candidate"
-      if [[ "$env_abs" != /* ]]; then
-        env_abs="$REPO_ROOT/$env_abs"
-      fi
-      if [[ ! -f "$env_abs" ]]; then
-        continue
-      fi
-      if env_output="$("$SCRIPT_DIR/lib/env_loader.sh" "$env_abs" COMPOSE_EXTRA_FILES HEALTH_SERVICES 2>/dev/null)"; then
-        while IFS= read -r line; do
-          [[ -z "$line" ]] && continue
-          if [[ "$line" != *=* ]]; then
-            continue
-          fi
-          key="${line%%=*}"
-          value="${line#*=}"
-          __health_env_values[$key]="$value"
-        done <<<"$env_output"
-      fi
-    done
-
-    defaults_refreshed=0
-    if [[ -n "${__health_env_values[COMPOSE_EXTRA_FILES]+x}" ]]; then
-      COMPOSE_EXTRA_FILES="${__health_env_values[COMPOSE_EXTRA_FILES]}"
-      defaults_refreshed=1
-    fi
-    if [[ -n "${__health_env_values[HEALTH_SERVICES]+x}" ]]; then
-      HEALTH_SERVICES="${__health_env_values[HEALTH_SERVICES]}"
-      defaults_refreshed=1
-    fi
-    if ((defaults_refreshed == 1)); then
-      if ! compose_defaults_dump="$("$SCRIPT_DIR/lib/compose_defaults.sh" "$INSTANCE_NAME" ".")"; then
-        echo "[!] Failed to prepare default docker compose variables." >&2
-        exit 1
-      fi
-
-      eval "$compose_defaults_dump"
-      normalize_compose_context
-    fi
-    unset __health_env_values
-  fi
-fi
-
-declare -a BUILD_COMPOSE_CMD=("$SCRIPT_DIR/build_compose_file.sh" --output "$COMPOSE_ROOT_FILE")
 if [[ -n "$INSTANCE_NAME" ]]; then
-  BUILD_COMPOSE_CMD+=(--instance "$INSTANCE_NAME")
-fi
+  declare -a BUILD_COMPOSE_CMD=("$SCRIPT_DIR/build_compose_file.sh" --instance "$INSTANCE_NAME")
 
-if [[ -n "${COMPOSE_ENV_FILES:-}" ]]; then
-  while IFS= read -r env_entry; do
-    [[ -z "$env_entry" ]] && continue
-    BUILD_COMPOSE_CMD+=(--env-file "$env_entry")
-  done <<<"${COMPOSE_ENV_FILES//$'\n'/ }"
-fi
-
-if ! "${BUILD_COMPOSE_CMD[@]}" >/dev/null; then
-  echo "Error: failed to generate consolidated docker-compose.yml." >&2
-  exit 1
+  if ! "${BUILD_COMPOSE_CMD[@]}" >/dev/null; then
+    echo "Error: failed to generate consolidated docker-compose.yml." >&2
+    exit 1
+  fi
+else
+  if [[ ! -f "$COMPOSE_ROOT_FILE" ]]; then
+    echo "Error: docker-compose.yml not found; run scripts/build_compose_file.sh --instance <name>." >&2
+    exit 1
+  fi
 fi
 
 COMPOSE_CMD=("${DOCKER_COMPOSE_CMD[@]}" -f "$COMPOSE_ROOT_FILE")
-COMPOSE_FILES="$COMPOSE_ROOT_FILE"
+
+if [[ -z "${HEALTH_SERVICES:-}" ]]; then
+  if [[ -f "$REPO_ROOT/.env" ]]; then
+    load_env_pairs "$REPO_ROOT/.env" HEALTH_SERVICES || true
+  fi
+fi
 
 mapfile -t LOG_TARGETS < <(env_file_chain__parse_list "${HEALTH_SERVICES:-}") || true
 

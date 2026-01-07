@@ -1,1 +1,1 @@
-"""Tests that exercise the 'compose_defaults' command in the scripts directory."""
+"""Tests that exercise the 'compose_defaults' helper used to build compose plans."""
