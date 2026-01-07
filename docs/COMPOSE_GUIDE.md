@@ -49,7 +49,7 @@ When combining several services, load the manifests in blocks (`compose/docker-c
    scripts/build_compose_file.sh <instance>
    ```
 
-   - Set `COMPOSE_EXTRA_FILES` in `.env` or `env/local/<instance>.env` to append optional compose files to the generated plan.
+   - Set `COMPOSE_EXTRA_FILES` in `env/local/common.env` or `env/local/<instance>.env` to append optional compose files to the generated plan (the root `.env` is generated).
    - Update `env/local/common.env` or `env/local/<instance>.env` when variable overrides are needed, then rerun the generator to refresh the consolidated `.env`.
    - Re-run the command whenever manifests (`compose/docker-compose.<instance>.yml`, `compose/docker-compose.base.yml`, or extra compose files) change to refresh the root `docker-compose.yml`.
    - The helper writes `./docker-compose.yml` and `./.env` at the repository root. Treat both as generated outputs; update `compose/` manifests or `env/*.example.env` templates (then regenerate) instead of editing the root files directly.
