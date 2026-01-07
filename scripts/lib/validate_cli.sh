@@ -16,7 +16,6 @@ Positional arguments:
   (none)
 
 Options:
-  --legacy-plan      Uses the dynamic combination of -f (legacy mode). Will be removed in a future release.
 
 Relevant environment variables:
   DOCKER_COMPOSE_BIN  Override the docker compose command (for example: docker-compose).
