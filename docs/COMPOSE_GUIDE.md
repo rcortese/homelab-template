@@ -53,7 +53,7 @@ When combining several services, load the manifests in blocks (`compose/docker-c
    ```
 
    - Additional `--file` flags mirror `COMPOSE_EXTRA_FILES` when appending extra compose files.
-   - `--env-file` keeps the legacy order (`common` → `<instance>`) and accepts alternative chains when you need to test specific variables without touching the files under `env/local/`.
+   - `--env-file` lets you supply the env chain explicitly (for example, `env/local/common.env` then `env/local/<instance>.env`) when you need to test specific variables without touching the files under `env/local/`.
    - Re-run the command whenever manifests (`compose/docker-compose.<instance>.yml`, `compose/docker-compose.base.yml`, or extra compose files) change to refresh the root `docker-compose.yml`.
 
 2. Use the generated file directly to start or inspect services:
