@@ -27,7 +27,7 @@ This document offers a starting point for describing operational processes and h
 ## Before you start
 
 - Ensure local `.env` files were generated from the models described in [`env/README.md`](../env/README.md).
-- Review the manifest combinations (including `compose/base.yml` when present, `compose/docker-compose.<instance>.yml` when present, and overrides) the scripts will use. The sample [`compose/docker-compose.core.yml`](../compose/docker-compose.core.yml) and [`compose/docker-compose.media.yml`](../compose/docker-compose.media.yml) files document how to apply global per-instance adjustments before the application manifests. Regenerate the consolidated `docker-compose.yml` with `scripts/build_compose_file.sh --instance <instance>` whenever manifests or variables change.
+- Review the manifest combinations (including `compose/docker-compose.base.yml` when present, `compose/docker-compose.<instance>.yml` when present, and overrides) the scripts will use. The sample [`compose/docker-compose.core.yml`](../compose/docker-compose.core.yml) and [`compose/docker-compose.media.yml`](../compose/docker-compose.media.yml) files document how to apply global per-instance adjustments before the application manifests. Regenerate the consolidated `docker-compose.yml` with `scripts/build_compose_file.sh --instance <instance>` whenever manifests or variables change.
 - Run `scripts/check_all.sh` to validate structure, variable synchronization, and Compose manifests before opening PRs or publishing local changes.
 - Run `scripts/check_env_sync.sh` whenever you edit manifests or `.env` templates to ensure variables stay synchronized.
 - Document extra dependencies (CLIs, credentials, registry access) in additional sections.
@@ -83,7 +83,7 @@ See the summary in the table above. Include `scripts/check_env_sync.sh` in local
 
 ## scripts/check_env_sync.sh
 
-- **Purpose:** compare the manifests (`compose/base.yml`, when present, plus detected overrides) with the corresponding `env/*.example.env` files and flag divergences. The shell wrapper (`scripts/check_env_sync.sh`) prefers running via Docker (`python:3.11-slim`) and falls back to local Python only when necessary, using `scripts/check_env_sync.py` as the main module.
+- **Purpose:** compare the manifests (`compose/docker-compose.base.yml`, when present, plus detected overrides) with the corresponding `env/*.example.env` files and flag divergences. The shell wrapper (`scripts/check_env_sync.sh`) prefers running via Docker (`python:3.11-slim`) and falls back to local Python only when necessary, using `scripts/check_env_sync.py` as the main module.
 - **Typical usage:**
   ```bash
   scripts/check_env_sync.sh
@@ -159,7 +159,7 @@ Use `--base-dir` and `--with-docs` to explicitly declare alternate directories a
     COMPOSE_EXTRA_FILES="compose/overlays/metrics.yml" scripts/validate_compose.sh
     ```
 
-  > The planning helper automatically chains `compose/base.yml` (when present) with the selected `docker-compose.<instance>.yml` and any overlays provided via `COMPOSE_EXTRA_FILES` or `--file`, keeping the list of `-f` entries consistent with available manifests.
+  > The planning helper automatically chains `compose/docker-compose.base.yml` (when present) with the selected `docker-compose.<instance>.yml` and any overlays provided via `COMPOSE_EXTRA_FILES` or `--file`, keeping the list of `-f` entries consistent with available manifests.
 
   > Variables can be pre-exported (`export COMPOSE_INSTANCES=...`) or prefixed to the command, keeping the flow simple.
   > **Warning:** use validation to confirm that the standard Compose combinations remain compatible with active profiles before deployments or PRs.

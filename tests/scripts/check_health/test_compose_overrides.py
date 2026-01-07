@@ -18,7 +18,7 @@ def test_invokes_ps_and_logs_with_custom_files(docker_stub: DockerStub) -> None:
     custom_env.write_text("", encoding="utf-8")
 
     env = {
-        "COMPOSE_FILES": "compose/base.yml compose/extra.yml",
+        "COMPOSE_FILES": "compose/docker-compose.base.yml compose/extra.yml",
         "COMPOSE_ENV_FILES": "env/common.example.env",
     }
 
@@ -31,7 +31,7 @@ def test_invokes_ps_and_logs_with_custom_files(docker_stub: DockerStub) -> None:
     consolidated_file = repo_root / "docker-compose.yml"
 
     compose_files = [
-        (repo_root / "compose" / "base.yml").resolve(),
+        (repo_root / "compose" / "docker-compose.base.yml").resolve(),
         (repo_root / "compose" / "extra.yml").resolve(),
     ]
     assert calls == expected_consolidated_plan_calls(
@@ -59,7 +59,7 @@ def test_loads_compose_extra_files_from_env_file(
     )
 
     env = {
-        "COMPOSE_FILES": "compose/base.yml",
+        "COMPOSE_FILES": "compose/docker-compose.base.yml",
         "COMPOSE_ENV_FILES": str(env_file),
     }
 
@@ -72,7 +72,7 @@ def test_loads_compose_extra_files_from_env_file(
     repo_root = Path(__file__).resolve().parents[3]
     consolidated_file = repo_root / "docker-compose.yml"
     expected_files = [
-        (repo_root / "compose" / "base.yml").resolve(),
+        (repo_root / "compose" / "docker-compose.base.yml").resolve(),
         (repo_root / "compose" / "overlays" / "extra.yml").resolve(),
         (repo_root / "compose" / "overlays" / "extra.yml").resolve(),
     ]
@@ -90,7 +90,7 @@ def test_loads_compose_extra_files_from_env_file(
 
 def test_ignores_blank_and_duplicate_compose_tokens(docker_stub: DockerStub) -> None:
     repo_root = Path(__file__).resolve().parents[3]
-    compose_base = "compose/base.yml"
+    compose_base = "compose/docker-compose.base.yml"
 
     env = {
         "COMPOSE_FILES": f"  {compose_base}   \n   {compose_base}    ",

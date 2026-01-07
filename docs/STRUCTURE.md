@@ -35,7 +35,7 @@ Each instance is defined by a consolidated compose file and its supporting docum
 | Path | Required? | Description |
 | --- | --- | --- |
 | `docker-compose.<instance>.yml` | Yes (one per instance) | Complete compose file for the instance (services, networks, volumes, labels, and profiles). |
-| `compose/base.yml` | Optional | Anchors and shared resources loaded before any instance file. |
+| `compose/docker-compose.base.yml` | Optional | Anchors and shared resources loaded before any instance file. |
 | `compose/overlays/<overlay>.yml` | Optional | Repeatable overlays applied after the main instance compose file for experiments or environment-specific tuning. |
 | `docs/apps/<component>.md` | Recommended | Support document describing the responsibilities and requirements of key services or components. |
 | `env/<instance>.example.env` | One per instance | Must include every variable consumed by the services enabled for the instance. |

@@ -131,8 +131,6 @@ def load_compose_metadata(repo_root: Path) -> ComposeMetadata:
             for instance, value in raw_map.items():
                 env_templates[instance] = (repo_root / value).resolve() if value else None
 
-    if base_file is not None and not base_file.exists():
-        raise ComposeMetadataError("compose/base.yml file not found.")
     if not instances:
         raise ComposeMetadataError("No Compose instances detected.")
 

@@ -114,11 +114,13 @@ def test_fallbacks_when_instance_missing(repo_copy: Path) -> None:
     stdout = _run_script(script_path, "missing", str(repo_copy), env=env)
 
     compose_files = _extract_value(r'COMPOSE_FILES="([^"]+)"', stdout)
-    assert compose_files == "compose/base.yml"
+    assert compose_files == "compose/docker-compose.base.yml"
 
     compose_cmd = _extract_compose_cmd(stdout)
     compose_file_args = _extract_file_args(compose_cmd)
-    assert compose_file_args == [str((repo_copy / "compose" / "base.yml").resolve())]
+    assert compose_file_args == [
+        str((repo_copy / "compose" / "docker-compose.base.yml").resolve())
+    ]
 
     env_files = _extract_env_files(stdout)
     expected_env_file = str((repo_copy / "env" / "local" / "common.env").resolve())
@@ -140,7 +142,7 @@ def test_preserves_existing_environment(repo_copy: Path) -> None:
     env = os.environ.copy()
     env.update(
         {
-            "COMPOSE_FILES": "compose/base.yml compose/custom.yml",
+            "COMPOSE_FILES": "compose/docker-compose.base.yml compose/custom.yml",
             "COMPOSE_ENV_FILES": str(custom_env_file),
         }
     )
@@ -148,7 +150,7 @@ def test_preserves_existing_environment(repo_copy: Path) -> None:
     stdout = _run_script(script_path, "core", str(repo_copy), env=env)
 
     compose_files = _extract_value(r'COMPOSE_FILES="([^"]+)"', stdout)
-    assert compose_files == "compose/base.yml compose/custom.yml"
+    assert compose_files == "compose/docker-compose.base.yml compose/custom.yml"
 
     env_files = _extract_env_files(stdout)
     assert env_files == [str(custom_env_file.resolve())]
@@ -162,7 +164,7 @@ def test_preserves_existing_environment(repo_copy: Path) -> None:
     ]
     assert env_args == [str(custom_env_file.resolve())]
     assert _extract_file_args(compose_cmd) == [
-        str((repo_copy / "compose" / "base.yml").resolve()),
+        str((repo_copy / "compose" / "docker-compose.base.yml").resolve()),
         str((repo_copy / "compose" / "custom.yml").resolve()),
     ]
 

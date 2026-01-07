@@ -29,7 +29,7 @@ def test_respects_docker_compose_bin_override(docker_stub: DockerStub) -> None:
 
     calls = docker_stub.read_calls()
     repo_root = Path(__file__).resolve().parents[3]
-    base_file = str((repo_root / "compose" / "base.yml").resolve())
+    base_file = str((repo_root / "compose" / "docker-compose.base.yml").resolve())
     consolidated_file = repo_root / "docker-compose.yml"
     base_cmd = ["--context", "remote", "compose"]
     assert calls == expected_consolidated_plan_calls(

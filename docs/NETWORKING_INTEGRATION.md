@@ -13,7 +13,7 @@
 
 | Component | Owner | Responsibilities | Inputs/Outputs |
 | --- | --- | --- | --- |
-| Reverse proxy | Platform team | TLS termination, hostname routing, security headers. | Receives public traffic → forwards to `compose/base.yml` (when present) + [`docker-compose.<instance>.yml`](../docker-compose.core.yml) *(replace with the active instance file)* + overlays (when present). |
+| Reverse proxy | Platform team | TLS termination, hostname routing, security headers. | Receives public traffic → forwards to `compose/docker-compose.base.yml` (when present) + [`docker-compose.<instance>.yml`](../docker-compose.core.yml) *(replace with the active instance file)* + overlays (when present). |
 | Internal DNS | Network team | Publishes records for internal/external environments. | Update `A`/`CNAME` records after host changes. |
 | Observability | SRE | Collects metrics and logs, generates alerts. | Dashboards and alerts that monitor runbook-documented health checks. |
 

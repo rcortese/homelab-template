@@ -51,7 +51,15 @@ setup_compose_defaults() {
   fi
 
   if [[ -z "${COMPOSE_FILES:-}" ]]; then
-    COMPOSE_FILES="compose/base.yml"
+    local default_base="compose/docker-compose.base.yml"
+    local legacy_base="compose/base.yml"
+    if [[ -f "${base_fs%/}/$default_base" ]]; then
+      COMPOSE_FILES="$default_base"
+    elif [[ -f "${base_fs%/}/$legacy_base" ]]; then
+      COMPOSE_FILES="$legacy_base"
+    else
+      COMPOSE_FILES="$default_base"
+    fi
   fi
 
   local env_chain_input="${COMPOSE_ENV_FILES:-}"
