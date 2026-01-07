@@ -62,13 +62,14 @@ def expected_consolidated_plan_calls(
     base_cmd: list[str] | None = None,
 ) -> list[list[str]]:
     plan_files = list(files)
+    temp_output_file = output_file.with_name(f"{output_file.name}.tmp")
     return [
         _expected_compose_call(
             env_files,
             plan_files,
             "config",
             "--output",
-            str(output_file),
+            str(temp_output_file),
             base_cmd=base_cmd,
         ),
         _expected_compose_call(
