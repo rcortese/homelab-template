@@ -31,7 +31,7 @@ Use the instance compose file to control which services start:
 
 ## Stacks with multiple services
 
-When combining several services, load the manifests in blocks (`base.yml`, `docker-compose.<instance>.yml`, and overlays) in the order shown below. This ensures anchors and variables are available before the services that consume them.
+When combining several services, load the manifests in blocks (`compose/docker-compose.base.yml`, `docker-compose.<instance>.yml`, and overlays) in the order shown below. This ensures anchors and variables are available before the services that consume them.
 
 | Order | File | Purpose |
 | ----- | ------- | ------ |

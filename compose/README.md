@@ -11,7 +11,7 @@ Manifests are chained in blocks. Each step inherits anchors and variables from t
 3. Optional overlays (`compose/overlays/*.yml`) — ad-hoc adjustments appended after the base + instance pair.
 
 ```
-(base.yml) → docker-compose.core.yml → compose/overlays/<extra>.yml → ...
+(compose/docker-compose.base.yml) → docker-compose.core.yml → compose/overlays/<extra>.yml → ...
 ```
 
 > The scripts (`scripts/deploy_instance.sh`, etc.) automatically follow this order when building the plan.

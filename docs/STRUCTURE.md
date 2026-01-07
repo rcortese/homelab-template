@@ -10,7 +10,7 @@ This guide describes the minimum structure expected for any repository inheritin
 
 | Path | Description | Expected items |
 | --- | --- | --- |
-| `compose/` | Base Docker Compose anchors and repeatable overlays. | `base.yml` (when necessary) and overlay files under `compose/overlays/`. Instance compose files now live at the repository root (`docker-compose.<instance>.yml`). |
+| `compose/` | Base Docker Compose anchors and repeatable overlays. | `docker-compose.base.yml` (when necessary) and overlay files under `compose/overlays/`. Instance compose files now live at the repository root (`docker-compose.<instance>.yml`). |
 | `docs/` | Local documentation, runbooks, operational guides, and ADRs. | `README.md`, `STRUCTURE.md`, `OPERATIONS.md`, themed subfolders, and [`local/`](./local/README.md). |
 | `env/` | Variable templates, example files, and fill-in instructions. | `*.example.env`, `README.md`, Git-ignored `local/`. Expand with variables needed for every enabled application. |
 | `scripts/` | Reusable automation (deploy, validation, backups, health checks). | Shell scripts (or equivalents) referenced by the documentation. |

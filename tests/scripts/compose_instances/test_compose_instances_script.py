@@ -158,8 +158,6 @@ def test_compose_instances_outputs_expected_metadata(repo_copy: Path) -> None:
     assert base_match is not None
     if (repo_copy / "compose" / "docker-compose.base.yml").exists():
         expected_base = "compose/docker-compose.base.yml"
-    elif (repo_copy / "compose" / "base.yml").exists():
-        expected_base = "compose/base.yml"
     else:
         expected_base = ""
     assert base_match.group(1) == expected_base
@@ -232,7 +230,6 @@ def test_apps_with_base_are_registered_for_all_instances(
 def test_missing_base_file_is_allowed(repo_copy: Path) -> None:
     base_paths = [
         repo_copy / "compose" / "docker-compose.base.yml",
-        repo_copy / "compose" / "base.yml",
     ]
     for base_file in base_paths:
         if base_file.exists():

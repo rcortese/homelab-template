@@ -175,7 +175,6 @@ def test_skips_shared_base_when_missing(
 ) -> None:
     base_paths = [
         repo_copy / "compose" / "docker-compose.base.yml",
-        repo_copy / "compose" / "base.yml",
     ]
     for base_path in base_paths:
         if base_path.exists():
@@ -208,7 +207,6 @@ def test_skips_shared_base_when_missing(
     assert all(
         "compose/docker-compose.base.yml" not in str(path) for path in base_files
     )
-    assert all("compose/base.yml" not in str(path) for path in base_files)
 
 
 def test_skips_instance_manifest_when_missing(
