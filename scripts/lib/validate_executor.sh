@@ -64,15 +64,23 @@ validate_executor_prepare_plan() {
   local env_files_blob="${COMPOSE_INSTANCE_ENV_FILES[$instance]:-}"
   local -a env_files_rel=()
   if [[ -n "$env_files_blob" ]]; then
-    mapfile -t env_files_rel < <(
-      env_file_chain__resolve_explicit "$env_files_blob" ""
-    )
+    local env_chain_output=""
+    if ! env_chain_output="$(env_file_chain__resolve_explicit "$env_files_blob" "")"; then
+      return 1
+    fi
+    if [[ -n "$env_chain_output" ]]; then
+      mapfile -t env_files_rel <<<"$env_chain_output"
+    fi
   fi
 
   if ((${#env_files_rel[@]} == 0)); then
-    mapfile -t env_files_rel < <(
-      env_file_chain__defaults "$repo_root" "$instance"
-    )
+    local defaults_output=""
+    if ! defaults_output="$(env_file_chain__defaults "$repo_root" "$instance")"; then
+      return 1
+    fi
+    if [[ -n "$defaults_output" ]]; then
+      mapfile -t env_files_rel <<<"$defaults_output"
+    fi
   fi
 
   local -a env_files_abs=()

@@ -53,27 +53,51 @@ env_file_chain__resolve_explicit() {
 env_file_chain__defaults() {
   local repo_root="$1"
   local instance="$2"
+  local missing=0
+  local -a defaults=()
 
   if [[ -f "$repo_root/env/local/common.env" ]]; then
-    printf '%s\n' "env/local/common.env"
-  elif [[ -f "$repo_root/env/common.example.env" ]]; then
-    printf '%s\n' "env/common.example.env"
+    defaults+=("env/local/common.env")
+  else
+    echo "[!] Missing env/local/common.env." >&2
+    if [[ -f "$repo_root/env/common.example.env" ]]; then
+      echo "    Copy the template before continuing:" >&2
+      echo "    mkdir -p env/local" >&2
+      echo "    cp env/common.example.env env/local/common.env" >&2
+    else
+      echo "    Template env/common.example.env was not found." >&2
+    fi
+    missing=1
   fi
 
   if [[ -z "$instance" ]]; then
+    if ((missing == 1)); then
+      return 1
+    fi
+    printf '%s\n' "${defaults[@]}"
     return 0
   fi
 
   local instance_local="env/local/${instance}.env"
   if [[ -f "$repo_root/$instance_local" ]]; then
-    printf '%s\n' "$instance_local"
-    return 0
+    defaults+=("$instance_local")
+  else
+    echo "[!] Missing env/local/${instance}.env." >&2
+    if [[ -f "$repo_root/env/${instance}.example.env" ]]; then
+      echo "    Copy the template before continuing:" >&2
+      echo "    mkdir -p env/local" >&2
+      echo "    cp env/${instance}.example.env env/local/${instance}.env" >&2
+    else
+      echo "    Template env/${instance}.example.env was not found." >&2
+    fi
+    missing=1
   fi
 
-  local instance_template="env/${instance}.example.env"
-  if [[ -f "$repo_root/$instance_template" ]]; then
-    printf '%s\n' "$instance_template"
+  if ((missing == 1)); then
+    return 1
   fi
+
+  printf '%s\n' "${defaults[@]}"
 }
 
 env_file_chain__to_absolute() {

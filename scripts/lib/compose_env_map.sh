@@ -22,16 +22,20 @@ compose_env_map__resolve_instance_env() {
   env_template_map["$instance"]=""
   out_env_files_list=("${global_env_files[@]}")
 
-  if [[ -f "$env_local_abs" ]]; then
-    env_local_map["$instance"]="$env_local_rel"
-    out_env_files_list+=("$env_local_rel")
-  elif [[ -f "$env_template_abs" ]]; then
-    out_env_files_list+=("$env_template_rel")
-  else
-    echo "[!] No .env file found for instance '$instance'." >&2
-    echo "    Esperado: $env_local_rel ou $env_template_rel" >&2
+  if [[ ! -f "$env_local_abs" ]]; then
+    echo "[!] Missing ${env_local_rel}." >&2
+    if [[ -f "$env_template_abs" ]]; then
+      echo "    Copy the template before continuing:" >&2
+      echo "    mkdir -p ${env_local_dir_rel}" >&2
+      echo "    cp ${env_template_rel} ${env_local_rel}" >&2
+    else
+      echo "    Template ${env_template_rel} was not found." >&2
+    fi
     return 1
   fi
+
+  env_local_map["$instance"]="$env_local_rel"
+  out_env_files_list+=("$env_local_rel")
 
   if [[ -f "$env_template_abs" ]]; then
     env_template_map["$instance"]="$env_template_rel"
@@ -71,10 +75,16 @@ load_compose_env_map() {
 
   if [[ -f "$repo_root/$global_env_local_rel" ]]; then
     COMPOSE_ENV_GLOBAL_FILES=("$global_env_local_rel")
-  elif [[ -f "$repo_root/$global_env_template_rel" ]]; then
-    COMPOSE_ENV_GLOBAL_FILES=("$global_env_template_rel")
   else
-    COMPOSE_ENV_GLOBAL_FILES=()
+    echo "[!] Missing ${global_env_local_rel}." >&2
+    if [[ -f "$repo_root/$global_env_template_rel" ]]; then
+      echo "    Copy the template before continuing:" >&2
+      echo "    mkdir -p ${env_local_dir_rel}" >&2
+      echo "    cp ${global_env_template_rel} ${global_env_local_rel}" >&2
+    else
+      echo "    Template ${global_env_template_rel} was not found." >&2
+    fi
+    return 1
   fi
 
   local instance

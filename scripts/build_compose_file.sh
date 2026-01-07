@@ -168,9 +168,15 @@ if ((${#EXPLICIT_ENV_FILES[@]} > 0)); then
   fi
 fi
 
-mapfile -t COMPOSE_ENV_FILES_LIST < <(
-  env_file_chain__resolve_explicit "$explicit_env_input" "$REPO_ROOT" "$INSTANCE_NAME"
-)
+env_chain_output=""
+if ! env_chain_output="$(env_file_chain__resolve_explicit "$explicit_env_input" "$REPO_ROOT" "$INSTANCE_NAME")"; then
+  exit 1
+fi
+if [[ -n "$env_chain_output" ]]; then
+  mapfile -t COMPOSE_ENV_FILES_LIST <<<"$env_chain_output"
+else
+  COMPOSE_ENV_FILES_LIST=()
+fi
 
 declare -a COMPOSE_ENV_FILES_RESOLVED=()
 if ((${#COMPOSE_ENV_FILES_LIST[@]} > 0)); then

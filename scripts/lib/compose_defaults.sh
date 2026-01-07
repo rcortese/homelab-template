@@ -56,9 +56,13 @@ setup_compose_defaults() {
   fi
 
   declare -a env_files_rel=()
-  mapfile -t env_files_rel < <(
-    env_file_chain__resolve_explicit "$env_chain_input" "$base_fs" "$instance"
-  )
+  local env_chain_output=""
+  if ! env_chain_output="$(env_file_chain__resolve_explicit "$env_chain_input" "$base_fs" "$instance")"; then
+    return 1
+  fi
+  if [[ -n "$env_chain_output" ]]; then
+    mapfile -t env_files_rel <<<"$env_chain_output"
+  fi
 
   declare -a env_files_abs=()
   if ((${#env_files_rel[@]} > 0)); then
