@@ -8,9 +8,12 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from tests.conftest import DockerStub  # noqa: F401
 
+from tests.helpers.compose_instances import load_compose_instances_data
+
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 SCRIPT_PATH = REPO_ROOT / "scripts" / "check_health.sh"
+COMPOSE_INSTANCES_DATA = load_compose_instances_data(REPO_ROOT)
 
 
 def run_check_health(
@@ -80,3 +83,11 @@ def expected_consolidated_plan_calls(
             base_cmd=base_cmd,
         ),
     ]
+
+
+def expected_plan_for_instance(instance: str) -> list[str]:
+    return COMPOSE_INSTANCES_DATA.compose_plan(instance)
+
+
+def expected_env_for_instance(instance: str) -> list[str]:
+    return COMPOSE_INSTANCES_DATA.env_files_map.get(instance, [])

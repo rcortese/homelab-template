@@ -50,12 +50,17 @@ def compose_stub(tmp_path: Path) -> tuple[Path, Path]:
         '    if [[ -n "${COMPOSE_STUB_SERVICES:-}" ]]; then',
         '      printf "%s\\n" "$COMPOSE_STUB_SERVICES"',
         "    fi",
+        "    exit_code=${COMPOSE_STUB_EXIT_CODE:-0}",
         "    ;;",
         "  pause|unpause)",
+        "    exit_code=0",
+        "    ;;",
+        "  *)",
+        "    exit_code=0",
         "    ;;",
         "esac",
         "",
-        'exit "${COMPOSE_STUB_EXIT_CODE:-0}"',
+        'exit "${exit_code:-0}"',
     ]
     script_path.write_text("\n".join(script_lines) + "\n", encoding="utf-8")
     script_path.chmod(0o755)

@@ -11,6 +11,9 @@ CHANGED_TO_REPO_ROOT=false
 # shellcheck source=lib/app_detection.sh
 source "$SCRIPT_DIR/lib/app_detection.sh"
 
+# shellcheck source=lib/compose_command.sh
+source "$SCRIPT_DIR/lib/compose_command.sh"
+
 if [[ "$ORIGINAL_PWD" != "$REPO_ROOT" ]]; then
   cd "$REPO_ROOT"
   CHANGED_TO_REPO_ROOT=true
@@ -406,22 +409,25 @@ if [[ "$SQLITE3_BACKEND" == "container" ]]; then
   echo "[i] Running sqlite3 via container '$SQLITE3_CONTAINER_IMAGE' (runtime: $SQLITE3_CONTAINER_RUNTIME)." >&2
 fi
 
-if ! compose_defaults_dump="$("$SCRIPT_DIR/lib/compose_defaults.sh" "$INSTANCE_NAME" ".")"; then
-  echo "[!] Unable to prepare docker compose default variables." >&2
+unset COMPOSE_FILES
+unset COMPOSE_EXTRA_FILES
+
+COMPOSE_ROOT_FILE="$REPO_ROOT/docker-compose.yml"
+declare -a BUILD_COMPOSE_CMD=("$SCRIPT_DIR/build_compose_file.sh" --instance "$INSTANCE_NAME")
+
+if ! "${BUILD_COMPOSE_CMD[@]}" >/dev/null; then
+  echo "[!] Unable to prepare docker-compose.yml for '$INSTANCE_NAME'." >&2
   exit 1
 fi
 
-eval "$compose_defaults_dump"
-
-if [[ ${#COMPOSE_CMD[@]} -eq 0 ]]; then
-  echo "[!] docker compose command not configured." >&2
-  exit 1
+declare -a DOCKER_COMPOSE_CMD=()
+compose_resolve_command DOCKER_COMPOSE_CMD
+compose_status=$?
+if ((compose_status != 0)); then
+  exit "$compose_status"
 fi
 
-if ! command -v "${COMPOSE_CMD[0]}" >/dev/null 2>&1; then
-  echo "Error: ${COMPOSE_CMD[0]} is not available." >&2
-  exit 127
-fi
+COMPOSE_CMD=("${DOCKER_COMPOSE_CMD[@]}" -f "$COMPOSE_ROOT_FILE")
 
 if ! app_detection__list_active_services PAUSED_SERVICES "${COMPOSE_CMD[@]}"; then
   echo "[!] Unable to list active services for instance '$INSTANCE_NAME'." >&2

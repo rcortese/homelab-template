@@ -125,7 +125,7 @@ def _build_compose_stub(
         "",
         "exit_override = os.environ.get('DESCRIBE_INSTANCE_COMPOSE_EXIT')",
         "stderr_message = os.environ.get('DESCRIBE_INSTANCE_COMPOSE_STDERR', '')",
-        "if filtered[:1] == ['config'] and exit_override:",
+        "if filtered[:3] == ['config', '--format', 'json'] and exit_override:",
         "    try:",
         "        exit_code = int(exit_override)",
         "    except ValueError:",
@@ -334,16 +334,11 @@ def test_table_summary_highlights_extra_files(
     stub_path, log_path = _build_compose_stub(tmp_path, compose_payload)
 
     env = os.environ.copy()
-    extra_files = [
-        "compose/extra/metrics.yml",
-        "compose/extra/logging.yml",
-    ]
     env.update(
         {
             "DOCKER_COMPOSE_BIN": str(stub_path),
             "DESCRIBE_INSTANCE_CONFIG_JSON": str((tmp_path / "config.json").resolve()),
             "DESCRIBE_INSTANCE_COMPOSE_LOG": str(log_path),
-            "COMPOSE_EXTRA_FILES": " ".join(extra_files),
         }
     )
 
@@ -352,16 +347,7 @@ def test_table_summary_highlights_extra_files(
 
     stdout = result.stdout
     assert "Instance: core" in stdout
-    expected_plan = compose_instances_data.compose_plan("core")
-    for relative_path in expected_plan:
-        assert relative_path in stdout
-    expected_with_extra_files = compose_instances_data.compose_plan("core", extra_files)
-    for extra_file in extra_files:
-        assert extra_file in stdout
-        assert f"{extra_file} (extra file)" in stdout
-    assert "Extra compose files applied:" in stdout
-    for extra_file in extra_files:
-        assert extra_file in stdout
+    assert "docker-compose.yml" in stdout
     assert "Published ports:" in stdout
     for port in compose_payload["services"][service_with_ports]["ports"]:
         formatted = _format_port(port)
@@ -382,22 +368,11 @@ def test_table_summary_highlights_extra_files(
     config_call = _find_config_json_call(parsed)
 
     compose_args = _extract_flag_arguments(config_call, "-f")
-    expected_compose_files = [
-        repo_copy / relative_path for relative_path in expected_with_extra_files
-    ]
-    assert compose_args == [
-        str(path.resolve(strict=False)) for path in expected_compose_files
-    ]
+    expected_compose_files = [repo_copy / "docker-compose.yml"]
+    assert compose_args == [str(path.resolve(strict=False)) for path in expected_compose_files]
 
     env_files = _extract_flag_arguments(config_call, "--env-file")
-    expected_env_files = [
-        repo_copy / relative_path
-        for relative_path in compose_instances_data.env_files_map.get("core", [])
-        if relative_path
-    ]
-    assert env_files == [
-        str(path.resolve(strict=False)) for path in expected_env_files
-    ]
+    assert env_files == []
 
 
 def test_json_summary_structure(
@@ -451,13 +426,11 @@ def test_json_summary_structure(
     stub_path, log_path = _build_compose_stub(tmp_path, compose_payload)
 
     env = os.environ.copy()
-    extra_files = ["compose/extra/metrics.yml"]
     env.update(
         {
             "DOCKER_COMPOSE_BIN": str(stub_path),
             "DESCRIBE_INSTANCE_CONFIG_JSON": str((tmp_path / "config.json").resolve()),
             "DESCRIBE_INSTANCE_COMPOSE_LOG": str(log_path),
-            "COMPOSE_EXTRA_FILES": " ".join(extra_files),
         }
     )
 
@@ -468,15 +441,8 @@ def test_json_summary_structure(
     assert payload["instance"] == "core"
 
     compose_files = [entry["path"] for entry in payload["compose_files"]]
-    expected_with_extra_files = compose_instances_data.compose_plan("core", extra_files)
-    assert compose_files == expected_with_extra_files
-
-    extra_flags = [entry["is_extra"] for entry in payload["compose_files"]]
-    extra_count = len(extra_files)
-    assert all(extra_flags[-extra_count:]) if extra_count else True
-    assert any(flag is False for flag in extra_flags[:-extra_count or None])
-
-    assert payload["extra_files"] == extra_files
+    assert compose_files == ["docker-compose.yml"]
+    assert payload["extra_files"] == []
 
     services = payload["services"]
     names = [service["name"] for service in services]
@@ -499,18 +465,11 @@ def test_json_summary_structure(
     config_call = _find_config_json_call(parsed)
 
     compose_args = _extract_flag_arguments(config_call, "-f")
-    expected_compose_files = [
-        repo_copy / relative_path for relative_path in expected_with_extra_files
-    ]
+    expected_compose_files = [repo_copy / "docker-compose.yml"]
     assert compose_args == [str(path.resolve(strict=False)) for path in expected_compose_files]
 
     env_files = _extract_flag_arguments(config_call, "--env-file")
-    expected_env_files = [
-        repo_copy / relative_path
-        for relative_path in compose_instances_data.env_files_map.get("core", [])
-        if relative_path
-    ]
-    assert env_files == [str(path.resolve(strict=False)) for path in expected_env_files]
+    assert env_files == []
 
     for name, definition in compose_payload["services"].items():
         current = service_lookup[name]

@@ -212,14 +212,15 @@ The script relies on `scripts/lib/deploy_context.sh` to calculate `APP_DATA_DIR`
   - `table` (default) — ideal for quick terminal or runbook reviews.
   - `json` — aimed at automated integrations and documentation generation.
 - The `table` output helps quick reviews. With `--format json`, fields such as `compose_files`, `extra_files`, and `services` can feed runbook generators or status pages.
-- Highlight: the report surfaces additional compose files coming from `COMPOSE_EXTRA_FILES`, making it easier to audit temporary customizations.
+- The report is generated from the consolidated `docker-compose.yml` produced by `scripts/build_compose_file.sh`, so keep that file up to date when manifests or env templates change.
 
 ## scripts/check_health.sh
 
 - **Supported arguments and variables:**
   - `HEALTH_SERVICES` — list of services to inspect (space- or comma-separated). When set, execution is limited to the desired services only.
   - `COMPOSE_ENV_FILES` — optional list of `.env` files applied before querying `docker compose`, overriding the default `env/local/common.env` → `env/local/<instance>.env` chain when provided.
-- Collection generates or reuses a consolidated `docker-compose.yml` before running `docker compose -f docker-compose.yml ps/logs`.
+- Collection generates (or requires) a consolidated `docker-compose.yml` via `scripts/build_compose_file.sh` before running `docker compose -f docker-compose.yml ps/logs`.
+- `COMPOSE_FILES` and `COMPOSE_EXTRA_FILES` overrides are ignored here; customize the compose plan through `scripts/build_compose_file.sh` instead.
 - The script automatically supplements the service list by running `docker compose config --services`. If no services are found, execution aborts with an error to avoid silently suppressing logs.
 - **Output formats:**
   - `text` (default) — mirrors the historical behavior by printing `docker compose ps` followed by recent logs.
@@ -256,6 +257,7 @@ HEALTH_SERVICES="api worker" scripts/check_health.sh --format json media | jq '.
   - `SQLITE3_CONTAINER_IMAGE` — image used for the `sqlite3` command (default `keinos/sqlite3:latest`).
   - `SQLITE3_BIN` — path to a local binary used in `binary` mode or as a fallback.
 - **Operational notes:**
+  - The script builds (or requires) `docker-compose.yml` for the instance before pausing services, relying on the consolidated file for all Compose commands.
   - Backups with the `.bak` suffix are automatically generated before overwriting a recovered database.
   - Whenever an inconsistency is detected (even after recovery), alerts are emitted to stderr to ease integration with monitoring systems.
   - Combine with short maintenance windows because services stay paused during the entire inspection.
@@ -295,7 +297,7 @@ This document keeps only a summary: use `scripts/update_from_template.sh` to rea
 - **Persistent directories:** the `data/<instance>/<app>` path is calculated automatically; use `APP_DATA_DIR` (relative) **or** `APP_DATA_DIR_MOUNT` (absolute) when you need to customize the destination and adjust `APP_DATA_UID`/`APP_DATA_GID` in `.env` to align permissions.
 - **Monitored services:** set `HEALTH_SERVICES` in `.env` files so `scripts/check_health.sh` targets the correct logs.
 - **Extra volumes:** add mounts directly to the relevant service inside `docker-compose.<instance>.yml` to expose different paths per environment. When present, see also [`docker-compose.media.yml`](../docker-compose.media.yml) for an example of a named volume shared (`media_cache`) between services in the instance.
-- **Configurable extra compose files:** register optional files and enable them per environment via `COMPOSE_EXTRA_FILES`. This keeps template diffs confined to configuration files without editing scripts.
+- **Configurable extra compose files:** register optional files and enable them per environment via `COMPOSE_EXTRA_FILES` when building `docker-compose.yml`. The health and audit helpers operate on the generated root file, not direct `-f` chains.
 
 ## Suggested operational flows
 

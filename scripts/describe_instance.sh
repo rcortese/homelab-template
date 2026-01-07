@@ -25,6 +25,9 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 # shellcheck source=lib/python_runtime.sh
 source "${SCRIPT_DIR}/lib/python_runtime.sh"
 
+# shellcheck source=lib/compose_command.sh
+source "$SCRIPT_DIR/lib/compose_command.sh"
+
 FORMAT="table"
 INSTANCE_NAME=""
 LIST_ONLY=false
@@ -105,16 +108,25 @@ if [[ "$FORMAT_LOWER" != "table" && "$FORMAT_LOWER" != "json" ]]; then
   exit 1
 fi
 
-# shellcheck source=lib/compose_defaults.sh
-source "$SCRIPT_DIR/lib/compose_defaults.sh"
+unset COMPOSE_FILES
+unset COMPOSE_EXTRA_FILES
 
-if ! setup_compose_defaults "$INSTANCE_NAME" "$REPO_ROOT"; then
+COMPOSE_ROOT_FILE="$REPO_ROOT/docker-compose.yml"
+declare -a BUILD_COMPOSE_CMD=("$SCRIPT_DIR/build_compose_file.sh" --instance "$INSTANCE_NAME")
+
+if ! "${BUILD_COMPOSE_CMD[@]}" >/dev/null; then
   echo "Error: failed to assemble compose configuration for '$INSTANCE_NAME'." >&2
   exit 1
 fi
 
-declare -a CONFIG_CMD=("${COMPOSE_CMD[@]}")
-CONFIG_CMD+=(config --format json)
+declare -a COMPOSE_CMD=()
+compose_resolve_command COMPOSE_CMD
+compose_status=$?
+if ((compose_status != 0)); then
+  exit "$compose_status"
+fi
+
+declare -a CONFIG_CMD=("${COMPOSE_CMD[@]}" -f "$COMPOSE_ROOT_FILE" config --format json)
 
 tmp_stderr="$(mktemp)"
 set +e
@@ -138,8 +150,8 @@ rm -f "$tmp_stderr"
 
 export DESCRIBE_INSTANCE_FORMAT="$FORMAT_LOWER"
 export DESCRIBE_INSTANCE_NAME="$INSTANCE_NAME"
-export DESCRIBE_INSTANCE_COMPOSE_FILES="${COMPOSE_FILES:-}"
-export DESCRIBE_INSTANCE_EXTRA_FILES="${COMPOSE_EXTRA_FILES:-}"
+export DESCRIBE_INSTANCE_COMPOSE_FILES="docker-compose.yml"
+export DESCRIBE_INSTANCE_EXTRA_FILES=""
 export DESCRIBE_INSTANCE_REPO_ROOT="$REPO_ROOT"
 
 python_runtime__run_stdin \

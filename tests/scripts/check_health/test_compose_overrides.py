@@ -7,11 +7,13 @@ from tests.conftest import DockerStub
 from .utils import (
     _expected_compose_call,
     expected_consolidated_plan_calls,
+    expected_env_for_instance,
+    expected_plan_for_instance,
     run_check_health,
 )
 
 
-def test_invokes_ps_and_logs_with_custom_files(docker_stub: DockerStub) -> None:
+def test_ignores_compose_file_overrides(docker_stub: DockerStub) -> None:
     repo_root = Path(__file__).resolve().parents[3]
 
     env = {
@@ -19,17 +21,15 @@ def test_invokes_ps_and_logs_with_custom_files(docker_stub: DockerStub) -> None:
         "COMPOSE_ENV_FILES": "env/common.example.env",
     }
 
-    result = run_check_health(env=env)
+    result = run_check_health(args=["core"], env=env)
 
     assert result.returncode == 0, result.stderr
 
     calls = docker_stub.read_calls()
     expected_env = str((repo_root / "env" / "common.example.env").resolve())
     consolidated_file = repo_root / "docker-compose.yml"
-
     compose_files = [
-        (repo_root / "compose" / "docker-compose.base.yml").resolve(),
-        (repo_root / "compose" / "extra.yml").resolve(),
+        str((repo_root / path).resolve()) for path in expected_plan_for_instance("core")
     ]
     assert calls == expected_consolidated_plan_calls(
         expected_env, compose_files, consolidated_file
@@ -46,7 +46,7 @@ def test_invokes_ps_and_logs_with_custom_files(docker_stub: DockerStub) -> None:
     ]
 
 
-def test_loads_compose_extra_files_from_env_file(
+def test_ignores_compose_extra_files_from_env_file(
     docker_stub: DockerStub, tmp_path: Path
 ) -> None:
     env_file = tmp_path / "custom.env"
@@ -60,7 +60,7 @@ def test_loads_compose_extra_files_from_env_file(
         "COMPOSE_ENV_FILES": str(env_file),
     }
 
-    result = run_check_health(env=env)
+    result = run_check_health(args=["core"], env=env)
 
     assert result.returncode == 0, result.stderr
     assert "Warning:" not in result.stderr
@@ -69,9 +69,7 @@ def test_loads_compose_extra_files_from_env_file(
     repo_root = Path(__file__).resolve().parents[3]
     consolidated_file = repo_root / "docker-compose.yml"
     expected_files = [
-        (repo_root / "compose" / "docker-compose.base.yml").resolve(),
-        (repo_root / "compose" / "extra" / "extra.yml").resolve(),
-        (repo_root / "compose" / "extra" / "extra.yml").resolve(),
+        str((repo_root / path).resolve()) for path in expected_plan_for_instance("core")
     ]
     calls = docker_stub.read_calls()
     assert calls == expected_consolidated_plan_calls(
@@ -94,20 +92,23 @@ def test_ignores_blank_and_duplicate_compose_tokens(docker_stub: DockerStub) -> 
         "COMPOSE_EXTRA_FILES": f"  {compose_base}    {compose_base}\n   {compose_base}   ",
     }
 
-    result = run_check_health(env=env)
+    result = run_check_health(args=["core"], env=env)
 
     assert result.returncode == 0, result.stderr
     assert "Warning:" not in result.stderr
     assert "[*] Containers:" in result.stdout
 
-    expected_manifest = str((repo_root / compose_base).resolve())
     consolidated_file = repo_root / "docker-compose.yml"
     calls = docker_stub.read_calls()
     assert calls, "Expected docker compose invocations to be recorded"
 
+    expected_env_files = [
+        str((repo_root / path).resolve())
+        for path in expected_env_for_instance("core")
+    ]
     plan_calls = expected_consolidated_plan_calls(
-        str((repo_root / "env" / "common.example.env").resolve()),
-        [expected_manifest, expected_manifest],
+        expected_env_files,
+        [str((repo_root / path).resolve()) for path in expected_plan_for_instance("core")],
         consolidated_file,
     )
     assert calls[:2] == plan_calls
