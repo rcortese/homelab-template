@@ -272,6 +272,14 @@ done
 
 compose_tmp_file="${OUTPUT_FILE}.tmp"
 trap 'rm -f "$compose_tmp_file"' EXIT
+compose_tmp_dir="$(dirname "$compose_tmp_file")"
+if [[ ! -d "$compose_tmp_dir" ]]; then
+  if ! mkdir -p "$compose_tmp_dir"; then
+    echo "Error: could not create temporary compose directory: $compose_tmp_dir" >&2
+    exit 1
+  fi
+fi
+: >"$compose_tmp_file"
 
 generate_cmd=("${compose_cmd[@]}" config --output "$compose_tmp_file")
 
