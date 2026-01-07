@@ -137,7 +137,7 @@ if ((compose_status != 0)); then
 fi
 
 if [[ -n "$INSTANCE_NAME" ]]; then
-  declare -a BUILD_COMPOSE_CMD=("$SCRIPT_DIR/build_compose_file.sh" --instance "$INSTANCE_NAME")
+  declare -a BUILD_COMPOSE_CMD=("$SCRIPT_DIR/build_compose_file.sh" "$INSTANCE_NAME")
 
   if ! "${BUILD_COMPOSE_CMD[@]}" >/dev/null; then
     echo "Error: failed to generate consolidated docker-compose.yml." >&2
@@ -145,7 +145,7 @@ if [[ -n "$INSTANCE_NAME" ]]; then
   fi
 else
   if [[ ! -f "$COMPOSE_ROOT_FILE" ]]; then
-    echo "Error: docker-compose.yml not found; run scripts/build_compose_file.sh --instance <name>." >&2
+    echo "Error: docker-compose.yml not found; run scripts/build_compose_file.sh <instance>." >&2
     exit 1
   fi
 fi

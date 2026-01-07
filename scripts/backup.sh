@@ -47,7 +47,7 @@ if ! compose_resolve_command DOCKER_COMPOSE_CMD; then
   exit $?
 fi
 
-BUILD_COMPOSE_CMD=("$REPO_ROOT/scripts/build_compose_file.sh" --instance "$INSTANCE")
+BUILD_COMPOSE_CMD=("$REPO_ROOT/scripts/build_compose_file.sh" "$INSTANCE")
 COMPOSE_CMD=("${DOCKER_COMPOSE_CMD[@]}" -f "$COMPOSE_ROOT_FILE")
 
 stack_was_stopped=0

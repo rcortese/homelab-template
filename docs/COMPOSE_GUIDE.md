@@ -46,7 +46,7 @@ When combining several services, load the manifests in blocks (`compose/docker-c
 1. Generate the consolidated file with the helper:
 
    ```bash
-   scripts/build_compose_file.sh --instance <instance> \
+   scripts/build_compose_file.sh <instance> \
      --file compose/extra/<extra>.yml \           # optional, repeat if you need more than one
      --env-file env/local/common.env \             # optional override for the default chain
      --env-file env/local/<instance>.env           # optional instance override

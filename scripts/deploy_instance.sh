@@ -66,7 +66,7 @@ mapfile -t PERSISTENT_DIRS <<<"${DEPLOY_CONTEXT[PERSISTENT_DIRS]}"
 DATA_UID="${DEPLOY_CONTEXT[DATA_UID]}"
 DATA_GID="${DEPLOY_CONTEXT[DATA_GID]}"
 APP_DATA_UID_GID="${DEPLOY_CONTEXT[APP_DATA_UID_GID]}"
-BUILD_COMPOSE_CMD=("$REPO_ROOT/scripts/build_compose_file.sh" --instance "$INSTANCE")
+BUILD_COMPOSE_CMD=("$REPO_ROOT/scripts/build_compose_file.sh" "$INSTANCE")
 COMPOSE_UP_CMD=("${COMPOSE_CMD[@]}" -f "$COMPOSE_ROOT_FILE" up -d)
 
 compose_env_files_display="${COMPOSE_ENV_FILES//$'\n'/ }"

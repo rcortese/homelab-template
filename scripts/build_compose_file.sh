@@ -4,14 +4,16 @@ set -euo pipefail
 
 print_help() {
   cat <<'USAGE'
-Usage: scripts/build_compose_file.sh [options]
+Usage: scripts/build_compose_file.sh [options] <instance>
 
 Generates a unified docker-compose.yml in the repository root by combining the
 resolved manifests for an instance.
 
+Arguments:
+  instance              Instance name (e.g., core, media).
+
 Flags:
   -h, --help            Show this help text and exit.
-  -i, --instance NAME   Select the instance (e.g., core, media).
   -f, --file PATH       Add an extra compose file after the default plan. Can be
                         used multiple times (equivalent to COMPOSE_EXTRA_FILES).
   -e, --env-file PATH   Add an extra .env to the applied chain (equivalent to
@@ -53,14 +55,6 @@ while [[ $# -gt 0 ]]; do
     print_help
     exit 0
     ;;
-  -i | --instance)
-    shift
-    if [[ $# -eq 0 ]]; then
-      echo "Error: --instance requires a value." >&2
-      exit 64
-    fi
-    INSTANCE_NAME="$1"
-    ;;
   -f | --file)
     shift
     if [[ $# -eq 0 ]]; then
@@ -97,13 +91,28 @@ while [[ $# -gt 0 ]]; do
     shift
     break
     ;;
-  *)
+  -*)
     echo "Error: unknown argument '$1'." >&2
     exit 64
+    ;;
+  *)
+    break
     ;;
   esac
   shift
 done
+
+if [[ $# -lt 1 ]]; then
+  echo "Error: instance argument is required." >&2
+  exit 64
+fi
+
+if [[ $# -gt 1 ]]; then
+  echo "Error: unexpected argument '$2'." >&2
+  exit 64
+fi
+
+INSTANCE_NAME="$1"
 
 if [[ "$OUTPUT_FILE" != /* ]]; then
   OUTPUT_FILE="$REPO_ROOT/$OUTPUT_FILE"
@@ -121,10 +130,6 @@ if ((${#DECLARE_EXTRAS[@]} > 0)); then
 fi
 
 declare -a compose_files_list=()
-if [[ -z "$INSTANCE_NAME" ]]; then
-  echo "Error: --instance is required." >&2
-  exit 64
-fi
 
 if ! compose_metadata="$("$SCRIPT_DIR/lib/compose_instances.sh" "$REPO_ROOT")"; then
   echo "Error: could not load instance metadata." >&2

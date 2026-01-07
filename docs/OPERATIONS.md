@@ -17,7 +17,7 @@ This document offers a starting point for describing operational processes and h
 | [`scripts/deploy_instance.sh`](#scriptsdeploy_instancesh) | Orchestrate guided instance deployment. | `scripts/deploy_instance.sh <target>` | Manual or automated deployments. |
 | [`scripts/fix_permission_issues.sh`](#scriptsfix_permission_issuessh) | Adjust permissions for persistent directories. | `scripts/fix_permission_issues.sh <instance>` | Before starting services that share storage. |
 | [`scripts/backup.sh`](#scriptsbackupsh) | Generate a versioned snapshot of the instance. | `scripts/backup.sh <instance>` | Backup routines and pre-invasive changes. |
-| [`scripts/build_compose_file.sh`](#scriptsbuild_compose_filesh) | Generate the root `docker-compose.yml` for direct `docker compose` use. | `scripts/build_compose_file.sh --instance <name>` | Before running Compose commands; after manifest or `.env` changes. |
+| [`scripts/build_compose_file.sh`](#scriptsbuild_compose_filesh) | Generate the root `docker-compose.yml` for direct `docker compose` use. | `scripts/build_compose_file.sh <name>` | Before running Compose commands; after manifest or `.env` changes. |
 | [`scripts/describe_instance.sh`](#scriptsdescribe_instancesh) | Summarize services, ports, and volumes of an instance. | `scripts/describe_instance.sh <instance>` | Quick audits or runbook generation. |
 | [`scripts/check_health.sh`](#scriptscheck_healthsh) | Check service status after changes. | `scripts/check_health.sh <instance>` | Post-deploy, post-restore, or troubleshooting. |
 | [`scripts/check_db_integrity.sh`](#scriptscheck_db_integritysh) | Validate SQLite integrity with controlled pause. | `scripts/check_db_integrity.sh <instance>` | Scheduled maintenance or failure investigation. |
@@ -27,7 +27,7 @@ This document offers a starting point for describing operational processes and h
 ## Before you start
 
 - Ensure local `.env` files were generated from the models described in [`env/README.md`](../env/README.md).
-- Review the manifest combinations (including `compose/docker-compose.base.yml` when present, `compose/docker-compose.<instance>.yml` when present, and overrides) the scripts will use. The sample [`compose/docker-compose.core.yml`](../compose/docker-compose.core.yml) and [`compose/docker-compose.media.yml`](../compose/docker-compose.media.yml) files document how to apply global per-instance adjustments before the application manifests. Regenerate the consolidated `docker-compose.yml` with `scripts/build_compose_file.sh --instance <instance>` whenever manifests or variables change.
+- Review the manifest combinations (including `compose/docker-compose.base.yml` when present, `compose/docker-compose.<instance>.yml` when present, and overrides) the scripts will use. The sample [`compose/docker-compose.core.yml`](../compose/docker-compose.core.yml) and [`compose/docker-compose.media.yml`](../compose/docker-compose.media.yml) files document how to apply global per-instance adjustments before the application manifests. Regenerate the consolidated `docker-compose.yml` with `scripts/build_compose_file.sh <instance>` whenever manifests or variables change.
 - Run `scripts/check_all.sh` to validate structure, variable synchronization, and Compose manifests before opening PRs or publishing local changes.
 - Run `scripts/check_env_sync.sh` whenever you edit manifests or `.env` templates to ensure variables stay synchronized.
 - Document extra dependencies (CLIs, credentials, registry access) in additional sections.
@@ -188,7 +188,7 @@ The script relies on `scripts/lib/deploy_context.sh` to calculate `APP_DATA_DIR`
 - **Goal:** materialize the resolved Compose plan into `docker-compose.yml` at the repository root and consolidate the applied env chain into `.env`, so that the standard commands become `docker compose up -d` and `docker compose ps` without extra flags.
 - **Generated outputs:** `./docker-compose.yml` and `./.env` are generated files. Edit the source manifests or `env/*.example.env` templates and rerun the script instead of modifying the root outputs directly.
 - **Inputs and overrides:**
-  - Requires `--instance` to reuse the standard discovery chain (base manifests, app compose files, and per-instance overrides);
+  - Requires the instance argument to reuse the standard discovery chain (base manifests, app compose files, and per-instance overrides);
   - `--file` (repeatable) mirrors `COMPOSE_EXTRA_FILES`, appending extra compose files after the discovered plan;
   - `--env-file` (repeatable) extends or replaces the `.env` chain controlled by `COMPOSE_ENV_FILES`, falling back to `env/local/common.env` → `env/local/<instance>.env` when the explicit list is empty;
   - `--env-output` changes where the consolidated `.env` is written (defaults to the repository root). The helper rebuilds the file on every run, honoring the same precedence applied to `--env-file`.
@@ -196,10 +196,10 @@ The script relies on `scripts/lib/deploy_context.sh` to calculate `APP_DATA_DIR`
 - **Examples:**
   ```bash
   # Generate the root docker-compose.yml and .env for the core instance using defaults
-  scripts/build_compose_file.sh --instance core
+  scripts/build_compose_file.sh core
 
   # Append temporary compose files and a custom env chain while writing to a different path
-  scripts/build_compose_file.sh --instance media \
+  scripts/build_compose_file.sh media \
     --file compose/extra/monitoring-debug.yml \
     --env-file env/local/common.env --env-file env/local/media.env \
     --output /tmp/media-merged-compose.yml --env-output /tmp/media.env
