@@ -14,7 +14,7 @@ def _extract_args(command: list[str], flag: str) -> list[str]:
     return values
 
 
-def test_requires_instance_or_compose_files(repo_copy: Path, tmp_path: Path) -> None:
+def test_requires_instance(repo_copy: Path, tmp_path: Path) -> None:
     stub = create_compose_config_stub(tmp_path)
 
     result = run_build_compose_file(
@@ -65,7 +65,7 @@ def test_generates_compose_from_instance_plan(
     assert str(output_path.resolve()) in _extract_args(second_call, "-f")
 
 
-def test_applies_extras_and_explicit_env_chain(
+def test_applies_explicit_env_chain(
     repo_copy: Path, compose_instances_data: ComposeInstancesData, tmp_path: Path
 ) -> None:
     stub = create_compose_config_stub(tmp_path)
@@ -76,16 +76,7 @@ def test_applies_extras_and_explicit_env_chain(
     for env_file in (extra_env1, extra_env2, extra_env3):
         env_file.write_text("PLACEHOLDER=1\n", encoding="utf-8")
 
-    extras_dir = repo_copy / "compose" / "extras"
-    extras_dir.mkdir(parents=True, exist_ok=True)
-
-    extra_file_env = extras_dir / "extra-env.yml"
-    extra_file_cli = extras_dir / "extra-cli.yml"
-    extra_file_env.write_text("version: '3.8'\n", encoding="utf-8")
-    extra_file_cli.write_text("version: '3.8'\n", encoding="utf-8")
-
     env_overrides = {
-        "COMPOSE_EXTRA_FILES": str(extra_file_env.relative_to(repo_copy)),
         "COMPOSE_ENV_FILES": f"{extra_env1.relative_to(repo_copy)} {extra_env2.relative_to(repo_copy)}",
     }
 
@@ -94,8 +85,6 @@ def test_applies_extras_and_explicit_env_chain(
         args=[
             "--instance",
             "core",
-            "--file",
-            str(extra_file_cli.relative_to(repo_copy)),
             "--env-file",
             str(extra_env2.relative_to(repo_copy)),
             "--env-file",
@@ -126,13 +115,7 @@ def test_applies_extras_and_explicit_env_chain(
     compose_files = _extract_args(first_call, "-f")
     expected_plan = [
         str((repo_copy / entry).resolve())
-        for entry in compose_instances_data.compose_plan(
-            "core",
-            [
-                str(extra_file_env.relative_to(repo_copy)),
-                str(extra_file_cli.relative_to(repo_copy)),
-            ],
-        )
+        for entry in compose_instances_data.compose_plan("core")
     ]
     assert compose_files == expected_plan
 

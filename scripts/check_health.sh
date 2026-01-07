@@ -34,7 +34,7 @@ source "$SCRIPT_DIR/lib/compose_instances.sh"
 
 print_help() {
   cat <<'EOF'
-Usage: scripts/check_health.sh [options] [instance]
+Usage: scripts/check_health.sh [options] <instance>
 
 Checks service status for an instance and prints logs for the monitored services.
 
@@ -128,6 +128,12 @@ fi
 
 INSTANCE_NAME="${1:-}"
 
+if [[ -z "$INSTANCE_NAME" ]]; then
+  echo "Error: provide the instance name." >&2
+  print_help >&2
+  exit 2
+fi
+
 if compose_defaults_dump="$("$SCRIPT_DIR/lib/compose_defaults.sh" "$INSTANCE_NAME" ".")"; then
   :
 else
@@ -162,48 +168,6 @@ normalize_compose_context() {
     fi
   fi
 
-  if [[ -n "${COMPOSE_EXTRA_FILES:-}" ]]; then
-    local extra_entry
-    local extra_input="${COMPOSE_EXTRA_FILES//$'\n'/ }"
-    extra_input="${extra_input//,/ }"
-    declare -A __extra_seen=()
-    local -a __extra_filtered=()
-    for extra_entry in $extra_input; do
-      [[ -z "$extra_entry" ]] && continue
-      if [[ -n "${__extra_seen[$extra_entry]:-}" ]]; then
-        continue
-      fi
-      __extra_seen[$extra_entry]=1
-      local resolved_extra="$extra_entry"
-      if [[ "$resolved_extra" != /* ]]; then
-        resolved_extra="$REPO_ROOT/$resolved_extra"
-      fi
-
-      local already_present=0
-      local idx=0
-      while ((idx < ${#COMPOSE_CMD[@]})); do
-        if [[ "${COMPOSE_CMD[$idx]}" == "-f" ]]; then
-          if ((idx + 1 < ${#COMPOSE_CMD[@]})); then
-            if [[ "${COMPOSE_CMD[$((idx + 1))]}" == "$resolved_extra" ]]; then
-              already_present=1
-              break
-            fi
-          fi
-          idx=$((idx + 2))
-          continue
-        fi
-        idx=$((idx + 1))
-      done
-
-      if ((already_present == 0)); then
-        COMPOSE_CMD+=(-f "$resolved_extra")
-      fi
-      __extra_filtered+=("$extra_entry")
-    done
-    if ((${#__extra_filtered[@]} > 0)); then
-      COMPOSE_EXTRA_FILES="${__extra_filtered[*]}"
-    fi
-  fi
 }
 
 normalize_compose_context
@@ -215,7 +179,6 @@ if ! compose_resolve_command DOCKER_COMPOSE_CMD; then
 fi
 
 export COMPOSE_FILES
-export COMPOSE_EXTRA_FILES
 export COMPOSE_ENV_FILES
 
 if [[ -z "${HEALTH_SERVICES:-}" ]]; then
@@ -236,7 +199,7 @@ if [[ -z "${HEALTH_SERVICES:-}" ]]; then
       if [[ ! -f "$env_abs" ]]; then
         continue
       fi
-      if env_output="$("$SCRIPT_DIR/lib/env_loader.sh" "$env_abs" COMPOSE_EXTRA_FILES HEALTH_SERVICES 2>/dev/null)"; then
+      if env_output="$("$SCRIPT_DIR/lib/env_loader.sh" "$env_abs" HEALTH_SERVICES 2>/dev/null)"; then
         while IFS= read -r line; do
           [[ -z "$line" ]] && continue
           if [[ "$line" != *=* ]]; then
@@ -250,10 +213,6 @@ if [[ -z "${HEALTH_SERVICES:-}" ]]; then
     done
 
     defaults_refreshed=0
-    if [[ -n "${__health_env_values[COMPOSE_EXTRA_FILES]+x}" ]]; then
-      COMPOSE_EXTRA_FILES="${__health_env_values[COMPOSE_EXTRA_FILES]}"
-      defaults_refreshed=1
-    fi
     if [[ -n "${__health_env_values[HEALTH_SERVICES]+x}" ]]; then
       HEALTH_SERVICES="${__health_env_values[HEALTH_SERVICES]}"
       defaults_refreshed=1

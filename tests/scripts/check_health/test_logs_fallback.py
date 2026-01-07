@@ -36,7 +36,7 @@ def test_logs_fallback_through_alternative_services(
     monkeypatch.setenv("DOCKER_STUB_FAIL_ONCE_STATE", str(state_file))
     monkeypatch.setenv("DOCKER_STUB_SERVICES_OUTPUT", "svc-api")
 
-    result = run_check_health()
+    result = run_check_health(args=["core"])
 
     assert result.returncode == 0, result.stderr
 
@@ -63,7 +63,7 @@ def test_logs_reports_failure_when_all_services_fail(
         "DOCKER_STUB_SERVICES_OUTPUT": "svc-aux",
     }
 
-    result = run_check_health(env=env)
+    result = run_check_health(args=["core"], env=env)
 
     assert result.returncode != 0
     assert "Failed to retrieve logs for services" in result.stderr
@@ -90,7 +90,7 @@ def test_logs_handles_comma_separated_health_services(docker_stub: DockerStub) -
         "DOCKER_STUB_SERVICES_OUTPUT": "svc-auto",
     }
 
-    result = run_check_health(env=env)
+    result = run_check_health(args=["core"], env=env)
 
     assert result.returncode == 0, result.stderr
     assert "Warning: Failed to retrieve logs for services: svc-core" in result.stderr
@@ -115,7 +115,7 @@ def test_logs_attempts_all_services_even_after_success(docker_stub: DockerStub) 
         "DOCKER_STUB_SERVICES_OUTPUT": "svc-auto",
     }
 
-    result = run_check_health(env=env)
+    result = run_check_health(args=["core"], env=env)
 
     assert result.returncode == 0, result.stderr
     assert "Warning:" not in result.stderr
@@ -137,7 +137,7 @@ def test_logs_attempts_all_services_even_after_success(docker_stub: DockerStub) 
 def test_logs_without_targets_uses_compose_services(docker_stub: DockerStub) -> None:
     env = {"DOCKER_STUB_SERVICES_OUTPUT": "svc-one\nsvc-two"}
 
-    result = run_check_health(env=env)
+    result = run_check_health(args=["core"], env=env)
 
     assert result.returncode == 0, result.stderr
 
@@ -159,7 +159,7 @@ def test_logs_without_targets_and_no_services_reports_error(
 ) -> None:
     env = {"DOCKER_STUB_SERVICES_OUTPUT": ""}
 
-    result = run_check_health(env=env)
+    result = run_check_health(args=["core"], env=env)
 
     assert result.returncode != 0
     assert "no services were found" in result.stderr

@@ -19,7 +19,7 @@ The documents below remain generic to ease merges from the template. To record s
 
 - [Operations and standard scripts](./OPERATIONS.md) — Adapt the provided utilities to your project.
 - [Automation entrypoints](../scripts/README.md) — Summary of automation entrypoints available in the `scripts/` directory.
-- [Compose manifest combinations](./COMPOSE_GUIDE.md) — Organize overlays and profiles for different scenarios.
+- [Compose manifest combinations](./COMPOSE_GUIDE.md) — Organize base and instance manifests for different scenarios.
 - [Generic backup & restore](./BACKUP_RESTORE.md) — Export/import strategies applicable to any stack.
 
 ## Application documentation

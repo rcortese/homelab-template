@@ -11,7 +11,7 @@ from .utils import expected_consolidated_plan_calls, run_check_health
 def test_errors_when_compose_command_missing() -> None:
     env = {"DOCKER_COMPOSE_BIN": "definitely-missing-binary"}
 
-    result = run_check_health(env=env)
+    result = run_check_health(args=["core"], env=env)
 
     assert result.returncode == 127
     assert (
@@ -21,20 +21,24 @@ def test_errors_when_compose_command_missing() -> None:
 
 
 def test_respects_docker_compose_bin_override(docker_stub: DockerStub) -> None:
-    env = {"DOCKER_COMPOSE_BIN": "docker --context remote compose"}
+    env = {
+        "DOCKER_COMPOSE_BIN": "docker --context remote compose",
+        "COMPOSE_ENV_FILES": "env/common.example.env",
+    }
 
-    result = run_check_health(env=env)
+    result = run_check_health(args=["core"], env=env)
 
     assert result.returncode == 0, result.stderr
 
     calls = docker_stub.read_calls()
     repo_root = Path(__file__).resolve().parents[3]
     base_file = str((repo_root / "compose" / "docker-compose.base.yml").resolve())
+    instance_file = str((repo_root / "compose" / "docker-compose.core.yml").resolve())
     consolidated_file = repo_root / "docker-compose.yml"
     base_cmd = ["--context", "remote", "compose"]
     assert calls == expected_consolidated_plan_calls(
         str((repo_root / "env" / "common.example.env").resolve()),
-        [base_file],
+        [base_file, instance_file],
         consolidated_file,
         base_cmd=base_cmd,
     ) + [

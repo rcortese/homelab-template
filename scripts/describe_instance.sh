@@ -139,12 +139,11 @@ rm -f "$tmp_stderr"
 export DESCRIBE_INSTANCE_FORMAT="$FORMAT_LOWER"
 export DESCRIBE_INSTANCE_NAME="$INSTANCE_NAME"
 export DESCRIBE_INSTANCE_COMPOSE_FILES="${COMPOSE_FILES:-}"
-export DESCRIBE_INSTANCE_EXTRA_FILES="${COMPOSE_EXTRA_FILES:-}"
 export DESCRIBE_INSTANCE_REPO_ROOT="$REPO_ROOT"
 
 python_runtime__run_stdin \
   "$REPO_ROOT" \
-  "DESCRIBE_INSTANCE_FORMAT DESCRIBE_INSTANCE_NAME DESCRIBE_INSTANCE_COMPOSE_FILES DESCRIBE_INSTANCE_EXTRA_FILES DESCRIBE_INSTANCE_REPO_ROOT" \
+  "DESCRIBE_INSTANCE_FORMAT DESCRIBE_INSTANCE_NAME DESCRIBE_INSTANCE_COMPOSE_FILES DESCRIBE_INSTANCE_REPO_ROOT" \
   -- "$config_stdout" <<'PYTHON'
 import json
 import os
@@ -154,7 +153,6 @@ from pathlib import Path
 format_arg = os.environ.get("DESCRIBE_INSTANCE_FORMAT", "table").strip().lower()
 instance_name = os.environ.get("DESCRIBE_INSTANCE_NAME", "").strip()
 compose_files_raw = os.environ.get("DESCRIBE_INSTANCE_COMPOSE_FILES", "")
-extra_files_raw = os.environ.get("DESCRIBE_INSTANCE_EXTRA_FILES", "")
 repo_root = Path(os.environ.get("DESCRIBE_INSTANCE_REPO_ROOT", ".")).resolve()
 
 if not instance_name:
@@ -282,8 +280,6 @@ def format_volume(volume: object) -> str:
 
 
 compose_entries = split_entries(compose_files_raw)
-extra_entries = split_entries(extra_files_raw)
-extra_normalized = {normalize_for_compare(entry) for entry in extra_entries}
 
 compose_summary = []
 for entry in compose_entries:
@@ -291,12 +287,9 @@ for entry in compose_entries:
     compose_summary.append(
         {
             "path": display_path(entry),
-            "is_extra": normalized in extra_normalized,
             "raw": entry,
         }
     )
-
-extra_summary = [display_path(entry) for entry in extra_entries]
 
 service_items = []
 for service_name in sorted(services):
@@ -316,7 +309,6 @@ for service_name in sorted(services):
 summary = {
     "instance": instance_name,
     "compose_files": compose_summary,
-    "extra_overlays": extra_summary,
     "services": service_items,
 }
 
@@ -330,16 +322,9 @@ print("")
 print("Compose files (-f):")
 if compose_summary:
     for entry in compose_summary:
-        marker = " (extra overlay)" if entry["is_extra"] else ""
-        print(f"  • {entry['path']}{marker}")
+        print(f"  • {entry['path']}")
 else:
     print("  (no files found)")
-
-if extra_summary:
-    print("")
-    print("Extra overlays applied:")
-    for overlay in extra_summary:
-        print(f"  • {overlay}")
 
 print("")
 print("Services:")

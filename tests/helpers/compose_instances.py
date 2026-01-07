@@ -18,7 +18,7 @@ class ComposeInstancesData:
     instance_app_names: dict[str, list[str]] = field(default_factory=dict)
     app_base_files: dict[str, str] = field(default_factory=dict)
 
-    def compose_plan(self, instance: str, extra_files: Iterable[str] | None = None) -> list[str]:
+    def compose_plan(self, instance: str) -> list[str]:
         plan: list[str] = []
 
         def append_unique(entry: str) -> None:
@@ -32,10 +32,6 @@ class ComposeInstancesData:
 
         for override in self.instance_files.get(instance, []):
             append_unique(override)
-
-        if extra_files is not None:
-            for extra in extra_files:
-                append_unique(extra)
 
         return plan
 

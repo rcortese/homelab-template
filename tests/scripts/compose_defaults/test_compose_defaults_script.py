@@ -109,7 +109,6 @@ def test_fallbacks_when_instance_missing(repo_copy: Path) -> None:
     env = os.environ.copy()
     env.pop("COMPOSE_FILES", None)
     env.pop("COMPOSE_ENV_FILES", None)
-    env.pop("COMPOSE_EXTRA_FILES", None)
 
     stdout = _run_script(script_path, "missing", str(repo_copy), env=env)
 
@@ -169,64 +168,6 @@ def test_preserves_existing_environment(repo_copy: Path) -> None:
     ]
 
 
-def test_appends_extra_files_when_defined(
-    repo_copy: Path, compose_instances_data: ComposeInstancesData
-) -> None:
-    script_path = repo_copy / SCRIPT_RELATIVE
-    base_plan = compose_instances_data.compose_plan("core")
-    subset_length = min(3, len(base_plan)) or 1
-    existing_files = base_plan[:subset_length]
-    env = os.environ.copy()
-    overlays = ["compose/overlays/metrics.yml", "compose/overlays/logging.yml"]
-    env.update(
-        {
-            "COMPOSE_FILES": " ".join(existing_files),
-            "COMPOSE_EXTRA_FILES": " ".join(overlays),
-        }
-    )
-
-    stdout = _run_script(script_path, "core", str(repo_copy), env=env)
-
-    compose_files = _extract_value(r'COMPOSE_FILES="([^"]+)"', stdout)
-    expected_relative = [*existing_files, *overlays]
-    expected_files = [
-        str((repo_copy / path).resolve(strict=False)) for path in expected_relative
-    ]
-    assert compose_files == " ".join(expected_relative)
-
-    compose_cmd = _extract_compose_cmd(stdout)
-    assert _extract_file_args(compose_cmd) == expected_files
-
-
-def test_handles_comma_and_newline_separated_extra_files(
-    repo_copy: Path, compose_instances_data: ComposeInstancesData
-) -> None:
-    script_path = repo_copy / SCRIPT_RELATIVE
-    base_plan = compose_instances_data.compose_plan("core")
-    subset_length = min(3, len(base_plan)) or 1
-    existing_files = base_plan[:subset_length]
-    overlays = ["compose/overlays/metrics.yml", "compose/overlays/logging.yml"]
-    env = os.environ.copy()
-    env.update(
-        {
-            "COMPOSE_FILES": " ".join(existing_files),
-            "COMPOSE_EXTRA_FILES": f"{overlays[0]}, {overlays[1]}\n{overlays[0]}",
-        }
-    )
-
-    stdout = _run_script(script_path, "core", str(repo_copy), env=env)
-
-    compose_files = _extract_value(r'COMPOSE_FILES="([^"]+)"', stdout)
-    expected_relative = [*existing_files, *overlays]
-    expected_files = [
-        str((repo_copy / path).resolve(strict=False)) for path in expected_relative
-    ]
-    assert compose_files == " ".join(expected_relative)
-
-    compose_cmd = _extract_compose_cmd(stdout)
-    assert _extract_file_args(compose_cmd) == expected_files
-
-
 def test_removes_duplicate_entries(
     repo_copy: Path, compose_instances_data: ComposeInstancesData
 ) -> None:
@@ -242,14 +183,10 @@ def test_removes_duplicate_entries(
         unique_base = base_plan[:1]
     primary = unique_base[0]
     secondary = unique_base[1] if len(unique_base) > 1 else primary
-    overlays = ["compose/overlays/logging.yml", "compose/overlays/metrics.yml"]
     env = os.environ.copy()
     env.update(
         {
-            "COMPOSE_FILES": f"{primary} {secondary} {secondary} {overlays[0]}",
-            "COMPOSE_EXTRA_FILES": (
-                f"{overlays[0]} {overlays[1]} {primary}"
-            ),
+            "COMPOSE_FILES": f"{primary} {secondary} {secondary} {primary}",
         }
     )
 
@@ -259,7 +196,6 @@ def test_removes_duplicate_entries(
     expected_relative = [primary]
     if secondary != primary:
         expected_relative.append(secondary)
-    expected_relative.extend(overlays)
     expected_files = [
         str((repo_copy / path).resolve(strict=False)) for path in expected_relative
     ]
@@ -269,34 +205,6 @@ def test_removes_duplicate_entries(
     file_args = _extract_file_args(compose_cmd)
     assert file_args == expected_files
     assert len(file_args) == len(set(file_args))
-
-
-def test_loads_extra_files_from_env_file(
-    repo_copy: Path, compose_instances_data: ComposeInstancesData
-) -> None:
-    script_path = repo_copy / SCRIPT_RELATIVE
-    env_file = repo_copy / "env" / "local" / "core.env"
-    overlays = [
-        "compose/overlays/metrics.yml",
-        "compose/overlays/logging.yml",
-    ]
-    env_file.write_text(
-        env_file.read_text(encoding="utf-8")
-        + f"COMPOSE_EXTRA_FILES={', '.join(overlays)}\n",
-        encoding="utf-8",
-    )
-
-    env = os.environ.copy()
-    env.pop("COMPOSE_EXTRA_FILES", None)
-
-    stdout = _run_script(script_path, "core", str(repo_copy), env=env)
-
-    compose_cmd = _extract_compose_cmd(stdout)
-    expected_relative = compose_instances_data.compose_plan("core", overlays)
-    expected_files = [
-        str((repo_copy / path).resolve(strict=False)) for path in expected_relative
-    ]
-    assert _extract_file_args(compose_cmd) == expected_files
 
 
 def test_respects_docker_compose_bin_override(

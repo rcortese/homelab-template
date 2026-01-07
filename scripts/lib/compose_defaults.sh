@@ -97,27 +97,7 @@ setup_compose_defaults() {
     done
   fi
 
-  if [[ -z "${COMPOSE_EXTRA_FILES:-}" && ${#env_files_abs[@]} -gt 0 ]]; then
-    local env_loader_output=""
-    local env_file_path
-    for env_file_path in "${env_files_abs[@]}"; do
-      if [[ ! -f "$env_file_path" ]]; then
-        continue
-      fi
-      if env_loader_output="$("${LIB_DIR}/env_loader.sh" "$env_file_path" COMPOSE_EXTRA_FILES 2>/dev/null)"; then
-        while IFS='=' read -r key value; do
-          [[ -z "$key" ]] && continue
-          if [[ "$key" == "COMPOSE_EXTRA_FILES" && -n "$value" ]]; then
-            COMPOSE_EXTRA_FILES="$value"
-          fi
-        done <<<"$env_loader_output"
-      fi
-    done
-  fi
-
   local -a compose_files_entries=()
-  local -a extra_files_entries=()
-  local resolved_extra_files="${COMPOSE_EXTRA_FILES:-}"
 
   mapfile -t compose_files_entries < <(
     env_file_chain__parse_list "${COMPOSE_FILES:-}"
@@ -140,56 +120,7 @@ setup_compose_defaults() {
     unset __base_seen
   fi
 
-  if [[ -n "$resolved_extra_files" ]]; then
-    mapfile -t extra_files_entries < <(
-      env_file_chain__parse_list "$resolved_extra_files"
-    )
-  fi
-
-  if [[ ${#extra_files_entries[@]} -gt 0 ]]; then
-    declare -A __extra_seen=()
-    local -a __unique_extra_entries=()
-    local __extra_file
-    for __extra_file in "${extra_files_entries[@]}"; do
-      if [[ -n "${__extra_seen[$__extra_file]:-}" ]]; then
-        continue
-      fi
-      __extra_seen["$__extra_file"]=1
-      __unique_extra_entries+=("$__extra_file")
-    done
-
-    extra_files_entries=("${__unique_extra_entries[@]}")
-    unset __unique_extra_entries
-    unset __extra_seen
-  fi
-
-  if [[ ${#extra_files_entries[@]} -gt 0 && ${#compose_files_entries[@]} -gt 0 ]]; then
-    declare -A __base_seen_with_extras=()
-    local __base_file
-    for __base_file in "${compose_files_entries[@]}"; do
-      __base_seen_with_extras["$__base_file"]=1
-    done
-
-    local -a __filtered_extra_entries=()
-    local __extra_entry
-    for __extra_entry in "${extra_files_entries[@]}"; do
-      if [[ -n "${__base_seen_with_extras[$__extra_entry]:-}" ]]; then
-        continue
-      fi
-      __filtered_extra_entries+=("$__extra_entry")
-    done
-
-    extra_files_entries=("${__filtered_extra_entries[@]}")
-    unset __filtered_extra_entries
-    unset __base_seen_with_extras
-  fi
-
-  if [[ ${#extra_files_entries[@]} -gt 0 ]]; then
-    local -a combined_entries=("${compose_files_entries[@]}" "${extra_files_entries[@]}")
-    COMPOSE_FILES="${combined_entries[*]}"
-  else
-    COMPOSE_FILES="${compose_files_entries[*]}"
-  fi
+  COMPOSE_FILES="${compose_files_entries[*]}"
 
   local -a final_compose_entries=()
   mapfile -t final_compose_entries < <(

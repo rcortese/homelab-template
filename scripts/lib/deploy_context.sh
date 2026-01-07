@@ -162,7 +162,6 @@ build_deploy_context() {
   local -a requested_env_keys=(
     APP_DATA_DIR
     APP_DATA_DIR_MOUNT
-    COMPOSE_EXTRA_FILES
     APP_DATA_UID
     APP_DATA_GID
   )
@@ -187,9 +186,6 @@ build_deploy_context() {
   local key
   for key in "${requested_env_keys[@]}"; do
     if [[ -n "${loaded_env_values[$key]+x}" ]]; then
-      if [[ "$key" == "COMPOSE_EXTRA_FILES" && -n "${COMPOSE_EXTRA_FILES:-}" ]]; then
-        continue
-      fi
       export "$key=${loaded_env_values[$key]}"
     fi
   done
@@ -224,18 +220,8 @@ build_deploy_context() {
     unset APP_DATA_DIR_MOUNT
   fi
 
-  local -a extra_compose_files=()
-  local extra_compose_files_string=""
-  if [[ -n "${COMPOSE_EXTRA_FILES:-}" ]]; then
-    IFS=$' \t\n' read -r -a extra_compose_files <<<"${COMPOSE_EXTRA_FILES//,/ }"
-    if ((${#extra_compose_files[@]} > 0)); then
-      extra_compose_files_string="$(printf '%s\n' "${extra_compose_files[@]}")"
-      extra_compose_files_string="${extra_compose_files_string%$'\n'}"
-    fi
-  fi
-
   local -a compose_files_list=()
-  if ! build_compose_file_plan "$instance" compose_files_list extra_compose_files; then
+  if ! build_compose_file_plan "$instance" compose_files_list; then
     echo "[!] Failed to assemble Compose file list for '$instance'." >&2
     return 1
   fi
@@ -259,7 +245,6 @@ build_deploy_context() {
   printf 'declare -A DEPLOY_CONTEXT=(\n'
   printf '  [INSTANCE]=%q\n' "$instance"
   printf '  [COMPOSE_ENV_FILES]=%q\n' "$env_files_string"
-  printf '  [COMPOSE_EXTRA_FILES]=%q\n' "$extra_compose_files_string"
   printf '  [COMPOSE_FILES]=%q\n' "$compose_files_string"
   printf '  [APP_DATA_DIR]=%q\n' "$derived_app_data_dir"
   printf '  [APP_DATA_DIR_MOUNT]=%q\n' "$derived_app_data_dir_mount"

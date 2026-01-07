@@ -24,24 +24,18 @@ append_unique_file() {
 
 # Build the ordered list of compose files for the provided instance.
 #
-# Order: BASE_COMPOSE_FILE (if set) -> COMPOSE_INSTANCE_FILES[instance] -> extras
-# supplied by the caller. Callers are expected to load compose metadata before
-# invoking this helper; no legacy env toggles are consulted here.
+# Order: BASE_COMPOSE_FILE (if set) -> COMPOSE_INSTANCE_FILES[instance].
 #
 # Arguments:
 #   $1 - Instance name.
 #   $2 - Name of the array variable that receives the resulting file list.
-#   $3 - (optional) Name of an array variable containing extra compose files
-#        that should be appended to the plan.
-#   $4 - (optional) Name of an associative array variable that will receive
+#   $3 - (optional) Name of an associative array variable that will receive
 #        metadata (newline-separated strings) about the generated plan. Keys:
 #          discovered_files -> files declared in COMPOSE_INSTANCE_FILES.
-#          extra_files      -> any extra files appended to the plan.
 build_compose_file_plan() {
   local instance_name="$1"
   local target_array_name="$2"
-  local extras_array_name="${3:-}"
-  local metadata_assoc_name="${4:-}"
+  local metadata_assoc_name="${3:-}"
 
   if [[ -z "$instance_name" || -z "$target_array_name" ]]; then
     return 1
@@ -54,12 +48,6 @@ build_compose_file_plan() {
   local -n __plan_ref=$target_array_name
   __plan_ref=()
 
-  local -a __extras_ref_copy=()
-  if [[ -n "$extras_array_name" ]]; then
-    local -n __extras_ref=$extras_array_name
-    __extras_ref_copy=("${__extras_ref[@]}")
-  fi
-
   local -a __instance_compose_files=()
   mapfile -t __instance_compose_files < <(printf '%s\n' "${COMPOSE_INSTANCE_FILES[$instance_name]}")
 
@@ -71,10 +59,6 @@ build_compose_file_plan() {
     append_unique_file __plan_ref "$__compose_file"
   done
 
-  if [[ ${#__extras_ref_copy[@]} -gt 0 ]]; then
-    __plan_ref+=("${__extras_ref_copy[@]}")
-  fi
-
   if [[ -n "$metadata_assoc_name" ]]; then
     declare -gA "$metadata_assoc_name"
     local -n __metadata_ref=$metadata_assoc_name
@@ -82,10 +66,6 @@ build_compose_file_plan() {
 
     if [[ ${#__instance_compose_files[@]} -gt 0 ]]; then
       __metadata_ref["discovered_files"]="$(printf '%s\n' "${__instance_compose_files[@]}")"
-    fi
-
-    if [[ ${#__extras_ref_copy[@]} -gt 0 ]]; then
-      __metadata_ref["extra_files"]="$(printf '%s\n' "${__extras_ref_copy[@]}")"
     fi
   fi
 

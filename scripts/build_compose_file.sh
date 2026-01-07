@@ -12,17 +12,12 @@ resolved manifests for an instance.
 Flags:
   -h, --help            Show this help text and exit.
   -i, --instance NAME   Select the instance (e.g., core, media).
-  -f, --file PATH       Add an extra compose file after the default plan. Can be
-                        used multiple times (equivalent to COMPOSE_EXTRA_FILES).
   -e, --env-file PATH   Add an extra .env to the applied chain (equivalent to
                         COMPOSE_ENV_FILES). Can be used multiple times.
   -o, --output PATH     Output path (default: ./docker-compose.yml).
   -n, --env-output PATH Consolidated .env path (default: ./.env).
 
 Relevant environment variables:
-  COMPOSE_FILES        Overrides the -f list (space- or comma-separated). If set,
-                       it ignores the instance plan.
-  COMPOSE_EXTRA_FILES  Extra compose files applied after the default plan.
   COMPOSE_ENV_FILES    Explicit env chain; replaces the chain discovered for the
                        instance when provided.
   DOCKER_COMPOSE_BIN   Override the docker compose binary.
@@ -45,7 +40,6 @@ source "$SCRIPT_DIR/lib/env_file_chain.sh"
 INSTANCE_NAME=""
 OUTPUT_FILE="$REPO_ROOT/docker-compose.yml"
 ENV_OUTPUT_FILE="$REPO_ROOT/.env"
-declare -a DECLARE_EXTRAS=()
 declare -a EXPLICIT_ENV_FILES=()
 
 while [[ $# -gt 0 ]]; do
@@ -61,14 +55,6 @@ while [[ $# -gt 0 ]]; do
       exit 64
     fi
     INSTANCE_NAME="$1"
-    ;;
-  -f | --file)
-    shift
-    if [[ $# -eq 0 ]]; then
-      echo "Error: --file requires a path." >&2
-      exit 64
-    fi
-    DECLARE_EXTRAS+=("$1")
     ;;
   -e | --env-file)
     shift
@@ -113,14 +99,6 @@ if [[ "$ENV_OUTPUT_FILE" != /* ]]; then
   ENV_OUTPUT_FILE="$REPO_ROOT/$ENV_OUTPUT_FILE"
 fi
 
-declare -a EXTRA_COMPOSE_FILES=()
-mapfile -t EXTRA_COMPOSE_FILES < <(
-  env_file_chain__parse_list "${COMPOSE_EXTRA_FILES:-}"
-)
-if ((${#DECLARE_EXTRAS[@]} > 0)); then
-  EXTRA_COMPOSE_FILES+=("${DECLARE_EXTRAS[@]}")
-fi
-
 declare -a compose_files_list=()
 metadata_loaded=0
 
@@ -140,22 +118,19 @@ if [[ -n "$INSTANCE_NAME" ]]; then
   fi
 fi
 
-if [[ -n "${COMPOSE_FILES:-}" ]]; then
-  mapfile -t compose_files_list < <(env_file_chain__parse_list "$COMPOSE_FILES")
-  if ((${#EXTRA_COMPOSE_FILES[@]} > 0)); then
-    compose_files_list+=("${EXTRA_COMPOSE_FILES[@]}")
-  fi
-elif [[ -n "$INSTANCE_NAME" && $metadata_loaded -eq 1 ]]; then
+if [[ -z "$INSTANCE_NAME" ]]; then
+  echo "Error: no instance provided. Use --instance to build the compose file." >&2
+  exit 64
+fi
+
+if [[ -n "$INSTANCE_NAME" && $metadata_loaded -eq 1 ]]; then
   declare -a plan_files=()
-  if build_compose_file_plan "$INSTANCE_NAME" plan_files EXTRA_COMPOSE_FILES; then
+  if build_compose_file_plan "$INSTANCE_NAME" plan_files; then
     compose_files_list=("${plan_files[@]}")
   else
     echo "Error: failed to build the compose file list for '$INSTANCE_NAME'." >&2
     exit 1
   fi
-else
-  echo "Error: no instance provided and COMPOSE_FILES is empty." >&2
-  exit 64
 fi
 
 if ((${#compose_files_list[@]} == 0)); then

@@ -54,7 +54,6 @@ Create a table similar to the one below for each `env/<target>.example.env` file
 | Variable | Required? | Usage | Reference |
 | --- | --- | --- | --- |
 | `APP_PUBLIC_URL` | Optional | Sets the public URL for links and cookies. | `docker-compose.<instance>.yml` (e.g., `docker-compose.core.yml`). |
-| `COMPOSE_EXTRA_FILES` | Optional | Lists additional overlays applied after the instance override (space- or comma-separated). | `scripts/deploy_instance.sh`, `scripts/validate_compose.sh`, `scripts/lib/compose_defaults.sh`. |
 
 > Replace the table with the real fields in your stack. Use the **Reference** column to point where the variable is consumed (manifests, scripts, external infrastructure, etc.).
 
@@ -83,10 +82,4 @@ Rename these identifiers to terms aligned with your domain (for example, `PORTAL
 
 ## Integration with scripts
 
-Template scripts honor `COMPOSE_ENV_FILES` (and repeated `--env-file` flags) to select which `.env` files will be used, layering them on top of the default `env/local/common.env` → `env/local/<instance>.env` chain. Document in the relevant runbook how to combine variables and manifests for each environment. When you need to enable specific overlays without changing scripts, add something like this to the `.env`:
-
-```env
-COMPOSE_EXTRA_FILES=compose/overlays/observability.yml compose/overlays/metrics.yml
-```
-
-This pattern keeps differences between the template and the fork confined to configuration files. When multiple `.env` files are loaded (global + specific), the values defined last take precedence.
+Template scripts honor `COMPOSE_ENV_FILES` (and repeated `--env-file` flags) to select which `.env` files will be used, layering them on top of the default `env/local/common.env` → `env/local/<instance>.env` chain. Document in the relevant runbook how to combine variables and manifests for each environment. When multiple `.env` files are loaded (global + specific), the values defined last take precedence.

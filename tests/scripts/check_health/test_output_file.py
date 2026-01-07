@@ -15,7 +15,7 @@ def test_json_output_writes_file_with_matching_content(
     env = {"DOCKER_STUB_SERVICES_OUTPUT": "svc-core"}
 
     result = run_check_health(
-        args=["--format", "json", "--output", str(output_file)],
+        args=["--format", "json", "--output", str(output_file), "core"],
         env=env,
     )
 
@@ -32,7 +32,7 @@ def test_output_file_not_created_when_execution_fails(tmp_path: Path) -> None:
     env = {"DOCKER_COMPOSE_BIN": "definitely-missing-binary"}
 
     result = run_check_health(
-        args=["--format", "json", "--output", str(output_file)],
+        args=["--format", "json", "--output", str(output_file), "core"],
         env=env,
     )
 

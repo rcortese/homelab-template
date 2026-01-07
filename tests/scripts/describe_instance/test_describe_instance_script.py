@@ -273,7 +273,7 @@ def test_list_flag_prints_available_instances(
     assert bullets == compose_instances_data.instance_names
 
 
-def test_table_summary_highlights_overlays(
+def test_table_summary_lists_compose_files(
     repo_copy: Path,
     tmp_path: Path,
     compose_instances_data: ComposeInstancesData,
@@ -282,8 +282,6 @@ def test_table_summary_highlights_overlays(
     service_with_volume = "metrics"
     service_stateless = "batch"
     service_extra = "analytics"
-    service_overlay_only = "delta"
-
     compose_payload = {
         "services": {
             service_with_ports: {
@@ -324,26 +322,17 @@ def test_table_summary_highlights_overlays(
                 "ports": [],
                 "volumes": [],
             },
-            service_overlay_only: {
-                "ports": [],
-                "volumes": [],
-            },
         }
     }
 
     stub_path, log_path = _build_compose_stub(tmp_path, compose_payload)
 
     env = os.environ.copy()
-    extra_overlays = [
-        "compose/overlays/metrics.yml",
-        "compose/overlays/logging.yml",
-    ]
     env.update(
         {
             "DOCKER_COMPOSE_BIN": str(stub_path),
             "DESCRIBE_INSTANCE_CONFIG_JSON": str((tmp_path / "config.json").resolve()),
             "DESCRIBE_INSTANCE_COMPOSE_LOG": str(log_path),
-            "COMPOSE_EXTRA_FILES": " ".join(extra_overlays),
         }
     )
 
@@ -355,15 +344,6 @@ def test_table_summary_highlights_overlays(
     expected_plan = compose_instances_data.compose_plan("core")
     for relative_path in expected_plan:
         assert relative_path in stdout
-    expected_with_overlays = compose_instances_data.compose_plan(
-        "core", extra_overlays
-    )
-    for overlay in extra_overlays:
-        assert overlay in stdout
-        assert f"{overlay} (extra overlay)" in stdout
-    assert "Extra overlays applied:" in stdout
-    for overlay in extra_overlays:
-        assert overlay in stdout
     assert "Published ports:" in stdout
     for port in compose_payload["services"][service_with_ports]["ports"]:
         formatted = _format_port(port)
@@ -386,7 +366,7 @@ def test_table_summary_highlights_overlays(
     compose_args = _extract_flag_arguments(config_call, "-f")
     expected_compose_files = [
         repo_copy / relative_path
-        for relative_path in expected_with_overlays
+        for relative_path in expected_plan
     ]
     assert compose_args == [
         str(path.resolve(strict=False)) for path in expected_compose_files
@@ -410,8 +390,6 @@ def test_json_summary_structure(
     service_with_volume = "metrics"
     service_stateless = "batch"
     service_extra = "analytics"
-    service_overlay_only = "delta"
-
     compose_payload = {
         "services": {
             service_with_ports: {
@@ -444,23 +422,17 @@ def test_json_summary_structure(
                 "ports": [],
                 "volumes": [],
             },
-            service_overlay_only: {
-                "ports": [],
-                "volumes": [],
-            },
         }
     }
 
     stub_path, log_path = _build_compose_stub(tmp_path, compose_payload)
 
     env = os.environ.copy()
-    extra_overlays = ["compose/overlays/metrics.yml"]
     env.update(
         {
             "DOCKER_COMPOSE_BIN": str(stub_path),
             "DESCRIBE_INSTANCE_CONFIG_JSON": str((tmp_path / "config.json").resolve()),
             "DESCRIBE_INSTANCE_COMPOSE_LOG": str(log_path),
-            "COMPOSE_EXTRA_FILES": " ".join(extra_overlays),
         }
     )
 
@@ -471,17 +443,8 @@ def test_json_summary_structure(
     assert payload["instance"] == "core"
 
     compose_files = [entry["path"] for entry in payload["compose_files"]]
-    expected_with_overlays = compose_instances_data.compose_plan(
-        "core", extra_overlays
-    )
-    assert compose_files == expected_with_overlays
-
-    extra_flags = [entry["is_extra"] for entry in payload["compose_files"]]
-    overlay_count = len(extra_overlays)
-    assert all(extra_flags[-overlay_count:]) if overlay_count else True
-    assert any(flag is False for flag in extra_flags[:-overlay_count or None])
-
-    assert payload["extra_overlays"] == extra_overlays
+    expected_plan = compose_instances_data.compose_plan("core")
+    assert compose_files == expected_plan
 
     services = payload["services"]
     names = [service["name"] for service in services]
@@ -506,7 +469,7 @@ def test_json_summary_structure(
     compose_args = _extract_flag_arguments(config_call, "-f")
     expected_compose_files = [
         repo_copy / relative_path
-        for relative_path in expected_with_overlays
+        for relative_path in expected_plan
     ]
     assert compose_args == [str(path.resolve(strict=False)) for path in expected_compose_files]
 

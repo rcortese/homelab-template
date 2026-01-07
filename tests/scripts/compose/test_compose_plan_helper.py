@@ -14,12 +14,8 @@ def run_compose_plan(
     repo_root: Path,
     instance: str,
     *,
-    extras: list[str] | None = None,
     capture_metadata: bool = False,
 ) -> subprocess.CompletedProcess[str]:
-    extras = extras or []
-    extras_literal = " ".join(shlex.quote(item) for item in extras)
-    extras_assignment = f"extras=({extras_literal})" if extras_literal else "extras=()"
     capture_flag = "1" if capture_metadata else "0"
 
     compose_instances_path = repo_root / "scripts" / "lib" / "compose_instances.sh"
@@ -32,14 +28,13 @@ metadata="$({shlex.quote(str(compose_instances_path))} \"$repo_root\")"
 eval "$metadata"
 source {shlex.quote(str(compose_plan_path))}
 declare -a plan=()
-{extras_assignment}
 if [[ {capture_flag} -eq 1 ]]; then
   declare -A meta=()
-  build_compose_file_plan {shlex.quote(instance)} plan extras meta
+  build_compose_file_plan {shlex.quote(instance)} plan meta
   declare -p plan
   declare -p meta
 else
-  build_compose_file_plan {shlex.quote(instance)} plan extras
+  build_compose_file_plan {shlex.quote(instance)} plan
   declare -p plan
 fi
 """
@@ -133,43 +128,8 @@ def test_compose_plan_matches_existing_logic(repo_copy: Path) -> None:
         assert plan_entries == expected_plan
 
 
-def test_compose_plan_appends_extra_files(repo_copy: Path) -> None:
-    extras = ["compose/custom-extra.yml"]
-    if (repo_copy / "compose" / "docker-compose.base.yml").exists():
-        extras.append("compose/docker-compose.base.yml")
-    result = run_compose_plan(repo_copy, "core", extras=extras)
-
-    assert result.returncode == 0, result.stderr
-
-    plan_line = find_declare_line(result.stdout, "plan")
-    plan_entries = parse_indexed_values(plan_line)
-
-    (
-        _names,
-        expected_files_map,
-        _env_local_map,
-        _env_template_map,
-        _env_file_map,
-    ) = _collect_compose_metadata(repo_copy)
-
-    if (repo_copy / "compose" / "docker-compose.base.yml").exists():
-        base_file = "compose/docker-compose.base.yml"
-    else:
-        base_file = ""
-
-    expected_plan = build_expected_plan(
-        base_file,
-        "core",
-        expected_files_map,
-    )
-    expected_plan.extend(extras)
-
-    assert plan_entries == expected_plan
-
-
 def test_compose_plan_optional_metadata(repo_copy: Path) -> None:
-    extras = ["compose/optional.yml"]
-    result = run_compose_plan(repo_copy, "core", extras=extras, capture_metadata=True)
+    result = run_compose_plan(repo_copy, "core", capture_metadata=True)
 
     assert result.returncode == 0, result.stderr
 
@@ -185,4 +145,3 @@ def test_compose_plan_optional_metadata(repo_copy: Path) -> None:
     ) = _collect_compose_metadata(repo_copy)
 
     assert metadata["discovered_files"].splitlines() == expected_files_map["core"]
-    assert metadata["extra_files"].splitlines() == extras

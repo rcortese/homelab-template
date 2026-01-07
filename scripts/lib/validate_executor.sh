@@ -82,31 +82,8 @@ validate_executor_prepare_plan() {
     )
   fi
 
-  local -a extra_files=()
-  local extra_files_source=""
-
-  if [[ -n "${COMPOSE_EXTRA_FILES+x}" ]]; then
-    extra_files_source="$COMPOSE_EXTRA_FILES"
-  elif [[ ${#env_files_abs[@]} -gt 0 ]]; then
-    local extra_output env_file_path
-    for env_file_path in "${env_files_abs[@]}"; do
-      if [[ -f "$env_file_path" ]]; then
-        if extra_output="$("$env_loader" "$env_file_path" COMPOSE_EXTRA_FILES)" && [[ -n "$extra_output" ]]; then
-          extra_files_source="${extra_output#COMPOSE_EXTRA_FILES=}"
-        fi
-      fi
-    done
-  fi
-
-  if [[ -n "$extra_files_source" ]]; then
-    while IFS= read -r entry; do
-      [[ -z "$entry" ]] && continue
-      extra_files+=("$entry")
-    done < <(parse_compose_file_list "$extra_files_source")
-  fi
-
   local -a compose_plan_rel=()
-  if ! build_compose_file_plan "$instance" compose_plan_rel extra_files; then
+  if ! build_compose_file_plan "$instance" compose_plan_rel; then
     echo "[x] instance=\"$instance\" (failed to build compose file plan)" >&2
     return 1
   fi

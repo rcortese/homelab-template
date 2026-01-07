@@ -2,7 +2,7 @@
 
 > Part of the [documentation index](./README.md). Read the [Overview](./OVERVIEW.md) to understand the role of each instance and align checklists with the runbooks for [core](./core.md) and [media](./media.md).
 
-This guide documents how to build the Docker Compose plan using only the base file, the consolidated instance compose file, and any optional overlays. For a short view of the load order, see the [`compose/` README](../compose/README.md). Follow these instructions before running the generator that writes `docker-compose.yml` to the repository root.
+This guide documents how to build the Docker Compose plan using only the base file and the consolidated instance compose file. For a short view of the load order, see the [`compose/` README](../compose/README.md). Follow these instructions before running the generator that writes `docker-compose.yml` to the repository root.
 
 > **Attention for forks:** all compose file names here are examples. Adjust directory, file, and service names according to step 3 of [How to start a derived project](../README.md#how-to-start-a-derived-project) when adapting the template to your stack.
 
@@ -12,8 +12,6 @@ This guide documents how to build the Docker Compose plan using only the base fi
 | --------------- | ----------- | ----- |
 | **Base** | `compose/docker-compose.base.yml` (optional) | Holds only anchors and shared volumes reused by services. It is loaded automatically when present; if absent, the plan starts directly with the instance compose file. |
 | **Instance compose** | `docker-compose.<instance>.yml` (e.g., [`docker-compose.core.yml`](../docker-compose.core.yml), [`docker-compose.media.yml`](../docker-compose.media.yml)) | Declares every service that should run in the target environment. Use this file to wire networks, volumes, labels, and per-instance defaults without scattering overrides. |
-| **Overlays** | `compose/overlays/<overlay>.yml` (optional) | Ad-hoc adjustments layered after the base + instance pair. Ideal for temporary feature flags or experimentation without editing the main compose file. |
-
 > **Note:** each instance file is self-contained and uses standard Compose features (`profiles`, `deploy.replicas`, conditional volumes) to decide what runs.
 
 ### Examples included in the template
@@ -31,13 +29,12 @@ Use the instance compose file to control which services start:
 
 ## Stacks with multiple services
 
-When combining several services, load the manifests in blocks (`compose/docker-compose.base.yml`, `docker-compose.<instance>.yml`, and overlays) in the order shown below. This ensures anchors and variables are available before the services that consume them.
+When combining several services, load the manifests in blocks (`compose/docker-compose.base.yml` and `docker-compose.<instance>.yml`) in the order shown below. This ensures anchors and variables are available before the services that consume them.
 
 | Order | File | Purpose |
 | ----- | ------- | ------ |
 | 1 | `compose/docker-compose.base.yml` (when present) | Foundational structure with shared anchors. |
 | 2 | `docker-compose.<instance>.yml` (e.g., `docker-compose.core.yml`, `docker-compose.media.yml`) | Complete definition for the selected environment. |
-| 3 | `compose/overlays/<overlay>.yml` *(optional, repeatable)* | Extra adjustments layered after the main plan. |
 
 > **Replace the placeholders:** `core`, `media`, and any other names used in the tables and examples are illustrative. Align each occurrence with the real instance name following step 3 of [How to start a derived project](../README.md#how-to-start-a-derived-project).
 
@@ -47,14 +44,12 @@ When combining several services, load the manifests in blocks (`compose/docker-c
 
    ```bash
    scripts/build_compose_file.sh --instance <instance> \
-     --file compose/overlays/<overlay>.yml \      # optional, repeat if you need more than one
      --env-file env/local/common.env \             # optional override for the default chain
      --env-file env/local/<instance>.env           # optional instance override
    ```
 
-   - Additional `--file` flags replace the previous use of `COMPOSE_EXTRA_FILES` when appending temporary overlays.
    - `--env-file` keeps the legacy order (`common` → `<instance>`) and accepts alternative chains when you need to test specific variables without touching the files under `env/local/`.
-   - Re-run the command whenever manifests (`docker-compose.<instance>.yml`, `compose/docker-compose.base.yml`, or overlays under `compose/overlays/`) change to refresh the root `docker-compose.yml`.
+   - Re-run the command whenever manifests (`docker-compose.<instance>.yml` or `compose/docker-compose.base.yml`) change to refresh the root `docker-compose.yml`.
 
 2. Use the generated file directly to start or inspect services:
 
@@ -65,7 +60,7 @@ When combining several services, load the manifests in blocks (`compose/docker-c
 
    The default command now targets the root `docker-compose.yml`, avoiding manual `-f` assembly and `--env-file` chains. This consolidated-file workflow is the supported path for running Compose commands and replaces earlier compatibility modes.
 
-> Set `<instance>` to `core`, `media`, or any other name defined in your fork. Replace `<overlay>` with real files under `compose/overlays/` whenever you need temporary or environment-specific adjustments.
+> Set `<instance>` to `core`, `media`, or any other name defined in your fork.
 
 ### How to enable or disable optional components
 
@@ -78,7 +73,7 @@ When combining several services, load the manifests in blocks (`compose/docker-c
 
 ### Generating an instance summary
 
-Use `scripts/describe_instance.sh` to quickly inspect the applied manifests, resulting services, published ports, and mounted volumes. The script reuses the same planning chain as the deploy and validation flows and marks additional overlays loaded via `COMPOSE_EXTRA_FILES` or provided with `--file` in the generator.
+Use `scripts/describe_instance.sh` to quickly inspect the applied manifests, resulting services, published ports, and mounted volumes. The script reuses the same planning chain as the deploy and validation flows.
 
 ```bash
 scripts/describe_instance.sh core
@@ -96,10 +91,6 @@ Instance: core
 Compose files (-f):
   • compose/docker-compose.base.yml
   • docker-compose.core.yml
-  • compose/overlays/metrics.yml (extra overlay)
-
-Extra overlays applied:
-  • compose/overlays/metrics.yml
 
 Services:
   - app
@@ -115,6 +106,5 @@ Services:
 
 - Always load `compose/docker-compose.base.yml` first when it exists.
 - Keep each `docker-compose.<instance>.yml` self-contained: declare networks, volumes, and labels next to the services that consume them.
-- Apply overlays after the main instance file and use them sparingly for temporary changes.
 - Keep the file combination in sync with the environment variable chain (`env/local/common.env` → `env/local/<instance>.env`).
 - Re-validate combinations with [`scripts/validate_compose.sh`](./OPERATIONS.md#scriptsvalidate_compose.sh) when any compose file changes.

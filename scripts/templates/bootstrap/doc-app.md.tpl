@@ -12,7 +12,6 @@
 
 - `compose/docker-compose.{{INSTANCE}}.yml`
 - `compose/docker-compose.base.yml`
-- `compose/overlays/<overlay>.yml` (optional)
 
 ## Environment variables
 
