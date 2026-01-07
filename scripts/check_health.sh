@@ -6,7 +6,6 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 ORIGINAL_PWD="${PWD:-}"
-CHANGED_TO_REPO_ROOT=false
 # shellcheck source=./lib/python_runtime.sh
 source "${SCRIPT_DIR}/lib/python_runtime.sh"
 
@@ -15,7 +14,6 @@ OUTPUT_FILE=""
 
 if [[ "$ORIGINAL_PWD" != "$REPO_ROOT" ]]; then
   cd "$REPO_ROOT"
-  CHANGED_TO_REPO_ROOT=true
 fi
 
 REPO_ROOT="$(pwd)"
