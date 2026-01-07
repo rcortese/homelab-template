@@ -13,7 +13,8 @@ from tests.helpers.compose_instances import load_compose_instances_data
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 SCRIPT_PATH = REPO_ROOT / "scripts" / "validate_compose.sh"
-BASE_COMPOSE_REL = Path("compose/base.yml")
+BASE_COMPOSE_REL = Path("compose/docker-compose.base.yml")
+BASE_COMPOSE_LEGACY_REL = Path("compose/base.yml")
 BASE_COMPOSE = REPO_ROOT / BASE_COMPOSE_REL
 
 
@@ -50,6 +51,10 @@ class InstanceMetadata:
         base_candidate = root / BASE_COMPOSE_REL
         if base_candidate.exists():
             append_unique(base_candidate)
+        else:
+            legacy_candidate = root / BASE_COMPOSE_LEGACY_REL
+            if legacy_candidate.exists():
+                append_unique(legacy_candidate)
 
         override_paths = [root / entry for entry in self.override_files]
         for override in override_paths:

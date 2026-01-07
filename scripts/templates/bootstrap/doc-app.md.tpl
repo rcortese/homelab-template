@@ -12,7 +12,7 @@
 
 - `compose/apps/{{APP}}/base.yml`
 - `compose/apps/{{APP}}/{{INSTANCE}}.yml`
-- `compose/base.yml`
+- `compose/docker-compose.base.yml`
 
 ## Environment variables
 

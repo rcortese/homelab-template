@@ -173,9 +173,13 @@ def test_skips_shared_base_when_missing(
     repo_copy: Path,
     docker_stub: DockerStub,
 ) -> None:
-    base_path = repo_copy / "compose" / "base.yml"
-    if base_path.exists():
-        base_path.unlink()
+    base_paths = [
+        repo_copy / "compose" / "docker-compose.base.yml",
+        repo_copy / "compose" / "base.yml",
+    ]
+    for base_path in base_paths:
+        if base_path.exists():
+            base_path.unlink()
 
     docker_stub.set_exit_code(0)
 
@@ -200,6 +204,9 @@ def test_skips_shared_base_when_missing(
         env_chain,
         base_files,
         repo_copy / "docker-compose.yml",
+    )
+    assert all(
+        "compose/docker-compose.base.yml" not in str(path) for path in base_files
     )
     assert all("compose/base.yml" not in str(path) for path in base_files)
 

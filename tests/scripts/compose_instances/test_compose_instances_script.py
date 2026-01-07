@@ -156,7 +156,12 @@ def test_compose_instances_outputs_expected_metadata(repo_copy: Path) -> None:
     base_line = find_declare_line(result.stdout, "BASE_COMPOSE_FILE")
     base_match = re.search(r"=\"([^\"]*)\"", base_line)
     assert base_match is not None
-    expected_base = "compose/base.yml" if (repo_copy / "compose" / "base.yml").exists() else ""
+    if (repo_copy / "compose" / "docker-compose.base.yml").exists():
+        expected_base = "compose/docker-compose.base.yml"
+    elif (repo_copy / "compose" / "base.yml").exists():
+        expected_base = "compose/base.yml"
+    else:
+        expected_base = ""
     assert base_match.group(1) == expected_base
 
     names_line = find_declare_line(result.stdout, "COMPOSE_INSTANCE_NAMES")
