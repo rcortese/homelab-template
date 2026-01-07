@@ -19,7 +19,7 @@ def _extract_args(command: list[str], flag: str) -> list[str]:
     return values
 
 
-def test_requires_instance_or_compose_files(repo_copy: Path, tmp_path: Path) -> None:
+def test_requires_instance(repo_copy: Path, tmp_path: Path) -> None:
     stub = create_compose_config_stub(tmp_path)
 
     result = run_build_compose_file(
@@ -29,7 +29,7 @@ def test_requires_instance_or_compose_files(repo_copy: Path, tmp_path: Path) -> 
     )
 
     assert result.returncode == 64
-    assert "no instance provided" in result.stderr
+    assert "--instance is required" in result.stderr
 
 
 def test_generates_compose_from_instance_plan(

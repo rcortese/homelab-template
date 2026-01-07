@@ -188,7 +188,7 @@ The script relies on `scripts/lib/deploy_context.sh` to calculate `APP_DATA_DIR`
 - **Goal:** materialize the resolved Compose plan into `docker-compose.yml` at the repository root and consolidate the applied env chain into `.env`, so that the standard commands become `docker compose up -d` and `docker compose ps` without extra flags.
 - **Generated outputs:** `./docker-compose.yml` and `./.env` are generated files. Edit the source manifests or `env/*.example.env` templates and rerun the script instead of modifying the root outputs directly.
 - **Inputs and overrides:**
-  - Accepts `--instance` to reuse the standard discovery chain (base manifests, app compose files, and per-instance overrides);
+  - Requires `--instance` to reuse the standard discovery chain (base manifests, app compose files, and per-instance overrides);
   - `--file` (repeatable) mirrors `COMPOSE_EXTRA_FILES`, appending extra compose files after the discovered plan;
   - `--env-file` (repeatable) extends or replaces the `.env` chain controlled by `COMPOSE_ENV_FILES`, falling back to `env/local/common.env` → `env/local/<instance>.env` when the explicit list is empty;
   - `--env-output` changes where the consolidated `.env` is written (defaults to the repository root). The helper rebuilds the file on every run, honoring the same precedence applied to `--env-file`.
@@ -220,7 +220,7 @@ The script relies on `scripts/lib/deploy_context.sh` to calculate `APP_DATA_DIR`
   - `HEALTH_SERVICES` — list of services to inspect (space- or comma-separated). When set, execution is limited to the desired services only.
   - `COMPOSE_ENV_FILES` — optional list of `.env` files applied before querying `docker compose`, overriding the default `env/local/common.env` → `env/local/<instance>.env` chain when provided.
 - Collection generates (or requires) a consolidated `docker-compose.yml` via `scripts/build_compose_file.sh` before running `docker compose -f docker-compose.yml ps/logs`.
-- `COMPOSE_FILES` and `COMPOSE_EXTRA_FILES` overrides are ignored here; customize the compose plan through `scripts/build_compose_file.sh` instead.
+- `COMPOSE_EXTRA_FILES` overrides are ignored here; customize the compose plan through `scripts/build_compose_file.sh` instead.
 - The script automatically supplements the service list by running `docker compose config --services`. If no services are found, execution aborts with an error to avoid silently suppressing logs.
 - **Output formats:**
   - `text` (default) — mirrors the historical behavior by printing `docker compose ps` followed by recent logs.
