@@ -138,26 +138,6 @@ fi
 
 eval "$compose_defaults_dump"
 
-custom_env_path="$REPO_ROOT/env/custom.env"
-if [[ -f "$custom_env_path" && -n "${COMPOSE_ENV_FILES:-}" ]]; then
-  mapfile -t compose_env_chain < <(env_file_chain__parse_list "$COMPOSE_ENV_FILES")
-  if ((${#compose_env_chain[@]} == 1)); then
-    env_entry="${compose_env_chain[0]}"
-    if [[ "$env_entry" != /* ]]; then
-      env_entry="$REPO_ROOT/$env_entry"
-    fi
-    if [[ "$env_entry" == "$REPO_ROOT/env/common.example.env" ]]; then
-      COMPOSE_ENV_FILES="$custom_env_path"
-      if ((${#COMPOSE_CMD[@]} > 0)); then
-        for idx in "${!COMPOSE_CMD[@]}"; do
-          if [[ "${COMPOSE_CMD[$idx]}" == "--env-file" && $((idx + 1)) -lt ${#COMPOSE_CMD[@]} ]]; then
-            COMPOSE_CMD[idx + 1]="$custom_env_path"
-          fi
-        done
-      fi
-    fi
-  fi
-fi
 normalize_compose_context() {
   if [[ -n "${COMPOSE_FILES:-}" ]]; then
     local sanitized="${COMPOSE_FILES//$'\n'/ }"
