@@ -3,6 +3,8 @@
 **/.env.*
 *.local
 env/local/
+/docker-compose.yml
+/.env
 
 # Persistent runtime artifacts
 data/

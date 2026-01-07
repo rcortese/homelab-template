@@ -51,7 +51,7 @@ This document offers a starting point for describing operational processes and h
    ```bash
    scripts/deploy_instance.sh <instance>
    ```
-   The helper regenerates the root `docker-compose.yml` before calling `docker compose` to ensure the file reflects recent manifest or `.env` edits.
+   The helper regenerates `./docker-compose.yml` and `./.env` before calling `docker compose` to ensure the generated root outputs reflect recent manifest or `.env` edits (make changes in `compose/` or `env/*.example.env`, then rerun the generator).
 2. Record relevant outputs (image hashes used, pipeline or artifact versions applied) for future reference.
 
 ### Post-deploy
@@ -186,6 +186,7 @@ The script relies on `scripts/lib/deploy_context.sh` to calculate `APP_DATA_DIR`
 ## scripts/build_compose_file.sh
 
 - **Goal:** materialize the resolved Compose plan into `docker-compose.yml` at the repository root and consolidate the applied env chain into `.env`, so that the standard commands become `docker compose up -d` and `docker compose ps` without extra flags.
+- **Generated outputs:** `./docker-compose.yml` and `./.env` are generated files. Edit the source manifests or `env/*.example.env` templates and rerun the script instead of modifying the root outputs directly.
 - **Inputs and overrides:**
   - Accepts `--instance` to reuse the standard discovery chain (base manifests, app compose files, and per-instance overrides);
   - `--file` (repeatable) mirrors `COMPOSE_EXTRA_FILES`, appending extra compose files after the discovered plan;
