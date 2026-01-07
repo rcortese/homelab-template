@@ -19,7 +19,7 @@ Manifests are chained in blocks. Each step inherits anchors and variables from t
 ## Instances and service toggles
 
 - **Main instances:** `core` and `media` are examples of full profiles. Their compose files (`docker-compose.core.yml` and `docker-compose.media.yml`) describe the complete stack for that environment (proxy labels, external networks, media mounts, caches, and the services themselves).
-- **Enable/disable services:** keep service definitions inside each `docker-compose.<instance>.yml` and toggle them per environment using `profiles`, `deploy.replicas: 0`, or by removing the service block. There is no longer a `compose/apps/` directory; the instance file is the single source of truth for what runs.
+- **Enable/disable services:** keep service definitions inside each `docker-compose.<instance>.yml` and toggle them per environment using `profiles`, `deploy.replicas: 0`, or by removing the service block. The instance file is the single source of truth for what runs.
 - **Overlays for experiments:** append files from `compose/overlays/` when you need temporary changes (for example, feature flags or alternate storage classes) without editing the main instance compose file.
 
 When building the stack, choose the instance compose file and overlays you want to load. The `core` instance can keep monitoring enabled, while `media` disables it by setting `deploy.replicas: 0` in `docker-compose.media.yml`, for example. Keeping the order ensures anchors defined in `compose/docker-compose.base.yml` (when present) remain available to any combination.
