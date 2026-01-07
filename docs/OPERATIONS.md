@@ -165,7 +165,7 @@ Use `--base-dir` and `--with-docs` to explicitly declare alternate directories a
 
 ## scripts/deploy_instance.sh
 
-Beyond the main flags (`--force`, `--skip-structure`, `--skip-validate`, `--skip-health`), customize prompts and file combinations to reflect real environments. Set `COMPOSE_EXTRA_FILES` in `.env` when additional compose files are needed. The script calculates the persistent directory from `APP_DATA_DIR` (relative path) or `APP_DATA_DIR_MOUNT` (absolute path) — leave both empty to fall back to `data/<instance>/<app>` and never enable both variables simultaneously, as the routine aborts with an error.
+Beyond the main flags (`--force`, `--skip-structure`, `--skip-validate`, `--skip-health`), customize prompts and file combinations to reflect real environments. Set `COMPOSE_EXTRA_FILES` in `env/local/common.env` or `env/local/<instance>.env` when additional compose files are needed (the root `.env` is generated). The script calculates the persistent directory from `APP_DATA_DIR` (relative path) or `APP_DATA_DIR_MOUNT` (absolute path) — leave both empty to fall back to `data/<instance>/<app>` and never enable both variables simultaneously, as the routine aborts with an error.
 
 ## scripts/fix_permission_issues.sh
 
@@ -174,13 +174,13 @@ The script relies on `scripts/lib/deploy_context.sh` to calculate `APP_DATA_DIR`
 ## scripts/backup.sh
 
 - **Dependencies:**
-  - The instance `.env` must be up to date so that `scripts/lib/deploy_context.sh` can identify `APP_DATA_DIR` and other variables used to assemble the stack and compose plan;
+  - The instance `env/local/<instance>.env` must be up to date so that `scripts/lib/deploy_context.sh` can identify `APP_DATA_DIR` and other variables used to assemble the stack and compose plan;
   - The `backups/` directory must be writable (the script creates subfolders automatically but respects host permissions);
-  - It is recommended to ensure the `.env` is sourced (`source env/<instance>.env`) when there are extra exports required by services.
+  - It is recommended to ensure the instance env file is sourced (`source env/local/<instance>.env`) when there are extra exports required by services.
 - The default command (`scripts/backup.sh core`) generates a full snapshot of the instance and reports the artifact location at the end. See [`docs/BACKUP_RESTORE.md`](./BACKUP_RESTORE.md) for retention and restore practices.
 - **Customization tips for forks:**
   - Export complementary variables (for example, `EXTRA_BACKUP_PATHS` or credentials for external repositories) before calling the script, allowing local wrappers to include extra directories or send artifacts to remote storage.
-  - Adjust the instance `.env` to set `APP_DATA_DIR` (relative) or `APP_DATA_DIR_MOUNT` (absolute) when the data layout differs from the `data/<instance>/<app>` default — never enable both at the same time.
+  - Adjust `env/local/<instance>.env` to set `APP_DATA_DIR` (relative) or `APP_DATA_DIR_MOUNT` (absolute) when the data layout differs from the `data/<instance>/<app>` default — never enable both at the same time.
   - Extend the flow in external wrappers by adding pre/post-backup hooks (helper scripts, notifications, or compression) while keeping the stop/copy/restart logic encapsulated here.
 
 ## scripts/build_compose_file.sh
@@ -189,10 +189,10 @@ The script relies on `scripts/lib/deploy_context.sh` to calculate `APP_DATA_DIR`
 - **Generated outputs:** `./docker-compose.yml` and `./.env` are generated files. Edit the source manifests or `env/*.example.env` templates and rerun the script instead of modifying the root outputs directly.
 - **Inputs and overrides:**
   - Requires the instance argument to reuse the standard discovery chain (base manifests, app compose files, and per-instance overrides).
-  - Use `COMPOSE_EXTRA_FILES` in `.env` or `env/local/<instance>.env` when optional compose files should be merged into the plan.
+  - Use `COMPOSE_EXTRA_FILES` in `env/local/common.env` or `env/local/<instance>.env` when optional compose files should be merged into the plan.
   - Adjust `COMPOSE_ENV_FILES` (or the default `env/local/common.env` → `env/local/<instance>.env` chain) to control the consolidated `.env` content.
   - `--env-output` changes where the consolidated `.env` is written (defaults to the repository root). The helper rebuilds the file on every run, honoring the same precedence applied to `COMPOSE_ENV_FILES`.
-- **Output validation:** after writing the merged files, the script runs `docker compose config -q` (reusing the same env chain) and fails when inconsistencies are detected. Re-run the generator whenever manifests or variables are modified to keep the root file and `.env` in sync.
+- **Output validation:** after writing the merged files, the script runs `docker compose config -q` (reusing the same env chain) and fails when inconsistencies are detected. Re-run the generator whenever manifests or variables are modified to keep the root file and generated `.env` in sync.
 - **Examples:**
   ```bash
   # Generate the root docker-compose.yml and .env for the core instance using defaults
@@ -290,9 +290,9 @@ This document keeps only a summary: use `scripts/update_from_template.sh` to rea
 
 ## Suggested customizations
 
-- **New service:** use `scripts/bootstrap_instance.sh <instance>` (or your preferred scaffolding) as a starting point; then declare the service inside `docker-compose.<instance>.yml`, customize `.env`, and update documentation before proceeding with validations.
-- **Persistent directories:** the `data/<instance>/<app>` path is calculated automatically; use `APP_DATA_DIR` (relative) **or** `APP_DATA_DIR_MOUNT` (absolute) when you need to customize the destination and adjust `APP_DATA_UID`/`APP_DATA_GID` in `.env` to align permissions.
-- **Monitored services:** set `HEALTH_SERVICES` in `.env` files so `scripts/check_health.sh` targets the correct logs.
+- **New service:** use `scripts/bootstrap_instance.sh <instance>` (or your preferred scaffolding) as a starting point; then declare the service inside `docker-compose.<instance>.yml`, customize `env/local/<instance>.env`, and update documentation before proceeding with validations.
+- **Persistent directories:** the `data/<instance>/<app>` path is calculated automatically; use `APP_DATA_DIR` (relative) **or** `APP_DATA_DIR_MOUNT` (absolute) when you need to customize the destination and adjust `APP_DATA_UID`/`APP_DATA_GID` in `env/local/<instance>.env` (or `env/local/common.env`) to align permissions.
+- **Monitored services:** set `HEALTH_SERVICES` in `env/local/<instance>.env` or via `COMPOSE_ENV_FILES` so `scripts/check_health.sh` targets the correct logs.
 - **Extra volumes:** add mounts directly to the relevant service inside `docker-compose.<instance>.yml` to expose different paths per environment. When present, see also [`docker-compose.media.yml`](../docker-compose.media.yml) for an example of a named volume shared (`media_cache`) between services in the instance.
 - **Configurable extra compose files:** register optional files and enable them per environment via `COMPOSE_EXTRA_FILES` when building `docker-compose.yml`. The health and audit helpers operate on the generated root file, not direct compose file chains.
 

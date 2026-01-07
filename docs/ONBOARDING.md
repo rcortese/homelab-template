@@ -1,6 +1,6 @@
 # Template onboarding guide
 
-This playbook summarizes the recommended first steps for anyone deriving the template. It consolidates prerequisites, the `.env` bootstrap, and the mandatory validations before the first commits. This document is the official checklist for the template’s initial validations.
+This playbook summarizes the recommended first steps for anyone deriving the template. It consolidates prerequisites, the `env/local` bootstrap, and the mandatory validations before the first commits. This document is the official checklist for the template’s initial validations.
 
 ## 1. Install the base dependencies
 
@@ -13,13 +13,13 @@ This is the canonical reference for dependencies required by the template. Ensur
 
 > Whenever the template requires new tools or minimum versions, this list is updated first.
 
-## 2. Prepare the `.env` files
+## 2. Prepare the `env/local` files
 
 1. Create the Git-ignored directory:
    ```bash
    mkdir -p env/local
    ```
-2. Run the bootstrap to create manifests, `.env` templates, and optional documentation for a new instance:
+2. Run the bootstrap to create manifests, `env/*.example.env` templates, and optional documentation for a new instance:
    ```bash
    scripts/bootstrap_instance.sh <application> <instance>
    # add --with-docs to generate the stubs in docs/apps/
@@ -42,7 +42,7 @@ to enforce containerized execution (for example, to isolate dependencies from ho
 
 ## 4. Run the consolidated validations
 
-With the local `.env` files ready and dependencies installed, execute:
+With the `env/local` files ready and dependencies installed, execute:
 
 ```bash
 scripts/check_all.sh

@@ -7,7 +7,7 @@
 - **Core (<core-host>)**: control plane of the main service (APIs, schedulers, and critical integrations). External exposure through a dedicated tunnel/proxy (e.g., Cloudflared → `app.domain.com`). Each derived repository must replace `<core-host>` with the corresponding hostname and adjust networking settings in [NETWORKING_INTEGRATION.md](./NETWORKING_INTEGRATION.md).
 - **Media (<media-host>)**: heavy workloads and data tasks. No direct public exposure. Focus on local processing. Each derived repository must replace `<media-host>` with the corresponding hostname and review proxy/cross-documentation rules in [NETWORKING_INTEGRATION.md](./NETWORKING_INTEGRATION.md).
   - Use the media compose file (`docker-compose.media.yml`, renamed as needed in your fork); the default manifest mounts `${MEDIA_HOST_PATH:-/mnt/data}` as `/srv/media` inside the container. See step 3 of [How to start a derived project](../README.md#how-to-start-a-derived-project) to align the compose files with your stack.
-  - Unraid-based projects (or similar platforms) should override `MEDIA_HOST_PATH` in their customized `.env` files (for example, pointing to `/mnt/user`) to reflect the local storage layout.
+  - Unraid-based projects (or similar platforms) should override `MEDIA_HOST_PATH` in their customized `env/local/<instance>.env` files (for example, pointing to `/mnt/user`) to reflect the local storage layout.
 
 ## Communication between instances
 

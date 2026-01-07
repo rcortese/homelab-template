@@ -6,7 +6,7 @@ The documents below remain generic to ease merges from the template. To record s
 
 ## Getting started
 
-- [Onboarding guide](./ONBOARDING.md) — Summary of the initial flow with prerequisites, `.env` bootstrap, and required validations.
+- [Onboarding guide](./ONBOARDING.md) — Summary of the initial flow with prerequisites, `env/local` bootstrap, and required validations.
 - [Template structure](./STRUCTURE.md) — Mandatory directory conventions, essential files, and validations. The directory table there is the single source of truth for the minimum structure.
 - [Environment variables guide](../env/README.md) — How to map and document variables across environments.
 
