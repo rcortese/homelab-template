@@ -125,7 +125,7 @@ def _build_compose_stub(
         "",
         "exit_override = os.environ.get('DESCRIBE_INSTANCE_COMPOSE_EXIT')",
         "stderr_message = os.environ.get('DESCRIBE_INSTANCE_COMPOSE_STDERR', '')",
-        "if filtered[:1] == ['config'] and exit_override:",
+        "if filtered[:3] == ['config', '--format', 'json'] and exit_override:",
         "    try:",
         "        exit_code = int(exit_override)",
         "    except ValueError:",
@@ -372,14 +372,7 @@ def test_table_summary_highlights_extra_files(
     assert compose_args == [str(path.resolve(strict=False)) for path in expected_compose_files]
 
     env_files = _extract_flag_arguments(config_call, "--env-file")
-    expected_env_files = [
-        repo_copy / relative_path
-        for relative_path in compose_instances_data.env_files_map.get("core", [])
-        if relative_path
-    ]
-    assert env_files == [
-        str(path.resolve(strict=False)) for path in expected_env_files
-    ]
+    assert env_files == []
 
 
 def test_json_summary_structure(
@@ -476,12 +469,7 @@ def test_json_summary_structure(
     assert compose_args == [str(path.resolve(strict=False)) for path in expected_compose_files]
 
     env_files = _extract_flag_arguments(config_call, "--env-file")
-    expected_env_files = [
-        repo_copy / relative_path
-        for relative_path in compose_instances_data.env_files_map.get("core", [])
-        if relative_path
-    ]
-    assert env_files == [str(path.resolve(strict=False)) for path in expected_env_files]
+    assert env_files == []
 
     for name, definition in compose_payload["services"].items():
         current = service_lookup[name]

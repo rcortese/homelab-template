@@ -130,8 +130,10 @@ unset COMPOSE_FILES
 unset COMPOSE_EXTRA_FILES
 
 declare -a DOCKER_COMPOSE_CMD=()
-if ! compose_resolve_command DOCKER_COMPOSE_CMD; then
-  exit $?
+compose_resolve_command DOCKER_COMPOSE_CMD
+compose_status=$?
+if ((compose_status != 0)); then
+  exit "$compose_status"
 fi
 
 if [[ -n "$INSTANCE_NAME" ]]; then
@@ -211,11 +213,6 @@ if [[ ${#LOG_TARGETS[@]} -eq 0 ]]; then
     echo "       Configure HEALTH_SERVICES or ensure the Compose manifests declare valid services." >&2
     exit 1
   fi
-fi
-
-if [[ -n "$INSTANCE_NAME" && "$CHANGED_TO_REPO_ROOT" == false ]]; then
-  auto_targets=()
-  ALL_LOG_TARGETS=("${LOG_TARGETS[@]}")
 fi
 
 compose_ps_output="$("${COMPOSE_CMD[@]}" ps)"

@@ -421,8 +421,10 @@ if ! "${BUILD_COMPOSE_CMD[@]}" >/dev/null; then
 fi
 
 declare -a DOCKER_COMPOSE_CMD=()
-if ! compose_resolve_command DOCKER_COMPOSE_CMD; then
-  exit $?
+compose_resolve_command DOCKER_COMPOSE_CMD
+compose_status=$?
+if ((compose_status != 0)); then
+  exit "$compose_status"
 fi
 
 COMPOSE_CMD=("${DOCKER_COMPOSE_CMD[@]}" -f "$COMPOSE_ROOT_FILE")
