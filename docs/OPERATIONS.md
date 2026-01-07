@@ -132,9 +132,8 @@ See the summary in the table above. Include `scripts/check_env_sync.sh` in local
 Use `--base-dir` and `--with-docs` to explicitly declare alternate directories and generate initial documentation. After bootstrapping, adjust the instance compose file (`docker-compose.<instance>.yml`), fill in `env/<instance>.example.env`, and extend `docs/apps/<component>.md`.
 - **Quick example:**
   ```bash
-  scripts/bootstrap_instance.sh my-app prod --override-only --with-docs
+  scripts/bootstrap_instance.sh my-app prod --with-docs
   ```
-  For more details on stacks composed only of overrides, see [`docs/COMPOSE_GUIDE.md#applications-composed-only-of-overrides`](./COMPOSE_GUIDE.md#applications-composed-only-of-overrides).
 
 <a id="scriptsvalidate_compose.sh"></a>
 ## scripts/validate_compose.sh

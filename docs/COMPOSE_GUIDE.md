@@ -14,7 +14,7 @@ This guide documents how to build the Docker Compose plan using only the base fi
 | **Instance compose** | `docker-compose.<instance>.yml` (e.g., [`docker-compose.core.yml`](../docker-compose.core.yml), [`docker-compose.media.yml`](../docker-compose.media.yml)) | Declares every service that should run in the target environment. Use this file to wire networks, volumes, labels, and per-instance defaults without scattering overrides. |
 | **Overlays** | `compose/overlays/<overlay>.yml` (optional) | Ad-hoc adjustments layered after the base + instance pair. Ideal for temporary feature flags or experimentation without editing the main compose file. |
 
-> **Note:** there is no `compose/apps/` directory in the new layout. Each instance file is self-contained and uses standard Compose features (`profiles`, `deploy.replicas`, conditional volumes) to decide what runs.
+> **Note:** each instance file is self-contained and uses standard Compose features (`profiles`, `deploy.replicas`, conditional volumes) to decide what runs.
 
 ### Examples included in the template
 

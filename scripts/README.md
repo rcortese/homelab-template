@@ -32,7 +32,7 @@ Utilities under `scripts/lib/` are never executed alone: they expose reusable fu
 | --- | --- | --- |
 | `deploy_instance.sh` | Runs the guided deployment flow (plans, validations, `docker compose up`, health check). | [`docs/OPERATIONS.md#scriptsdeploy_instancesh`](../docs/OPERATIONS.md#scriptsdeploy_instancesh) |
 | `build_compose_file.sh` | Materializes the resolved Compose plan into a single file for reuse. | [`docs/OPERATIONS.md#scriptsbuild_compose_filesh`](../docs/OPERATIONS.md#scriptsbuild_compose_filesh) |
-| `bootstrap_instance.sh` | Generates the initial structure for applications/instances, with support for overrides and documentation. | [`docs/OPERATIONS.md#scriptsbootstrap_instancesh`](../docs/OPERATIONS.md#scriptsbootstrap_instancesh) |
+| `bootstrap_instance.sh` | Generates the initial structure for applications/instances, with support for documentation. | [`docs/OPERATIONS.md#scriptsbootstrap_instancesh`](../docs/OPERATIONS.md#scriptsbootstrap_instancesh) |
 
 ### Maintenance
 

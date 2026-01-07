@@ -16,11 +16,6 @@ def _derive_service_names(
     compose_instances_data: ComposeInstancesData, instance: str
 ) -> list[str]:
     services = set(compose_instances_data.instance_app_names.get(instance, []))
-    for entry in compose_instances_data.compose_plan(instance):
-        if entry.startswith("compose/apps/"):
-            parts = entry.split("/")
-            if len(parts) >= 3:
-                services.add(parts[2])
     if not services:
         services.add("app")
     return sorted(services)
