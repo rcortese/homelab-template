@@ -51,7 +51,7 @@ def test_loads_compose_extra_files_from_env_file(
 ) -> None:
     env_file = tmp_path / "custom.env"
     env_file.write_text(
-        "COMPOSE_EXTRA_FILES=compose/overlays/extra.yml\n",
+        "COMPOSE_EXTRA_FILES=compose/extra/extra.yml\n",
         encoding="utf-8",
     )
 
@@ -70,8 +70,8 @@ def test_loads_compose_extra_files_from_env_file(
     consolidated_file = repo_root / "docker-compose.yml"
     expected_files = [
         (repo_root / "compose" / "docker-compose.base.yml").resolve(),
-        (repo_root / "compose" / "overlays" / "extra.yml").resolve(),
-        (repo_root / "compose" / "overlays" / "extra.yml").resolve(),
+        (repo_root / "compose" / "extra" / "extra.yml").resolve(),
+        (repo_root / "compose" / "extra" / "extra.yml").resolve(),
     ]
     calls = docker_stub.read_calls()
     assert calls == expected_consolidated_plan_calls(

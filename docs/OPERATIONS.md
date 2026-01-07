@@ -141,7 +141,7 @@ Use `--base-dir` and `--with-docs` to explicitly declare alternate directories a
 - **Useful parameters:**
   - `COMPOSE_INSTANCES` — list of environments to validate (space- or comma-separated).
   - `DOCKER_COMPOSE_BIN` — alternate path to the binary.
-  - `COMPOSE_EXTRA_FILES` — optional list of extra overlays applied after the standard override (accepts spaces or commas).
+  - `COMPOSE_EXTRA_FILES` — optional list of extra compose files applied after the standard override (accepts spaces or commas).
 - The script generates a consolidated `docker-compose.yml` in the repository root before invoking
   `docker compose -f docker-compose.yml config -q`.
 - **Practical examples:**
@@ -153,19 +153,19 @@ Use `--base-dir` and `--with-docs` to explicitly declare alternate directories a
     ```bash
     COMPOSE_INSTANCES="prod staging" scripts/validate_compose.sh
     ```
-  - Applying extra overlays listed in `COMPOSE_EXTRA_FILES`:
+  - Applying extra compose files listed in `COMPOSE_EXTRA_FILES`:
     ```bash
-    COMPOSE_EXTRA_FILES="compose/overlays/metrics.yml" scripts/validate_compose.sh
+    COMPOSE_EXTRA_FILES="compose/extra/metrics.yml" scripts/validate_compose.sh
     ```
 
-  > The planning helper automatically chains `compose/docker-compose.base.yml` (when present) with the selected `docker-compose.<instance>.yml` and any overlays provided via `COMPOSE_EXTRA_FILES` or `--file`, keeping the list of `-f` entries consistent with available manifests.
+  > The planning helper automatically chains `compose/docker-compose.base.yml` (when present) with the selected `docker-compose.<instance>.yml` and any extra compose files provided via `COMPOSE_EXTRA_FILES` or `--file`, keeping the list of `-f` entries consistent with available manifests.
 
   > Variables can be pre-exported (`export COMPOSE_INSTANCES=...`) or prefixed to the command, keeping the flow simple.
   > **Warning:** use validation to confirm that the standard Compose combinations remain compatible with active profiles before deployments or PRs.
 
 ## scripts/deploy_instance.sh
 
-Beyond the main flags (`--force`, `--skip-structure`, `--skip-validate`, `--skip-health`), customize prompts and file combinations to reflect real environments. Set `COMPOSE_EXTRA_FILES` in `.env` when additional overlays are needed. The script calculates the persistent directory from `APP_DATA_DIR` (relative path) or `APP_DATA_DIR_MOUNT` (absolute path) — leave both empty to fall back to `data/<instance>/<app>` and never enable both variables simultaneously, as the routine aborts with an error.
+Beyond the main flags (`--force`, `--skip-structure`, `--skip-validate`, `--skip-health`), customize prompts and file combinations to reflect real environments. Set `COMPOSE_EXTRA_FILES` in `.env` when additional compose files are needed. The script calculates the persistent directory from `APP_DATA_DIR` (relative path) or `APP_DATA_DIR_MOUNT` (absolute path) — leave both empty to fall back to `data/<instance>/<app>` and never enable both variables simultaneously, as the routine aborts with an error.
 
 ## scripts/fix_permission_issues.sh
 
@@ -187,8 +187,8 @@ The script relies on `scripts/lib/deploy_context.sh` to calculate `APP_DATA_DIR`
 
 - **Goal:** materialize the resolved Compose plan into `docker-compose.yml` at the repository root and consolidate the applied env chain into `.env`, so that the standard commands become `docker compose up -d` and `docker compose ps` without extra flags.
 - **Inputs and overrides:**
-  - Accepts `--instance` to reuse the standard discovery chain (base manifests, app overlays, and per-instance overrides);
-  - `--file` (repeatable) mirrors `COMPOSE_EXTRA_FILES`, appending overlays after the discovered plan;
+  - Accepts `--instance` to reuse the standard discovery chain (base manifests, app compose files, and per-instance overrides);
+  - `--file` (repeatable) mirrors `COMPOSE_EXTRA_FILES`, appending extra compose files after the discovered plan;
   - `--env-file` (repeatable) extends or replaces the `.env` chain controlled by `COMPOSE_ENV_FILES`, falling back to `env/local/common.env` → `env/local/<instance>.env` when the explicit list is empty;
   - `--env-output` changes where the consolidated `.env` is written (defaults to the repository root). The helper rebuilds the file on every run, honoring the same precedence applied to `--env-file`.
 - **Output validation:** after writing the merged files, the script runs `docker compose -f docker-compose.yml config -q` (reusing the same env chain) and fails when inconsistencies are detected. Re-run the generator whenever manifests or variables are modified to keep the root file and `.env` in sync.
@@ -197,9 +197,9 @@ The script relies on `scripts/lib/deploy_context.sh` to calculate `APP_DATA_DIR`
   # Generate the root docker-compose.yml and .env for the core instance using defaults
   scripts/build_compose_file.sh --instance core
 
-  # Append temporary overlays and a custom env chain while writing to a different path
+  # Append temporary compose files and a custom env chain while writing to a different path
   scripts/build_compose_file.sh --instance media \
-    --file compose/overlays/monitoring-debug.yml \
+    --file compose/extra/monitoring-debug.yml \
     --env-file env/local/common.env --env-file env/local/media.env \
     --output /tmp/media-merged-compose.yml --env-output /tmp/media.env
   ```
@@ -210,8 +210,8 @@ The script relies on `scripts/lib/deploy_context.sh` to calculate `APP_DATA_DIR`
 - **Available formats:**
   - `table` (default) — ideal for quick terminal or runbook reviews.
   - `json` — aimed at automated integrations and documentation generation.
-- The `table` output helps quick reviews. With `--format json`, fields such as `compose_files`, `extra_overlays`, and `services` can feed runbook generators or status pages.
-- Highlight: the report surfaces additional overlays coming from `COMPOSE_EXTRA_FILES`, making it easier to audit temporary customizations.
+- The `table` output helps quick reviews. With `--format json`, fields such as `compose_files`, `extra_files`, and `services` can feed runbook generators or status pages.
+- Highlight: the report surfaces additional compose files coming from `COMPOSE_EXTRA_FILES`, making it easier to audit temporary customizations.
 
 ## scripts/check_health.sh
 
@@ -294,7 +294,7 @@ This document keeps only a summary: use `scripts/update_from_template.sh` to rea
 - **Persistent directories:** the `data/<instance>/<app>` path is calculated automatically; use `APP_DATA_DIR` (relative) **or** `APP_DATA_DIR_MOUNT` (absolute) when you need to customize the destination and adjust `APP_DATA_UID`/`APP_DATA_GID` in `.env` to align permissions.
 - **Monitored services:** set `HEALTH_SERVICES` in `.env` files so `scripts/check_health.sh` targets the correct logs.
 - **Extra volumes:** add mounts directly to the relevant service inside `docker-compose.<instance>.yml` to expose different paths per environment. When present, see also [`docker-compose.media.yml`](../docker-compose.media.yml) for an example of a named volume shared (`media_cache`) between services in the instance.
-- **Configurable overlays:** register optional overlays under `compose/overlays/*.yml` and enable them per environment via `COMPOSE_EXTRA_FILES`. This keeps template diffs confined to configuration files without editing scripts.
+- **Configurable extra compose files:** register optional files and enable them per environment via `COMPOSE_EXTRA_FILES`. This keeps template diffs confined to configuration files without editing scripts.
 
 ## Suggested operational flows
 

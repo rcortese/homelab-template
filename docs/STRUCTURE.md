@@ -10,7 +10,7 @@ This guide describes the minimum structure expected for any repository inheritin
 
 | Path | Description | Expected items |
 | --- | --- | --- |
-| `compose/` | Base Docker Compose anchors and repeatable overlays. | `docker-compose.base.yml` (when necessary) and overlay files under `compose/overlays/`. Instance compose files now live at the repository root (`docker-compose.<instance>.yml`). |
+| `compose/` | Base Docker Compose anchors and instance compose files. | `docker-compose.base.yml` (when necessary) plus `docker-compose.<instance>.yml` for each instance. |
 | `docs/` | Local documentation, runbooks, operational guides, and ADRs. | `README.md`, `STRUCTURE.md`, `OPERATIONS.md`, themed subfolders, and [`local/`](./local/README.md). |
 | `env/` | Variable templates, example files, and fill-in instructions. | `*.example.env`, `README.md`, Git-ignored `local/`. Expand with variables needed for every enabled application. |
 | `scripts/` | Reusable automation (deploy, validation, backups, health checks). | Shell scripts (or equivalents) referenced by the documentation. |
@@ -34,9 +34,9 @@ Each instance is defined by a consolidated compose file and its supporting docum
 
 | Path | Required? | Description |
 | --- | --- | --- |
-| `docker-compose.<instance>.yml` | Yes (one per instance) | Complete compose file for the instance (services, networks, volumes, labels, and profiles). |
+| `compose/docker-compose.<instance>.yml` | Yes (one per instance) | Complete compose file for the instance (services, networks, volumes, labels, and profiles). |
 | `compose/docker-compose.base.yml` | Optional | Anchors and shared resources loaded before any instance file. |
-| `compose/overlays/<overlay>.yml` | Optional | Repeatable overlays applied after the main instance compose file for experiments or environment-specific tuning. |
+| `COMPOSE_EXTRA_FILES` | Optional | Additional compose files appended after the instance file for experiments or environment-specific tuning. |
 | `docs/apps/<component>.md` | Recommended | Support document describing the responsibilities and requirements of key services or components. |
 | `env/<instance>.example.env` | One per instance | Must include every variable consumed by the services enabled for the instance. |
 

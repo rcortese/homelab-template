@@ -71,11 +71,11 @@ def test_includes_extra_files_from_env_file(
 ) -> None:
     docker_stub.set_exit_code(0)
 
-    overlay_dir = repo_copy / "compose" / "overlays"
-    overlay_dir.mkdir(parents=True, exist_ok=True)
+    extra_dir = repo_copy / "compose" / "extra"
+    extra_dir.mkdir(parents=True, exist_ok=True)
     extra_files = ["metrics.yml", "logging.yml"]
     for name in extra_files:
-        (overlay_dir / name).write_text(
+        (extra_dir / name).write_text(
             "version: '3.9'\nservices:\n  placeholder:\n    image: busybox:latest\n",
             encoding="utf-8",
         )
@@ -83,7 +83,7 @@ def test_includes_extra_files_from_env_file(
     env_file = repo_copy / "env" / "local" / "core.env"
     env_file.write_text(
         env_file.read_text(encoding="utf-8")
-        + "COMPOSE_EXTRA_FILES=compose/overlays/metrics.yml compose/overlays/logging.yml\n",
+        + "COMPOSE_EXTRA_FILES=compose/extra/metrics.yml compose/extra/logging.yml\n",
         encoding="utf-8",
     )
 
@@ -107,8 +107,8 @@ def test_includes_extra_files_from_env_file(
         env_chain,
         base_files
         + [
-            repo_copy / "compose" / "overlays" / "metrics.yml",
-            repo_copy / "compose" / "overlays" / "logging.yml",
+            repo_copy / "compose" / "extra" / "metrics.yml",
+            repo_copy / "compose" / "extra" / "logging.yml",
         ],
         repo_copy / "docker-compose.yml",
     )
@@ -121,13 +121,13 @@ def test_env_override_for_extra_files(
 ) -> None:
     docker_stub.set_exit_code(0)
 
-    overlay_dir = repo_copy / "compose" / "overlays"
-    overlay_dir.mkdir(parents=True, exist_ok=True)
-    (overlay_dir / "custom.yml").write_text(
+    extra_dir = repo_copy / "compose" / "extra"
+    extra_dir.mkdir(parents=True, exist_ok=True)
+    (extra_dir / "custom.yml").write_text(
         "version: '3.9'\nservices:\n  custom:\n    image: busybox:latest\n",
         encoding="utf-8",
     )
-    (overlay_dir / "metrics.yml").write_text(
+    (extra_dir / "metrics.yml").write_text(
         "version: '3.9'\nservices:\n  metrics:\n    image: busybox:latest\n",
         encoding="utf-8",
     )
@@ -135,7 +135,7 @@ def test_env_override_for_extra_files(
     env_file = repo_copy / "env" / "local" / "core.env"
     env_file.write_text(
         env_file.read_text(encoding="utf-8")
-        + "COMPOSE_EXTRA_FILES=compose/overlays/metrics.yml\n",
+        + "COMPOSE_EXTRA_FILES=compose/extra/metrics.yml\n",
         encoding="utf-8",
     )
 
@@ -152,7 +152,7 @@ def test_env_override_for_extra_files(
         env={
             **os.environ,
             "COMPOSE_INSTANCES": instance,
-            "COMPOSE_EXTRA_FILES": "compose/overlays/custom.yml",
+            "COMPOSE_EXTRA_FILES": "compose/extra/custom.yml",
         },
     )
 
@@ -163,7 +163,7 @@ def test_env_override_for_extra_files(
         env_chain,
         base_files
         + [
-            repo_copy / "compose" / "overlays" / "custom.yml",
+            repo_copy / "compose" / "extra" / "custom.yml",
         ],
         repo_copy / "docker-compose.yml",
     )

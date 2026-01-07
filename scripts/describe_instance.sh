@@ -316,7 +316,7 @@ for service_name in sorted(services):
 summary = {
     "instance": instance_name,
     "compose_files": compose_summary,
-    "extra_overlays": extra_summary,
+    "extra_files": extra_summary,
     "services": service_items,
 }
 
@@ -330,16 +330,16 @@ print("")
 print("Compose files (-f):")
 if compose_summary:
     for entry in compose_summary:
-        marker = " (extra overlay)" if entry["is_extra"] else ""
+        marker = " (extra file)" if entry["is_extra"] else ""
         print(f"  • {entry['path']}{marker}")
 else:
     print("  (no files found)")
 
 if extra_summary:
     print("")
-    print("Extra overlays applied:")
-    for overlay in extra_summary:
-        print(f"  • {overlay}")
+    print("Extra compose files applied:")
+    for extra_file in extra_summary:
+        print(f"  • {extra_file}")
 
 print("")
 print("Services:")

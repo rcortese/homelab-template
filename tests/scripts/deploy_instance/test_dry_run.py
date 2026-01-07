@@ -19,10 +19,10 @@ def test_dry_run_outputs_planned_commands(repo_copy: Path) -> None:
 def test_dry_run_includes_extra_files_from_env_file(
     repo_copy: Path, compose_instances_data: ComposeInstancesData
 ) -> None:
-    overlay_dir = repo_copy / "compose" / "overlays"
-    overlay_dir.mkdir(parents=True, exist_ok=True)
+    extra_dir = repo_copy / "compose" / "extra"
+    extra_dir.mkdir(parents=True, exist_ok=True)
     for name in ("metrics.yml", "logging.yml"):
-        (overlay_dir / name).write_text(
+        (extra_dir / name).write_text(
             "version: '3.9'\nservices:\n  placeholder:\n    image: busybox:latest\n",
             encoding="utf-8",
         )
@@ -30,7 +30,7 @@ def test_dry_run_includes_extra_files_from_env_file(
     env_file = repo_copy / "env" / "local" / "core.env"
     env_file.write_text(
         env_file.read_text(encoding="utf-8")
-        + "COMPOSE_EXTRA_FILES=compose/overlays/metrics.yml compose/overlays/logging.yml\n",
+        + "COMPOSE_EXTRA_FILES=compose/extra/metrics.yml compose/extra/logging.yml\n",
         encoding="utf-8",
     )
 
@@ -39,7 +39,7 @@ def test_dry_run_includes_extra_files_from_env_file(
     assert result.returncode == 0, result.stderr
     compose_files = _extract_compose_files(result.stdout)
     expected_plan = compose_instances_data.compose_plan(
-        "core", ["compose/overlays/metrics.yml", "compose/overlays/logging.yml"]
+        "core", ["compose/extra/metrics.yml", "compose/extra/logging.yml"]
     )
     assert compose_files == expected_plan
 
@@ -54,9 +54,9 @@ def test_dry_run_skip_health_outputs_skip_message(repo_copy: Path) -> None:
 def test_env_override_takes_precedence_for_extra_files(
     repo_copy: Path, compose_instances_data: ComposeInstancesData
 ) -> None:
-    overlay_dir = repo_copy / "compose" / "overlays"
-    overlay_dir.mkdir(parents=True, exist_ok=True)
-    (overlay_dir / "custom.yml").write_text(
+    extra_dir = repo_copy / "compose" / "extra"
+    extra_dir.mkdir(parents=True, exist_ok=True)
+    (extra_dir / "custom.yml").write_text(
         "version: '3.9'\nservices:\n  custom:\n    image: busybox:latest\n",
         encoding="utf-8",
     )
@@ -64,7 +64,7 @@ def test_env_override_takes_precedence_for_extra_files(
     env_file = repo_copy / "env" / "local" / "core.env"
     env_file.write_text(
         env_file.read_text(encoding="utf-8")
-        + "COMPOSE_EXTRA_FILES=compose/overlays/metrics.yml\n",
+        + "COMPOSE_EXTRA_FILES=compose/extra/metrics.yml\n",
         encoding="utf-8",
     )
 
@@ -72,14 +72,12 @@ def test_env_override_takes_precedence_for_extra_files(
         repo_copy,
         "core",
         "--dry-run",
-        env_overrides={"COMPOSE_EXTRA_FILES": "compose/overlays/custom.yml"},
+        env_overrides={"COMPOSE_EXTRA_FILES": "compose/extra/custom.yml"},
     )
 
     assert result.returncode == 0, result.stderr
     compose_files = _extract_compose_files(result.stdout)
-    expected_plan = compose_instances_data.compose_plan(
-        "core", ["compose/overlays/custom.yml"]
-    )
+    expected_plan = compose_instances_data.compose_plan("core", ["compose/extra/custom.yml"])
     assert compose_files == expected_plan
 
 
