@@ -45,6 +45,7 @@ source "$SCRIPT_DIR/lib/env_file_chain.sh"
 INSTANCE_NAME=""
 OUTPUT_FILE="$REPO_ROOT/docker-compose.yml"
 ENV_OUTPUT_FILE="$REPO_ROOT/.env"
+GENERATED_HEADER="# GENERATED FILE. DO NOT EDIT. RE-RUN SCRIPTS/BUILD_COMPOSE_FILE.SH OR SCRIPTS/DEPLOY_INSTANCE.SH."
 declare -a DECLARE_EXTRAS=()
 declare -a EXPLICIT_ENV_FILES=()
 
@@ -203,7 +204,7 @@ merge_env_chain_to_file() {
     fi
   fi
 
-  : >"$output_path"
+  printf '%s\n' "$GENERATED_HEADER" >"$output_path"
 
   for env_file in "${env_chain[@]}"; do
     if [[ ! -f "$env_file" ]]; then
@@ -247,7 +248,7 @@ if ((${#COMPOSE_ENV_FILES_RESOLVED[@]} > 0)); then
     exit 1
   fi
 else
-  : >"$ENV_OUTPUT_FILE"
+  printf '%s\n' "$GENERATED_HEADER" >"$ENV_OUTPUT_FILE"
 fi
 
 declare -a compose_cmd=()
@@ -269,12 +270,19 @@ for compose_file in "${compose_files_list[@]}"; do
   compose_cmd+=(-f "$resolved_file")
 done
 
-generate_cmd=("${compose_cmd[@]}" config --output "$OUTPUT_FILE")
+compose_tmp_file="$(mktemp)"
+trap 'rm -f "$compose_tmp_file"' EXIT
+
+generate_cmd=("${compose_cmd[@]}" config --output "$compose_tmp_file")
 
 if ! "${generate_cmd[@]}"; then
   echo "Error: failed to generate docker-compose.yml." >&2
   exit 1
 fi
+{
+  printf '%s\n' "$GENERATED_HEADER"
+  cat "$compose_tmp_file"
+} >"$OUTPUT_FILE"
 validate_cmd=("${compose_cmd[@]}" -f "$OUTPUT_FILE" config -q)
 if ! "${validate_cmd[@]}"; then
   echo "Error: inconsistencies detected while validating $OUTPUT_FILE." >&2
