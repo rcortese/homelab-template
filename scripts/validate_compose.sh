@@ -7,7 +7,7 @@
 # Environment:
 #   DOCKER_COMPOSE_BIN   Overrides the binary used (for example: docker-compose).
 #   COMPOSE_INSTANCES    List of instances to validate (space- or comma-separated). Default: all.
-#   COMPOSE_EXTRA_FILES  Extra overlays applied after the default override file (spaces or commas accepted).
+#   COMPOSE_EXTRA_FILES  Extra compose files applied after the default override file (spaces or commas accepted).
 # Examples:
 #   scripts/validate_compose.sh
 #   COMPOSE_INSTANCES="media" scripts/validate_compose.sh

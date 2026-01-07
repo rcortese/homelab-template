@@ -21,14 +21,14 @@ Options:
 Relevant environment variables:
   DOCKER_COMPOSE_BIN  Override the docker compose command (for example: docker-compose).
   COMPOSE_INSTANCES   Instances to validate (space- or comma-separated). Default: all.
-  COMPOSE_EXTRA_FILES Extra overlays applied after the default override (spaces or commas).
+  COMPOSE_EXTRA_FILES Extra compose files applied after the default override (spaces or commas).
 
 Examples:
   scripts/validate_compose.sh
   COMPOSE_INSTANCES="media" scripts/validate_compose.sh
-  COMPOSE_EXTRA_FILES="compose/overlays/metrics.yml" scripts/validate_compose.sh
+  COMPOSE_EXTRA_FILES="compose/extra/metrics.yml" scripts/validate_compose.sh
   COMPOSE_INSTANCES="media" \
-    COMPOSE_EXTRA_FILES="compose/overlays/logging.yml compose/overlays/metrics.yml" \
+    COMPOSE_EXTRA_FILES="compose/extra/logging.yml compose/extra/metrics.yml" \
     scripts/validate_compose.sh
 HELP
 }

@@ -177,18 +177,18 @@ def test_appends_extra_files_when_defined(
     subset_length = min(3, len(base_plan)) or 1
     existing_files = base_plan[:subset_length]
     env = os.environ.copy()
-    overlays = ["compose/overlays/metrics.yml", "compose/overlays/logging.yml"]
+    extra_files = ["compose/extra/metrics.yml", "compose/extra/logging.yml"]
     env.update(
         {
             "COMPOSE_FILES": " ".join(existing_files),
-            "COMPOSE_EXTRA_FILES": " ".join(overlays),
+            "COMPOSE_EXTRA_FILES": " ".join(extra_files),
         }
     )
 
     stdout = _run_script(script_path, "core", str(repo_copy), env=env)
 
     compose_files = _extract_value(r'COMPOSE_FILES="([^"]+)"', stdout)
-    expected_relative = [*existing_files, *overlays]
+    expected_relative = [*existing_files, *extra_files]
     expected_files = [
         str((repo_copy / path).resolve(strict=False)) for path in expected_relative
     ]
@@ -205,19 +205,19 @@ def test_handles_comma_and_newline_separated_extra_files(
     base_plan = compose_instances_data.compose_plan("core")
     subset_length = min(3, len(base_plan)) or 1
     existing_files = base_plan[:subset_length]
-    overlays = ["compose/overlays/metrics.yml", "compose/overlays/logging.yml"]
+    extra_files = ["compose/extra/metrics.yml", "compose/extra/logging.yml"]
     env = os.environ.copy()
     env.update(
         {
             "COMPOSE_FILES": " ".join(existing_files),
-            "COMPOSE_EXTRA_FILES": f"{overlays[0]}, {overlays[1]}\n{overlays[0]}",
+            "COMPOSE_EXTRA_FILES": f"{extra_files[0]}, {extra_files[1]}\n{extra_files[0]}",
         }
     )
 
     stdout = _run_script(script_path, "core", str(repo_copy), env=env)
 
     compose_files = _extract_value(r'COMPOSE_FILES="([^"]+)"', stdout)
-    expected_relative = [*existing_files, *overlays]
+    expected_relative = [*existing_files, *extra_files]
     expected_files = [
         str((repo_copy / path).resolve(strict=False)) for path in expected_relative
     ]
@@ -242,13 +242,13 @@ def test_removes_duplicate_entries(
         unique_base = base_plan[:1]
     primary = unique_base[0]
     secondary = unique_base[1] if len(unique_base) > 1 else primary
-    overlays = ["compose/overlays/logging.yml", "compose/overlays/metrics.yml"]
+    extra_files = ["compose/extra/logging.yml", "compose/extra/metrics.yml"]
     env = os.environ.copy()
     env.update(
         {
-            "COMPOSE_FILES": f"{primary} {secondary} {secondary} {overlays[0]}",
+            "COMPOSE_FILES": f"{primary} {secondary} {secondary} {extra_files[0]}",
             "COMPOSE_EXTRA_FILES": (
-                f"{overlays[0]} {overlays[1]} {primary}"
+                f"{extra_files[0]} {extra_files[1]} {primary}"
             ),
         }
     )
@@ -259,7 +259,7 @@ def test_removes_duplicate_entries(
     expected_relative = [primary]
     if secondary != primary:
         expected_relative.append(secondary)
-    expected_relative.extend(overlays)
+    expected_relative.extend(extra_files)
     expected_files = [
         str((repo_copy / path).resolve(strict=False)) for path in expected_relative
     ]
@@ -276,13 +276,13 @@ def test_loads_extra_files_from_env_file(
 ) -> None:
     script_path = repo_copy / SCRIPT_RELATIVE
     env_file = repo_copy / "env" / "local" / "core.env"
-    overlays = [
-        "compose/overlays/metrics.yml",
-        "compose/overlays/logging.yml",
+    extra_files = [
+        "compose/extra/metrics.yml",
+        "compose/extra/logging.yml",
     ]
     env_file.write_text(
         env_file.read_text(encoding="utf-8")
-        + f"COMPOSE_EXTRA_FILES={', '.join(overlays)}\n",
+        + f"COMPOSE_EXTRA_FILES={', '.join(extra_files)}\n",
         encoding="utf-8",
     )
 
@@ -292,7 +292,7 @@ def test_loads_extra_files_from_env_file(
     stdout = _run_script(script_path, "core", str(repo_copy), env=env)
 
     compose_cmd = _extract_compose_cmd(stdout)
-    expected_relative = compose_instances_data.compose_plan("core", overlays)
+    expected_relative = compose_instances_data.compose_plan("core", extra_files)
     expected_files = [
         str((repo_copy / path).resolve(strict=False)) for path in expected_relative
     ]

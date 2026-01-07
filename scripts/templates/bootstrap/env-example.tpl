@@ -7,5 +7,5 @@ APP_WEBHOOK_URL=https://hooks.domain.example/{{APP}}
 {{PORT_VAR}}=8080
 # Optional • List services monitored by the automatic health check.
 # HEALTH_SERVICES={{APP}}
-# Optional • Include additional overlays after the instance primary override.
-# COMPOSE_EXTRA_FILES=compose/overlays/observability.yml
+# Optional • Include additional compose files after the instance primary override.
+# COMPOSE_EXTRA_FILES=compose/extra/observability.yml
