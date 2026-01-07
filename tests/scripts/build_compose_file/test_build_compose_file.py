@@ -5,6 +5,11 @@ from pathlib import Path
 from tests.helpers.compose_instances import ComposeInstancesData
 from .utils import create_compose_config_stub, run_build_compose_file
 
+GENERATED_HEADER = (
+    "# GENERATED FILE. DO NOT EDIT. RE-RUN SCRIPTS/BUILD_COMPOSE_FILE.SH OR "
+    "SCRIPTS/DEPLOY_INSTANCE.SH."
+)
+
 
 def _extract_args(command: list[str], flag: str) -> list[str]:
     values: list[str] = []
@@ -41,7 +46,9 @@ def test_generates_compose_from_instance_plan(
     )
 
     assert result.returncode == 0, result.stderr
-    assert output_path.read_text(encoding="utf-8") == stub.output_content
+    assert output_path.read_text(encoding="utf-8") == (
+        f"{GENERATED_HEADER}\n{stub.output_content}"
+    )
 
     calls = stub.read_calls()
     assert len(calls) == 2
@@ -178,6 +185,7 @@ def test_writes_consolidated_env_output_with_order(
 
     assert result.returncode == 0, result.stderr
     assert env_output.read_text(encoding="utf-8") == (
+        f"{GENERATED_HEADER}\n"
         "ALPHA=1\nSHARED=from_override\nOVERRIDE=keep\nNEW_VAR=value\n"
     )
     assert str(env_output) in result.stdout
@@ -207,6 +215,7 @@ def test_refreshes_default_env_output(repo_copy: Path, tmp_path: Path) -> None:
 
     output_lines = default_env_output.read_text(encoding="utf-8").splitlines()
     assert output_lines == [
+        GENERATED_HEADER,
         "TZ=UTC",
         "APP_SECRET=override-secret",
         "APP_RETENTION_HOURS=24",

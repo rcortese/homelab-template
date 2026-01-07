@@ -270,7 +270,7 @@ for compose_file in "${compose_files_list[@]}"; do
   compose_cmd+=(-f "$resolved_file")
 done
 
-compose_tmp_file="$(mktemp)"
+compose_tmp_file="${OUTPUT_FILE}.tmp"
 trap 'rm -f "$compose_tmp_file"' EXIT
 
 generate_cmd=("${compose_cmd[@]}" config --output "$compose_tmp_file")
