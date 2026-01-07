@@ -228,7 +228,13 @@ def repo_copy(
         encoding="utf-8",
     )
 
-    (local_env_dir / "core.env").write_text("", encoding="utf-8")
+    for template_path in (copy_root / "env").glob("*.example.env"):
+        name = template_path.name.replace(".example.env", "")
+        if not name or name == "common":
+            continue
+        local_path = local_env_dir / f"{name}.env"
+        if not local_path.exists():
+            local_path.write_text("", encoding="utf-8")
 
     override_only_dir = copy_root / "compose" / "apps" / "overrideonly"
     override_only_dir.mkdir(parents=True, exist_ok=True)
