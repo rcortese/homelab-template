@@ -37,15 +37,9 @@ load_compose_discovery() {
 
   BASE_COMPOSE_FILE=""
   local base_candidate_primary="$compose_dir_rel/docker-compose.base.yml"
-  local base_candidate_legacy="$compose_dir_rel/base.yml"
   local base_compose_abs="$repo_root/$base_candidate_primary"
   if [[ -f "$base_compose_abs" ]]; then
     BASE_COMPOSE_FILE="$base_candidate_primary"
-  else
-    base_compose_abs="$repo_root/$base_candidate_legacy"
-    if [[ -f "$base_compose_abs" ]]; then
-      BASE_COMPOSE_FILE="$base_candidate_legacy"
-    fi
   fi
 
   declare -gA COMPOSE_INSTANCE_FILES=()
