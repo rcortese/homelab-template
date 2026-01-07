@@ -19,7 +19,7 @@ def _extract_args(command: list[str], flag: str) -> list[str]:
     return values
 
 
-def test_requires_instance_or_compose_files(repo_copy: Path, tmp_path: Path) -> None:
+def test_requires_instance(repo_copy: Path, tmp_path: Path) -> None:
     stub = create_compose_config_stub(tmp_path)
 
     result = run_build_compose_file(
@@ -29,7 +29,7 @@ def test_requires_instance_or_compose_files(repo_copy: Path, tmp_path: Path) -> 
     )
 
     assert result.returncode == 64
-    assert "no instance provided" in result.stderr
+    assert "instance argument is required" in result.stderr
 
 
 def test_generates_compose_from_instance_plan(
@@ -39,7 +39,7 @@ def test_generates_compose_from_instance_plan(
     stub = create_compose_config_stub(tmp_path, output_content="version: '3.8'\nservices: {}\n")
 
     result = run_build_compose_file(
-        args=["--instance", "core", "--output", str(output_path)],
+        args=["--output", str(output_path), "core"],
         env={"DOCKER_COMPOSE_BIN": str(stub.path), **stub.base_env},
         cwd=repo_copy,
         script_path=repo_copy / "scripts" / "build_compose_file.sh",
@@ -99,8 +99,6 @@ def test_applies_extras_and_explicit_env_chain(
     output_path = repo_copy / "generated.yml"
     result = run_build_compose_file(
         args=[
-            "--instance",
-            "core",
             "--file",
             str(extra_file_cli.relative_to(repo_copy)),
             "--env-file",
@@ -109,6 +107,7 @@ def test_applies_extras_and_explicit_env_chain(
             str(extra_env3.relative_to(repo_copy)),
             "--output",
             str(output_path),
+            "core",
         ],
         env={"DOCKER_COMPOSE_BIN": str(stub.path), **stub.base_env, **env_overrides},
         cwd=repo_copy,
@@ -167,12 +166,11 @@ def test_writes_consolidated_env_output_with_order(
 
     result = run_build_compose_file(
         args=[
-            "--instance",
-            "core",
             "--env-file",
             str(override_env_file.relative_to(repo_copy)),
             "--env-output",
             str(env_output.relative_to(repo_copy)),
+            "core",
         ],
         env={
             "DOCKER_COMPOSE_BIN": str(stub.path),
@@ -205,7 +203,7 @@ def test_refreshes_default_env_output(repo_copy: Path, tmp_path: Path) -> None:
     core_env.write_text("APP_SECRET=override-secret\nAPP_DATA_UID=2000\n", encoding="utf-8")
 
     result = run_build_compose_file(
-        args=["--instance", "core"],
+        args=["core"],
         env={"DOCKER_COMPOSE_BIN": str(stub.path), **stub.base_env},
         cwd=repo_copy,
         script_path=repo_copy / "scripts" / "build_compose_file.sh",

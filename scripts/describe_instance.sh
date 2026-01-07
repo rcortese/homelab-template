@@ -112,7 +112,7 @@ unset COMPOSE_FILES
 unset COMPOSE_EXTRA_FILES
 
 COMPOSE_ROOT_FILE="$REPO_ROOT/docker-compose.yml"
-declare -a BUILD_COMPOSE_CMD=("$SCRIPT_DIR/build_compose_file.sh" --instance "$INSTANCE_NAME")
+declare -a BUILD_COMPOSE_CMD=("$SCRIPT_DIR/build_compose_file.sh" "$INSTANCE_NAME")
 
 if ! "${BUILD_COMPOSE_CMD[@]}" >/dev/null; then
   echo "Error: failed to assemble compose configuration for '$INSTANCE_NAME'." >&2
