@@ -10,7 +10,12 @@ from tests.helpers.compose_instances import ComposeInstancesData
 SCRIPT_RELATIVE = Path("scripts") / "lib" / "compose_defaults.sh"
 
 
-def _run_script(script_path: Path, *args: str, env: dict[str, str] | None = None) -> str:
+def _run_script(
+    script_path: Path,
+    *args: str,
+    env: dict[str, str] | None = None,
+    expected_returncode: int = 0,
+) -> subprocess.CompletedProcess[str]:
     stub_dir = script_path.parent / ".docker-stub"
     stub_dir.mkdir(exist_ok=True)
     docker_stub = stub_dir / "docker"
@@ -30,8 +35,14 @@ def _run_script(script_path: Path, *args: str, env: dict[str, str] | None = None
         env=env_vars,
         cwd=script_path.parent.parent.parent,
     )
-    assert result.returncode == 0, result.stderr
-    return result.stdout
+    assert result.returncode == expected_returncode, result.stderr
+    return result
+
+
+def _ensure_root_compose(repo_copy: Path) -> None:
+    compose_root = repo_copy / "docker-compose.yml"
+    if not compose_root.exists():
+        compose_root.write_text("services: {}\n", encoding="utf-8")
 
 
 def _extract_value(pattern: str, stdout: str) -> str:
@@ -69,21 +80,14 @@ def _extract_file_args(compose_cmd: list[str]) -> list[str]:
 def test_defaults_for_core_instance(
     repo_copy: Path, compose_instances_data: ComposeInstancesData
 ) -> None:
+    _ensure_root_compose(repo_copy)
     script_path = repo_copy / SCRIPT_RELATIVE
-    stdout = _run_script(script_path, "core", str(repo_copy), env=os.environ.copy())
+    result = _run_script(script_path, "core", str(repo_copy), env=os.environ.copy())
+    stdout = result.stdout
 
     compose_files = _extract_value(r'COMPOSE_FILES="([^"]+)"', stdout)
-    compose_entries = compose_files.split()
-    expected_relative = compose_instances_data.compose_plan("core")
-    assert compose_entries == expected_relative
-
-    if compose_instances_data.base_file:
-        assert compose_instances_data.base_file in compose_entries
-
-    expected_files = [
-        str((repo_copy / path).resolve(strict=False))
-        for path in expected_relative
-    ]
+    assert compose_files == "docker-compose.yml"
+    expected_files = [str((repo_copy / "docker-compose.yml").resolve(strict=False))]
 
     env_files = _extract_env_files(stdout)
     expected_env_files = [
@@ -105,21 +109,23 @@ def test_defaults_for_core_instance(
 
 
 def test_fallbacks_when_instance_missing(repo_copy: Path) -> None:
+    _ensure_root_compose(repo_copy)
     script_path = repo_copy / SCRIPT_RELATIVE
     env = os.environ.copy()
     env.pop("COMPOSE_FILES", None)
     env.pop("COMPOSE_ENV_FILES", None)
     env.pop("COMPOSE_EXTRA_FILES", None)
 
-    stdout = _run_script(script_path, "missing", str(repo_copy), env=env)
+    result = _run_script(script_path, "missing", str(repo_copy), env=env)
+    stdout = result.stdout
 
     compose_files = _extract_value(r'COMPOSE_FILES="([^"]+)"', stdout)
-    assert compose_files == "compose/docker-compose.base.yml"
+    assert compose_files == "docker-compose.yml"
 
     compose_cmd = _extract_compose_cmd(stdout)
     compose_file_args = _extract_file_args(compose_cmd)
     assert compose_file_args == [
-        str((repo_copy / "compose" / "docker-compose.base.yml").resolve())
+        str((repo_copy / "docker-compose.yml").resolve())
     ]
 
     env_files = _extract_env_files(stdout)
@@ -135,6 +141,7 @@ def test_fallbacks_when_instance_missing(repo_copy: Path) -> None:
 
 
 def test_preserves_existing_environment(repo_copy: Path) -> None:
+    _ensure_root_compose(repo_copy)
     script_path = repo_copy / SCRIPT_RELATIVE
     custom_env_file = repo_copy / "env" / "local" / "custom.env"
     custom_env_file.write_text("DUMMY=1\n", encoding="utf-8")
@@ -147,10 +154,11 @@ def test_preserves_existing_environment(repo_copy: Path) -> None:
         }
     )
 
-    stdout = _run_script(script_path, "core", str(repo_copy), env=env)
+    result = _run_script(script_path, "core", str(repo_copy), env=env)
+    stdout = result.stdout
 
     compose_files = _extract_value(r'COMPOSE_FILES="([^"]+)"', stdout)
-    assert compose_files == "compose/docker-compose.base.yml compose/custom.yml"
+    assert compose_files == "docker-compose.yml"
 
     env_files = _extract_env_files(stdout)
     assert env_files == [str(custom_env_file.resolve())]
@@ -164,149 +172,43 @@ def test_preserves_existing_environment(repo_copy: Path) -> None:
     ]
     assert env_args == [str(custom_env_file.resolve())]
     assert _extract_file_args(compose_cmd) == [
-        str((repo_copy / "compose" / "docker-compose.base.yml").resolve()),
-        str((repo_copy / "compose" / "custom.yml").resolve()),
+        str((repo_copy / "docker-compose.yml").resolve()),
     ]
 
 
-def test_appends_extra_files_when_defined(
-    repo_copy: Path, compose_instances_data: ComposeInstancesData
-) -> None:
+def test_ignores_compose_file_overrides(repo_copy: Path) -> None:
+    _ensure_root_compose(repo_copy)
     script_path = repo_copy / SCRIPT_RELATIVE
-    base_plan = compose_instances_data.compose_plan("core")
-    subset_length = min(3, len(base_plan)) or 1
-    existing_files = base_plan[:subset_length]
-    env = os.environ.copy()
-    extra_files = ["compose/extra/metrics.yml", "compose/extra/logging.yml"]
-    env.update(
-        {
-            "COMPOSE_FILES": " ".join(existing_files),
-            "COMPOSE_EXTRA_FILES": " ".join(extra_files),
-        }
-    )
-
-    stdout = _run_script(script_path, "core", str(repo_copy), env=env)
-
-    compose_files = _extract_value(r'COMPOSE_FILES="([^"]+)"', stdout)
-    expected_relative = [*existing_files, *extra_files]
-    expected_files = [
-        str((repo_copy / path).resolve(strict=False)) for path in expected_relative
-    ]
-    assert compose_files == " ".join(expected_relative)
-
-    compose_cmd = _extract_compose_cmd(stdout)
-    assert _extract_file_args(compose_cmd) == expected_files
-
-
-def test_handles_comma_and_newline_separated_extra_files(
-    repo_copy: Path, compose_instances_data: ComposeInstancesData
-) -> None:
-    script_path = repo_copy / SCRIPT_RELATIVE
-    base_plan = compose_instances_data.compose_plan("core")
-    subset_length = min(3, len(base_plan)) or 1
-    existing_files = base_plan[:subset_length]
-    extra_files = ["compose/extra/metrics.yml", "compose/extra/logging.yml"]
     env = os.environ.copy()
     env.update(
         {
-            "COMPOSE_FILES": " ".join(existing_files),
-            "COMPOSE_EXTRA_FILES": f"{extra_files[0]}, {extra_files[1]}\n{extra_files[0]}",
+            "COMPOSE_FILES": "compose/docker-compose.base.yml compose/custom.yml",
+            "COMPOSE_EXTRA_FILES": "compose/extra/metrics.yml",
         }
     )
 
-    stdout = _run_script(script_path, "core", str(repo_copy), env=env)
+    result = _run_script(script_path, "core", str(repo_copy), env=env)
+    stdout = result.stdout
 
     compose_files = _extract_value(r'COMPOSE_FILES="([^"]+)"', stdout)
-    expected_relative = [*existing_files, *extra_files]
-    expected_files = [
-        str((repo_copy / path).resolve(strict=False)) for path in expected_relative
-    ]
-    assert compose_files == " ".join(expected_relative)
+    assert compose_files == "docker-compose.yml"
 
     compose_cmd = _extract_compose_cmd(stdout)
-    assert _extract_file_args(compose_cmd) == expected_files
-
-
-def test_removes_duplicate_entries(
-    repo_copy: Path, compose_instances_data: ComposeInstancesData
-) -> None:
-    script_path = repo_copy / SCRIPT_RELATIVE
-    base_plan = compose_instances_data.compose_plan("core")
-    unique_base: list[str] = []
-    for entry in base_plan:
-        if entry not in unique_base:
-            unique_base.append(entry)
-        if len(unique_base) >= 2:
-            break
-    if not unique_base:
-        unique_base = base_plan[:1]
-    primary = unique_base[0]
-    secondary = unique_base[1] if len(unique_base) > 1 else primary
-    extra_files = ["compose/extra/logging.yml", "compose/extra/metrics.yml"]
-    env = os.environ.copy()
-    env.update(
-        {
-            "COMPOSE_FILES": f"{primary} {secondary} {secondary} {extra_files[0]}",
-            "COMPOSE_EXTRA_FILES": (
-                f"{extra_files[0]} {extra_files[1]} {primary}"
-            ),
-        }
-    )
-
-    stdout = _run_script(script_path, "core", str(repo_copy), env=env)
-
-    compose_files = _extract_value(r'COMPOSE_FILES="([^"]+)"', stdout)
-    expected_relative = [primary]
-    if secondary != primary:
-        expected_relative.append(secondary)
-    expected_relative.extend(extra_files)
-    expected_files = [
-        str((repo_copy / path).resolve(strict=False)) for path in expected_relative
+    assert _extract_file_args(compose_cmd) == [
+        str((repo_copy / "docker-compose.yml").resolve(strict=False))
     ]
-    assert compose_files == " ".join(expected_relative)
-
-    compose_cmd = _extract_compose_cmd(stdout)
-    file_args = _extract_file_args(compose_cmd)
-    assert file_args == expected_files
-    assert len(file_args) == len(set(file_args))
-
-
-def test_loads_extra_files_from_env_file(
-    repo_copy: Path, compose_instances_data: ComposeInstancesData
-) -> None:
-    script_path = repo_copy / SCRIPT_RELATIVE
-    env_file = repo_copy / "env" / "local" / "core.env"
-    extra_files = [
-        "compose/extra/metrics.yml",
-        "compose/extra/logging.yml",
-    ]
-    env_file.write_text(
-        env_file.read_text(encoding="utf-8")
-        + f"COMPOSE_EXTRA_FILES={', '.join(extra_files)}\n",
-        encoding="utf-8",
-    )
-
-    env = os.environ.copy()
-    env.pop("COMPOSE_EXTRA_FILES", None)
-
-    stdout = _run_script(script_path, "core", str(repo_copy), env=env)
-
-    compose_cmd = _extract_compose_cmd(stdout)
-    expected_relative = compose_instances_data.compose_plan("core", extra_files)
-    expected_files = [
-        str((repo_copy / path).resolve(strict=False)) for path in expected_relative
-    ]
-    assert _extract_file_args(compose_cmd) == expected_files
 
 
 def test_respects_docker_compose_bin_override(
     repo_copy: Path, compose_instances_data: ComposeInstancesData
 ) -> None:
+    _ensure_root_compose(repo_copy)
     script_path = repo_copy / SCRIPT_RELATIVE
     env = os.environ.copy()
     env.update({"DOCKER_COMPOSE_BIN": "docker --context remote compose"})
 
-    stdout = _run_script(script_path, "core", str(repo_copy), env=env)
+    result = _run_script(script_path, "core", str(repo_copy), env=env)
+    stdout = result.stdout
 
     compose_cmd = _extract_compose_cmd(stdout)
     assert compose_cmd[:4] == ["docker", "--context", "remote", "compose"]
@@ -321,3 +223,19 @@ def test_respects_docker_compose_bin_override(
         if relative
     ]
     assert env_args == expected_env_files
+
+
+def test_errors_when_root_compose_missing(repo_copy: Path) -> None:
+    script_path = repo_copy / SCRIPT_RELATIVE
+    compose_root = repo_copy / "docker-compose.yml"
+    if compose_root.exists():
+        compose_root.unlink()
+
+    result = _run_script(
+        script_path,
+        "core",
+        str(repo_copy),
+        env=os.environ.copy(),
+        expected_returncode=1,
+    )
+    assert "Missing docker-compose.yml" in result.stderr
