@@ -1,11 +1,11 @@
 name: Template Quality Checks
 
 # -----------------------------------------------------------------------------
-# Este workflow concentra as validações compartilhadas pelo template, incluindo
-# lint de shell, validações de infraestrutura e suíte de testes. Para adicionar
-# verificações específicas em projetos derivados, utilize o workflow reutilizável
-# `project-tests.yml`. Evite modificar este arquivo no fork para reduzir
-# conflitos ao sincronizar com o template principal.
+# This workflow consolidates shared template validations, including shell lint,
+# infrastructure checks, and the test suite. To add project-specific checks in
+# downstream projects, use the reusable `project-tests.yml` workflow. Avoid
+# modifying this file in forks to reduce conflicts when syncing with the main
+# template.
 # -----------------------------------------------------------------------------
 
 on:
