@@ -143,7 +143,7 @@ Use `--base-dir` and `--with-docs` to explicitly declare alternate directories a
   - `DOCKER_COMPOSE_BIN` — alternate path to the binary.
   - `COMPOSE_EXTRA_FILES` — optional list of extra compose files applied after the standard override (accepts spaces or commas).
 - The script generates a consolidated `docker-compose.yml` in the repository root before invoking
-  `docker compose -f docker-compose.yml config -q`.
+  `docker compose config -q`.
 - **Practical examples:**
   - Default run using only the configured base and override manifests:
     ```bash
@@ -158,7 +158,7 @@ Use `--base-dir` and `--with-docs` to explicitly declare alternate directories a
     COMPOSE_EXTRA_FILES="compose/extra/metrics.yml" scripts/validate_compose.sh
     ```
 
-  > The planning helper automatically chains `compose/docker-compose.base.yml` (when present) with the selected `docker-compose.<instance>.yml` and any extra compose files provided via `COMPOSE_EXTRA_FILES` or `--file`, keeping the list of `-f` entries consistent with available manifests.
+  > The planning helper automatically assembles `compose/docker-compose.base.yml` (when present), the selected `docker-compose.<instance>.yml`, and any extra compose files listed in `COMPOSE_EXTRA_FILES`, producing the root `docker-compose.yml` used for validation.
 
   > Variables can be pre-exported (`export COMPOSE_INSTANCES=...`) or prefixed to the command, keeping the flow simple.
   > **Warning:** use validation to confirm that the standard Compose combinations remain compatible with active profiles before deployments or PRs.
@@ -188,21 +188,18 @@ The script relies on `scripts/lib/deploy_context.sh` to calculate `APP_DATA_DIR`
 - **Goal:** materialize the resolved Compose plan into `docker-compose.yml` at the repository root and consolidate the applied env chain into `.env`, so that the standard commands become `docker compose up -d` and `docker compose ps` without extra flags.
 - **Generated outputs:** `./docker-compose.yml` and `./.env` are generated files. Edit the source manifests or `env/*.example.env` templates and rerun the script instead of modifying the root outputs directly.
 - **Inputs and overrides:**
-  - Requires the instance argument to reuse the standard discovery chain (base manifests, app compose files, and per-instance overrides);
-  - `--file` (repeatable) mirrors `COMPOSE_EXTRA_FILES`, appending extra compose files after the discovered plan;
-  - `--env-file` (repeatable) extends or replaces the `.env` chain controlled by `COMPOSE_ENV_FILES`, falling back to `env/local/common.env` → `env/local/<instance>.env` when the explicit list is empty;
-  - `--env-output` changes where the consolidated `.env` is written (defaults to the repository root). The helper rebuilds the file on every run, honoring the same precedence applied to `--env-file`.
-- **Output validation:** after writing the merged files, the script runs `docker compose -f docker-compose.yml config -q` (reusing the same env chain) and fails when inconsistencies are detected. Re-run the generator whenever manifests or variables are modified to keep the root file and `.env` in sync.
+  - Requires the instance argument to reuse the standard discovery chain (base manifests, app compose files, and per-instance overrides).
+  - Use `COMPOSE_EXTRA_FILES` in `.env` or `env/local/<instance>.env` when optional compose files should be merged into the plan.
+  - Adjust `COMPOSE_ENV_FILES` (or the default `env/local/common.env` → `env/local/<instance>.env` chain) to control the consolidated `.env` content.
+  - `--env-output` changes where the consolidated `.env` is written (defaults to the repository root). The helper rebuilds the file on every run, honoring the same precedence applied to `COMPOSE_ENV_FILES`.
+- **Output validation:** after writing the merged files, the script runs `docker compose config -q` (reusing the same env chain) and fails when inconsistencies are detected. Re-run the generator whenever manifests or variables are modified to keep the root file and `.env` in sync.
 - **Examples:**
   ```bash
   # Generate the root docker-compose.yml and .env for the core instance using defaults
   scripts/build_compose_file.sh core
 
-  # Append temporary compose files and a custom env chain while writing to a different path
-  scripts/build_compose_file.sh media \
-    --file compose/extra/monitoring-debug.yml \
-    --env-file env/local/common.env --env-file env/local/media.env \
-    --output /tmp/media-merged-compose.yml --env-output /tmp/media.env
+  # Write the consolidated .env to a different path
+  scripts/build_compose_file.sh media --env-output /tmp/media.env
   ```
 
 ## scripts/describe_instance.sh
@@ -219,7 +216,7 @@ The script relies on `scripts/lib/deploy_context.sh` to calculate `APP_DATA_DIR`
 - **Supported arguments and variables:**
   - `HEALTH_SERVICES` — list of services to inspect (space- or comma-separated). When set, execution is limited to the desired services only.
   - `COMPOSE_ENV_FILES` — optional list of `.env` files applied before querying `docker compose`, overriding the default `env/local/common.env` → `env/local/<instance>.env` chain when provided.
-- Collection generates (or requires) a consolidated `docker-compose.yml` via `scripts/build_compose_file.sh` before running `docker compose -f docker-compose.yml ps/logs`.
+- Collection generates (or requires) a consolidated `docker-compose.yml` via `scripts/build_compose_file.sh` before running `docker compose ps/logs`.
 - `COMPOSE_EXTRA_FILES` overrides are ignored here; customize the compose plan through `scripts/build_compose_file.sh` instead.
 - The script automatically supplements the service list by running `docker compose config --services`. If no services are found, execution aborts with an error to avoid silently suppressing logs.
 - **Output formats:**
@@ -297,7 +294,7 @@ This document keeps only a summary: use `scripts/update_from_template.sh` to rea
 - **Persistent directories:** the `data/<instance>/<app>` path is calculated automatically; use `APP_DATA_DIR` (relative) **or** `APP_DATA_DIR_MOUNT` (absolute) when you need to customize the destination and adjust `APP_DATA_UID`/`APP_DATA_GID` in `.env` to align permissions.
 - **Monitored services:** set `HEALTH_SERVICES` in `.env` files so `scripts/check_health.sh` targets the correct logs.
 - **Extra volumes:** add mounts directly to the relevant service inside `docker-compose.<instance>.yml` to expose different paths per environment. When present, see also [`docker-compose.media.yml`](../docker-compose.media.yml) for an example of a named volume shared (`media_cache`) between services in the instance.
-- **Configurable extra compose files:** register optional files and enable them per environment via `COMPOSE_EXTRA_FILES` when building `docker-compose.yml`. The health and audit helpers operate on the generated root file, not direct `-f` chains.
+- **Configurable extra compose files:** register optional files and enable them per environment via `COMPOSE_EXTRA_FILES` when building `docker-compose.yml`. The health and audit helpers operate on the generated root file, not direct compose file chains.
 
 ## Suggested operational flows
 

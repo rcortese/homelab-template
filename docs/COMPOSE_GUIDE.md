@@ -12,7 +12,7 @@ This guide documents how to build the Docker Compose plan using only the base fi
 | --------------- | ----------- | ----- |
 | **Base** | `compose/docker-compose.base.yml` (optional) | Holds only anchors and shared volumes reused by services. It is loaded automatically when present; if absent, the plan starts directly with the instance compose file. |
 | **Instance compose** | `compose/docker-compose.<instance>.yml` (e.g., [`compose/docker-compose.core.yml`](../compose/docker-compose.core.yml), [`compose/docker-compose.media.yml`](../compose/docker-compose.media.yml)) | Declares every service that should run in the target environment. Use this file to wire networks, volumes, labels, and per-instance defaults without scattering overrides. |
-| **Extra compose files** | Path(s) listed in `COMPOSE_EXTRA_FILES` or passed via `--file` (optional) | Ad-hoc adjustments layered after the base + instance pair. Ideal for temporary feature flags or experimentation without editing the main compose file. |
+| **Extra compose files** | Path(s) listed in `COMPOSE_EXTRA_FILES` (optional) | Ad-hoc adjustments layered after the base + instance pair. Ideal for temporary feature flags or experimentation without editing the main compose file. |
 
 > **Note:** each instance file is self-contained and uses standard Compose features (`profiles`, `deploy.replicas`, conditional volumes) to decide what runs.
 
@@ -46,14 +46,11 @@ When combining several services, load the manifests in blocks (`compose/docker-c
 1. Generate the consolidated file with the helper:
 
    ```bash
-   scripts/build_compose_file.sh <instance> \
-     --file compose/extra/<extra>.yml \           # optional, repeat if you need more than one
-     --env-file env/local/common.env \             # optional override for the default chain
-     --env-file env/local/<instance>.env           # optional instance override
+   scripts/build_compose_file.sh <instance>
    ```
 
-   - Additional `--file` flags mirror `COMPOSE_EXTRA_FILES` when appending extra compose files.
-   - `--env-file` lets you supply the env chain explicitly (for example, `env/local/common.env` then `env/local/<instance>.env`) when you need to test specific variables without touching the files under `env/local/`.
+   - Set `COMPOSE_EXTRA_FILES` in `.env` or `env/local/<instance>.env` to append optional compose files to the generated plan.
+   - Update `env/local/common.env` or `env/local/<instance>.env` when variable overrides are needed, then rerun the generator to refresh the consolidated `.env`.
    - Re-run the command whenever manifests (`compose/docker-compose.<instance>.yml`, `compose/docker-compose.base.yml`, or extra compose files) change to refresh the root `docker-compose.yml`.
    - The helper writes `./docker-compose.yml` and `./.env` at the repository root. Treat both as generated outputs; update `compose/` manifests or `env/*.example.env` templates (then regenerate) instead of editing the root files directly.
 
@@ -64,7 +61,7 @@ When combining several services, load the manifests in blocks (`compose/docker-c
    docker compose ps
    ```
 
-   The default command now targets the root `docker-compose.yml`, avoiding manual `-f` assembly and `--env-file` chains. This consolidated-file workflow is the supported path for running Compose commands and replaces earlier compatibility modes.
+   The default command targets the root `docker-compose.yml`. Always regenerate the consolidated file before running Compose so the plan, environment, and manifests stay aligned.
 
 > Set `<instance>` to `core`, `media`, or any other name defined in your fork. Replace `<extra>` with real files whenever you need temporary or environment-specific adjustments.
 
@@ -79,7 +76,7 @@ When combining several services, load the manifests in blocks (`compose/docker-c
 
 ### Generating an instance summary
 
-Use `scripts/describe_instance.sh` to quickly inspect the applied manifests, resulting services, published ports, and mounted volumes. The script reuses the same planning chain as the deploy and validation flows and marks additional compose files loaded via `COMPOSE_EXTRA_FILES` or provided with `--file` in the generator.
+Use `scripts/describe_instance.sh` to quickly inspect the applied manifests, resulting services, published ports, and mounted volumes. The script reuses the same planning chain as the deploy and validation flows and marks additional compose files loaded via `COMPOSE_EXTRA_FILES` in the generator.
 
 ```bash
 scripts/describe_instance.sh core
@@ -94,7 +91,7 @@ Example (`table` format):
 ```text
 Instance: core
 
-Compose files (-f):
+Compose files (generated plan):
   • compose/docker-compose.base.yml
   • compose/docker-compose.core.yml
   • compose/extra/metrics.yml (extra file)
