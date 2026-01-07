@@ -18,7 +18,6 @@ Positional arguments:
 Options:
   --base-dir <dir>   Repository root directory to use (default: script directory/..).
   --with-docs        Also creates docs/apps/<application>.md and adds the link to docs/README.md.
-  --override-only    Skips creating compose/apps/<application>/base.yml (override-only mode).
   -h, --help         Show this message and exit.
 USAGE
 }
@@ -72,7 +71,6 @@ APP_NAME=""
 INSTANCE_NAME=""
 BASE_DIR="$DEFAULT_BASE_DIR"
 WITH_DOCS=0
-OVERRIDE_ONLY=0
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -93,9 +91,6 @@ while [[ $# -gt 0 ]]; do
     ;;
   --with-docs)
     WITH_DOCS=1
-    ;;
-  --override-only)
-    OVERRIDE_ONLY=1
     ;;
   --*)
     error "Error: unknown option: $1"
@@ -131,9 +126,7 @@ INSTANCE_UPPER="$(uppercase_token "$INSTANCE_NAME")"
 APP_TITLE="$(title_case "$APP_NAME")"
 PORT_VAR="${APP_UPPER}_${INSTANCE_UPPER}_PORT"
 
-compose_app_dir="$BASE_DIR/compose/apps/$APP_NAME"
-compose_base_file="$compose_app_dir/base.yml"
-compose_instance_file="$compose_app_dir/$INSTANCE_NAME.yml"
+compose_instance_file="$BASE_DIR/compose/docker-compose.${INSTANCE_NAME}.yml"
 env_example_file="$BASE_DIR/env/${INSTANCE_NAME}.example.env"
 create_env_example=1
 if [[ -e $env_example_file ]]; then
@@ -143,19 +136,8 @@ docs_apps_dir="$BASE_DIR/docs/apps"
 app_doc_file="$docs_apps_dir/$APP_NAME.md"
 docs_readme_file="$BASE_DIR/docs/README.md"
 
-SKIP_BASE=0
-if [[ $OVERRIDE_ONLY -eq 1 ]]; then
-  SKIP_BASE=1
-elif [[ -d $compose_app_dir && ! -e $compose_base_file ]]; then
-  SKIP_BASE=1
-fi
-
 conflicts=()
-if [[ $SKIP_BASE -eq 0 ]]; then
-  targets=("$compose_base_file" "$compose_instance_file")
-else
-  targets=("$compose_instance_file")
-fi
+targets=("$compose_instance_file")
 
 for target in "${targets[@]}"; do
   if [[ -e $target ]]; then
@@ -178,7 +160,7 @@ if [[ ${#conflicts[@]} -gt 0 ]]; then
   exit 1
 fi
 
-mkdir -p "$compose_app_dir"
+mkdir -p "$BASE_DIR/compose"
 mkdir -p "$BASE_DIR/env"
 if [[ $WITH_DOCS -eq 1 ]]; then
   mkdir -p "$docs_apps_dir"
@@ -205,22 +187,11 @@ render_template() {
   printf '%s' "$content" >"$destination"
 }
 
-if [[ $SKIP_BASE -eq 0 ]]; then
-  render_template "compose-base.yml.tpl" "$compose_base_file"
-fi
 render_template "compose-instance.yml.tpl" "$compose_instance_file"
 if [[ $create_env_example -eq 1 ]]; then
   render_template "env-example.tpl" "$env_example_file"
 else
   echo "[*] env/${INSTANCE_NAME}.example.env already exists; keeping unchanged."
-fi
-
-if [[ $SKIP_BASE -eq 1 ]]; then
-  if [[ $OVERRIDE_ONLY -eq 1 ]]; then
-    echo "[*] Override-only mode: compose/apps/${APP_NAME}/base.yml will not be created."
-  else
-    echo "[*] Existing directory without base.yml detected; skipping creation of compose/apps/${APP_NAME}/base.yml."
-  fi
 fi
 
 if [[ $WITH_DOCS -eq 1 ]]; then
@@ -245,9 +216,6 @@ fi
 echo "[*] Application: $APP_NAME"
 echo "[*] Instance: $INSTANCE_NAME"
 echo "[*] Files created:"
-if [[ $SKIP_BASE -eq 0 ]]; then
-  printf '  - %s\n' "${compose_base_file#"$BASE_DIR"/}"
-fi
 printf '  - %s\n' "${compose_instance_file#"$BASE_DIR"/}"
 if [[ $create_env_example -eq 1 ]]; then
   printf '  - %s\n' "${env_example_file#"$BASE_DIR"/}"

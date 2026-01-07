@@ -10,9 +10,9 @@
 
 ## Manifests
 
-- `compose/apps/{{APP}}/base.yml`
-- `compose/apps/{{APP}}/{{INSTANCE}}.yml`
+- `compose/docker-compose.{{INSTANCE}}.yml`
 - `compose/docker-compose.base.yml`
+- `compose/overlays/<overlay>.yml` (optional)
 
 ## Environment variables
 
@@ -21,7 +21,7 @@
 
 ## Operational flows
 
-1. Update `compose/apps/{{APP}}/{{INSTANCE}}.yml` with real ports, volumes, and secrets.
+1. Update `compose/docker-compose.{{INSTANCE}}.yml` with real ports, volumes, and secrets.
 2. Fill in `env/{{INSTANCE}}.example.env` with environment-specific guidance.
 3. Run `scripts/validate_compose.sh` to ensure the new combination is valid.
 4. Record additional checks in `docs/OPERATIONS.md` as needed.
