@@ -59,7 +59,7 @@ def test_creates_files_and_updates_docs(repo_copy: Path) -> None:
 
 def test_fails_when_targets_exist(repo_copy: Path) -> None:
     compose_file = repo_copy / "compose" / "docker-compose.demo.yml"
-    compose_file.parent.mkdir(parents=True)
+    compose_file.parent.mkdir(parents=True, exist_ok=True)
     compose_file.write_text("services: {}\n", encoding="utf-8")
 
     result = _run_bootstrap(repo_copy, "existing", "demo")
