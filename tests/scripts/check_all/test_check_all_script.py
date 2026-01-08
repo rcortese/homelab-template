@@ -64,6 +64,12 @@ def _prepare_repo(
     )
 
     _create_shell_stub(
+        scripts_dir / "validate_env_output.sh",
+        log_file,
+        "validate_env_output",
+    )
+
+    _create_shell_stub(
         scripts_dir / "validate_compose.sh",
         log_file,
         "validate_compose",
@@ -107,6 +113,7 @@ def test_check_all_invokes_scripts_in_order(tmp_path: Path) -> None:
     assert log_file.read_text(encoding="utf-8").splitlines() == [
         "check_structure",
         "check_env_sync",
+        "validate_env_output",
         "validate_compose",
     ]
 
@@ -126,6 +133,7 @@ def test_check_all_can_run_quality_checks(tmp_path: Path) -> None:
     assert log_file.read_text(encoding="utf-8").splitlines() == [
         "check_structure",
         "check_env_sync",
+        "validate_env_output",
         "validate_compose",
         "run_quality_checks",
     ]
@@ -161,5 +169,6 @@ def test_check_all_fails_when_validate_compose_fails(tmp_path: Path) -> None:
     assert log_file.read_text(encoding="utf-8").splitlines() == [
         "check_structure",
         "check_env_sync",
+        "validate_env_output",
         "validate_compose",
     ]
