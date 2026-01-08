@@ -18,6 +18,7 @@ from typing import Dict, Iterable, List, Mapping, Sequence, Set
 import yaml
 
 RUNTIME_PROVIDED_VARIABLES: Set[str] = {"PWD"}
+DEFAULT_IMPLICIT_ENV_VARS: Set[str] = {"APP_DATA_UID", "APP_DATA_GID"}
 # Additional variables implicitly accepted by the project without being listed in
 # env templates. Projects can provide overrides in scripts/local/check_env_sync.py
 # (if present); otherwise the allowlist is empty by default.
@@ -411,9 +412,11 @@ def build_sync_report(repo_root: Path, metadata: ComposeMetadata) -> SyncReport:
     )
     common_env_vars = set(common_env_data.available)
     common_env_vars.update(local_common_data.available)
-    implicit_env_vars = globals().get("IMPLICIT_ENV_VARS")
-    if implicit_env_vars:
-        common_env_vars.update(set(implicit_env_vars))
+    implicit_env_vars = set(DEFAULT_IMPLICIT_ENV_VARS)
+    implicit_override = globals().get("IMPLICIT_ENV_VARS")
+    if implicit_override:
+        implicit_env_vars.update(set(implicit_override))
+    common_env_vars.update(implicit_env_vars)
 
     missing_templates: List[str] = []
     for instance in metadata.instances:
@@ -440,7 +443,7 @@ def build_sync_report(repo_root: Path, metadata: ComposeMetadata) -> SyncReport:
             None,
         )
         relevant_compose = compose_vars_by_instance.get(instance, set())
-        unused = data.defined - relevant_compose
+        unused = data.defined - relevant_compose - implicit_env_vars - RUNTIME_PROVIDED_VARIABLES
         if unused:
             unused_by_file[path] = unused
 

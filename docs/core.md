@@ -33,7 +33,7 @@ Follow the [generic checklist](./OPERATIONS.md#generic-deploy-and-post-deploy-ch
 
 ## References
 
-- (`compose/docker-compose.base.yml`, when present) + `docker-compose.<environment>.yml`
+- (`compose/docker-compose.common.yml`, when present) + `docker-compose.<environment>.yml`
 - [Docker Compose combination guide](./COMPOSE_GUIDE.md#stacks-with-multiple-applications) to guide application enablement/disablement.
 - `env/<environment>.example.env`
 - ADRs related to the creation/maintenance of this environment

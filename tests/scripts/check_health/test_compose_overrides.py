@@ -17,7 +17,7 @@ def test_ignores_compose_file_overrides(docker_stub: DockerStub) -> None:
     repo_root = Path(__file__).resolve().parents[3]
 
     env = {
-        "COMPOSE_FILES": "compose/docker-compose.base.yml compose/extra.yml",
+        "COMPOSE_FILES": "compose/docker-compose.common.yml compose/extra.yml",
         "COMPOSE_ENV_FILES": "env/common.example.env",
     }
 
@@ -56,7 +56,7 @@ def test_ignores_compose_extra_files_from_env_file(
     )
 
     env = {
-        "COMPOSE_FILES": "compose/docker-compose.base.yml",
+        "COMPOSE_FILES": "compose/docker-compose.common.yml",
         "COMPOSE_ENV_FILES": str(env_file),
     }
 
@@ -85,7 +85,7 @@ def test_ignores_compose_extra_files_from_env_file(
 
 def test_ignores_blank_and_duplicate_compose_tokens(docker_stub: DockerStub) -> None:
     repo_root = Path(__file__).resolve().parents[3]
-    compose_base = "compose/docker-compose.base.yml"
+    compose_base = "compose/docker-compose.common.yml"
 
     env = {
         "COMPOSE_FILES": f"  {compose_base}   \n   {compose_base}    ",

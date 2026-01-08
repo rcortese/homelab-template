@@ -112,8 +112,8 @@ def test_compose_plan_matches_existing_logic(repo_copy: Path) -> None:
         _env_file_map,
     ) = _collect_compose_metadata(repo_copy)
 
-    if (repo_copy / "compose" / "docker-compose.base.yml").exists():
-        base_file = "compose/docker-compose.base.yml"
+    if (repo_copy / "compose" / "docker-compose.common.yml").exists():
+        base_file = "compose/docker-compose.common.yml"
     else:
         base_file = ""
 
@@ -135,8 +135,8 @@ def test_compose_plan_matches_existing_logic(repo_copy: Path) -> None:
 
 def test_compose_plan_appends_extra_files(repo_copy: Path) -> None:
     extras = ["compose/custom-extra.yml"]
-    if (repo_copy / "compose" / "docker-compose.base.yml").exists():
-        extras.append("compose/docker-compose.base.yml")
+    if (repo_copy / "compose" / "docker-compose.common.yml").exists():
+        extras.append("compose/docker-compose.common.yml")
     result = run_compose_plan(repo_copy, "core", extras=extras)
 
     assert result.returncode == 0, result.stderr
@@ -152,8 +152,8 @@ def test_compose_plan_appends_extra_files(repo_copy: Path) -> None:
         _env_file_map,
     ) = _collect_compose_metadata(repo_copy)
 
-    if (repo_copy / "compose" / "docker-compose.base.yml").exists():
-        base_file = "compose/docker-compose.base.yml"
+    if (repo_copy / "compose" / "docker-compose.common.yml").exists():
+        base_file = "compose/docker-compose.common.yml"
     else:
         base_file = ""
 

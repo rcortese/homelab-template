@@ -137,7 +137,7 @@ def test_preserves_existing_environment(repo_copy: Path) -> None:
     env = os.environ.copy()
     env.update(
         {
-            "COMPOSE_FILES": "compose/docker-compose.base.yml compose/custom.yml",
+            "COMPOSE_FILES": "compose/docker-compose.common.yml compose/custom.yml",
             "COMPOSE_ENV_FILES": str(custom_env_file),
         }
     )
@@ -170,7 +170,7 @@ def test_ignores_compose_file_overrides(repo_copy: Path) -> None:
     env = os.environ.copy()
     env.update(
         {
-            "COMPOSE_FILES": "compose/docker-compose.base.yml compose/custom.yml",
+            "COMPOSE_FILES": "compose/docker-compose.common.yml compose/custom.yml",
             "COMPOSE_EXTRA_FILES": "compose/extra/metrics.yml",
         }
     )

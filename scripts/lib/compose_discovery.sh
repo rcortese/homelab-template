@@ -36,7 +36,7 @@ load_compose_discovery() {
   local env_local_dir_rel="$env_dir_rel/local"
 
   BASE_COMPOSE_FILE=""
-  local base_candidate_primary="$compose_dir_rel/docker-compose.base.yml"
+  local base_candidate_primary="$compose_dir_rel/docker-compose.common.yml"
   local base_compose_abs="$repo_root/$base_candidate_primary"
   if [[ -f "$base_compose_abs" ]]; then
     BASE_COMPOSE_FILE="$base_candidate_primary"
@@ -57,7 +57,7 @@ load_compose_discovery() {
     candidate_name="${instance_file##*/}"
     candidate_instance="${candidate_name#docker-compose.}"
     candidate_instance="${candidate_instance%.yml}"
-    if [[ -z "$candidate_instance" || "$candidate_instance" == "base" ]]; then
+    if [[ -z "$candidate_instance" || "$candidate_instance" == "base" || "$candidate_instance" == "common" ]]; then
       continue
     fi
 

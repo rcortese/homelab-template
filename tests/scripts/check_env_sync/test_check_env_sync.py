@@ -294,7 +294,7 @@ def test_build_sync_report_uses_runtime_provided_variables(
 
 def test_build_sync_report_uses_common_and_implicit_vars(monkeypatch, tmp_path: Path) -> None:
     repo_root = tmp_path
-    base_file = repo_root / "compose" / "docker-compose.base.yml"
+    base_file = repo_root / "compose" / "docker-compose.common.yml"
     base_file.parent.mkdir(parents=True, exist_ok=True)
     base_file.write_text(
         """
@@ -377,7 +377,7 @@ def test_check_env_sync_detects_missing_template(
 
 def test_check_env_sync_allows_missing_base_file(repo_copy: Path) -> None:
     base_paths = [
-        repo_copy / "compose" / "docker-compose.base.yml",
+        repo_copy / "compose" / "docker-compose.common.yml",
     ]
     for base_file in base_paths:
         if base_file.exists():
@@ -386,7 +386,7 @@ def test_check_env_sync_allows_missing_base_file(repo_copy: Path) -> None:
     result = run_check(repo_copy)
 
     assert result.returncode == 0, result.stderr
-    assert "compose/docker-compose.base.yml" not in result.stderr
+    assert "compose/docker-compose.common.yml" not in result.stderr
     assert "All environment variables are in sync." in result.stdout
 
 
@@ -395,7 +395,7 @@ def test_check_env_sync_reports_missing_compose_override(repo_copy: Path) -> Non
     script_path.write_text(
         """#!/usr/bin/env bash
 cat <<'EOF'
-declare -- BASE_COMPOSE_FILE="compose/docker-compose.base.yml"
+declare -- BASE_COMPOSE_FILE="compose/docker-compose.common.yml"
 declare -a COMPOSE_INSTANCE_NAMES=([0]="core")
 declare -A COMPOSE_INSTANCE_FILES=([core]=$'compose/missing.yml')
 declare -A COMPOSE_INSTANCE_ENV_LOCAL=([core]=$'env/local/core.env')
@@ -459,7 +459,7 @@ EOF
 
 
 def test_main_filters_instances_before_build(monkeypatch, tmp_path: Path) -> None:
-    base_file = tmp_path / "compose" / "docker-compose.base.yml"
+    base_file = tmp_path / "compose" / "docker-compose.common.yml"
     base_file.parent.mkdir(parents=True, exist_ok=True)
     base_file.write_text("version: '3.9'\n", encoding="utf-8")
 
@@ -504,7 +504,7 @@ def test_main_filters_instances_before_build(monkeypatch, tmp_path: Path) -> Non
 
 def test_build_sync_report_handles_shared_base(tmp_path: Path) -> None:
     repo_root = tmp_path
-    base_file = repo_root / "compose" / "docker-compose.base.yml"
+    base_file = repo_root / "compose" / "docker-compose.common.yml"
     base_file.parent.mkdir(parents=True, exist_ok=True)
     base_file.write_text(
         """
