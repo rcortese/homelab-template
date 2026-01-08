@@ -185,69 +185,16 @@ if ((${#COMPOSE_ENV_FILES_LIST[@]} > 0)); then
   )
 fi
 
-merge_env_chain_to_file() {
-  local output_path="$1"
-  shift
-
-  local -a env_chain=("$@")
-  local env_file line key value
-  declare -A kv=()
-  declare -a key_order=()
-
-  local output_dir
-  output_dir="$(dirname "$output_path")"
-  if [[ ! -d "$output_dir" ]]; then
-    if ! mkdir -p "$output_dir"; then
-      echo "Error: could not create the .env output directory: $output_dir" >&2
-      return 1
-    fi
-  fi
-
-  printf '%s\n' "$GENERATED_HEADER" >"$output_path"
-
-  for env_file in "${env_chain[@]}"; do
-    if [[ ! -f "$env_file" ]]; then
-      echo "Error: env file not found: $env_file" >&2
-      return 1
-    fi
-
-    while IFS= read -r line || [[ -n "$line" ]]; do
-      line="${line%$'\r'}"
-      [[ -z "$line" || "$line" == \#* ]] && continue
-      if [[ "$line" == export\ * ]]; then
-        line="${line#export }"
-      fi
-      if [[ "$line" != *"="* ]]; then
-        continue
-      fi
-
-      key="${line%%=*}"
-      value="${line#*=}"
-
-      if [[ ! -v kv[$key] ]]; then
-        key_order+=("$key")
-      fi
-      kv[$key]="$value"
-    done <"$env_file"
-  done
-
-  local ordered_key
-  for ordered_key in "${key_order[@]}"; do
-    printf '%s=%s\n' "$ordered_key" "${kv[$ordered_key]}" >>"$output_path"
-  done
-}
-
 if ! cd "$REPO_ROOT"; then
   echo "Error: could not access repository directory: $REPO_ROOT" >&2
   exit 1
 fi
 
-if ((${#COMPOSE_ENV_FILES_RESOLVED[@]} > 0)); then
-  if ! merge_env_chain_to_file "$ENV_OUTPUT_FILE" "${COMPOSE_ENV_FILES_RESOLVED[@]}"; then
-    exit 1
-  fi
-else
-  printf '%s\n' "$GENERATED_HEADER" >"$ENV_OUTPUT_FILE"
+if ! env_file_chain__merge_to_file \
+  "$ENV_OUTPUT_FILE" \
+  "$GENERATED_HEADER" \
+  "${COMPOSE_ENV_FILES_RESOLVED[@]}"; then
+  exit 1
 fi
 
 declare -a compose_cmd=()

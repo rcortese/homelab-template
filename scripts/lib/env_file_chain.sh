@@ -115,6 +115,63 @@ env_file_chain__to_absolute() {
   done
 }
 
+env_file_chain__merge_to_file() {
+  local output_path="$1"
+  local header="$2"
+  shift 2
+
+  local -a env_chain=("$@")
+  local env_file line key value
+  declare -A kv=()
+  declare -a key_order=()
+
+  local output_dir
+  output_dir="$(dirname "$output_path")"
+  if [[ ! -d "$output_dir" ]]; then
+    if ! mkdir -p "$output_dir"; then
+      echo "Error: could not create the .env output directory: $output_dir" >&2
+      return 1
+    fi
+  fi
+
+  if [[ -n "$header" ]]; then
+    printf '%s\n' "$header" >"$output_path"
+  else
+    : >"$output_path"
+  fi
+
+  for env_file in "${env_chain[@]}"; do
+    if [[ ! -f "$env_file" ]]; then
+      echo "Error: env file not found: $env_file" >&2
+      return 1
+    fi
+
+    while IFS= read -r line || [[ -n "$line" ]]; do
+      line="${line%$'\r'}"
+      [[ -z "$line" || "$line" == \#* ]] && continue
+      if [[ "$line" == export\ * ]]; then
+        line="${line#export }"
+      fi
+      if [[ "$line" != *"="* ]]; then
+        continue
+      fi
+
+      key="${line%%=*}"
+      value="${line#*=}"
+
+      if [[ ! -v kv[$key] ]]; then
+        key_order+=("$key")
+      fi
+      kv[$key]="$value"
+    done <"$env_file"
+  done
+
+  local ordered_key
+  for ordered_key in "${key_order[@]}"; do
+    printf '%s=%s\n' "$ordered_key" "${kv[$ordered_key]}" >>"$output_path"
+  done
+}
+
 env_file_chain__join() {
   local delimiter="$1"
   shift
