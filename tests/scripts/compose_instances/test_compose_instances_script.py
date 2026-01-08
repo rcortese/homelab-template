@@ -68,20 +68,18 @@ def _collect_compose_metadata(repo_root: Path) -> tuple[
 
         entries: list[str] = []
         global_local = Path("env/local/common.env")
-        global_template = Path("env/common.example.env")
 
-        if (repo_root / global_local).exists():
-            entries.append(global_local.as_posix())
-        elif (repo_root / global_template).exists():
-            entries.append(global_template.as_posix())
+        if not (repo_root / global_local).exists():
+            raise AssertionError(
+                f"Expected {global_local} to exist to build the env chain for instance '{name}'"
+            )
+        entries.append(global_local.as_posix())
 
         if local_exists:
             entries.append(local_rel.as_posix())
-        elif template_exists:
-            entries.append(template_rel.as_posix())
         else:
             raise AssertionError(
-                f"Expected either {local_rel} or {template_rel} to exist for instance '{name}'"
+                f"Expected {local_rel} to exist for instance '{name}'"
             )
 
         env_file_map[name] = "\n".join(entries)
@@ -245,16 +243,25 @@ def test_missing_base_file_is_allowed(repo_copy: Path) -> None:
     assert base_match.group(1) == ""
 
 
-def test_missing_env_files_causes_failure(repo_copy: Path) -> None:
+def test_missing_instance_env_file_causes_failure(repo_copy: Path) -> None:
     local_env = repo_copy / "env" / "local" / "core.env"
-    template_env = repo_copy / "env" / "core.example.env"
-
     if local_env.exists():
         local_env.unlink()
-    template_env.unlink()
 
     result = run_compose_instances(repo_copy)
 
     assert result.returncode != 0
-    assert "No .env file found" in result.stderr
-    assert "core" in result.stderr
+    assert "Missing env/local/core.env" in result.stderr
+    assert "cp env/core.example.env env/local/core.env" in result.stderr
+
+
+def test_missing_common_env_file_causes_failure(repo_copy: Path) -> None:
+    common_env = repo_copy / "env" / "local" / "common.env"
+    if common_env.exists():
+        common_env.unlink()
+
+    result = run_compose_instances(repo_copy)
+
+    assert result.returncode != 0
+    assert "Missing env/local/common.env" in result.stderr
+    assert "cp env/common.example.env env/local/common.env" in result.stderr

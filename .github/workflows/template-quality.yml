@@ -103,6 +103,18 @@ jobs:
       - name: Verify repository structure
         run: scripts/check_structure.sh
 
+      - name: Prepare local env files for validation
+        run: |
+          set -euo pipefail
+          mkdir -p env/local
+          for template in env/*.example.env; do
+            [ -e "$template" ] || continue
+            name="${template##*/}"
+            name="${name%.example.env}"
+            [ -z "$name" ] && continue
+            cp -n "$template" "env/local/${name}.env"
+          done
+
       - name: Validate compose configurations
         run: scripts/validate_compose.sh
 

@@ -89,5 +89,5 @@ def test_missing_local_env_file_fails(repo_copy: Path) -> None:
     result = run_deploy(repo_copy, "core", "--dry-run")
 
     assert result.returncode == 1
-    assert "File env/local/core.env not found." in result.stderr
-    assert "Copy the default template" in result.stderr
+    assert "Missing env/local/core.env." in result.stderr
+    assert "cp env/core.example.env env/local/core.env" in result.stderr
