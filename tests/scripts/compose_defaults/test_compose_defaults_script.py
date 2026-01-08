@@ -116,28 +116,16 @@ def test_fallbacks_when_instance_missing(repo_copy: Path) -> None:
     env.pop("COMPOSE_ENV_FILES", None)
     env.pop("COMPOSE_EXTRA_FILES", None)
 
-    result = _run_script(script_path, "missing", str(repo_copy), env=env)
-    stdout = result.stdout
+    result = _run_script(
+        script_path,
+        "missing",
+        str(repo_copy),
+        env=env,
+        expected_returncode=1,
+    )
 
-    compose_files = _extract_value(r'COMPOSE_FILES="([^"]+)"', stdout)
-    assert compose_files == "docker-compose.yml"
-
-    compose_cmd = _extract_compose_cmd(stdout)
-    compose_file_args = _extract_file_args(compose_cmd)
-    assert compose_file_args == [
-        str((repo_copy / "docker-compose.yml").resolve())
-    ]
-
-    env_files = _extract_env_files(stdout)
-    expected_env_file = str((repo_copy / "env" / "local" / "common.env").resolve())
-    assert env_files == [expected_env_file]
-
-    env_args = [
-        compose_cmd[index + 1]
-        for index, token in enumerate(compose_cmd)
-        if token == "--env-file"
-    ]
-    assert env_args == [expected_env_file]
+    assert "Missing env/local/missing.env." in result.stderr
+    assert "Template env/missing.example.env was not found." in result.stderr
 
 
 def test_preserves_existing_environment(repo_copy: Path) -> None:
