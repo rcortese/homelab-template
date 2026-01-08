@@ -6,6 +6,15 @@ If you just forked or templated the project, follow the [onboarding guide](docs/
 
 We keep this file generic to simplify syncing with new template versions. Stack-specific information should live in the local notes indicated in [Local documentation and customization](#local-documentation-and-customization).
 
+**Start here after templating:** [Local documentation and customization](#local-documentation-and-customization) is the main entry point for stack-specific notes, runbooks, and decisions. Keep your real documentation there and leave this README as the template overview.
+
+Base template capabilities:
+- Generate a consolidated `docker-compose.yml` per instance (resolving the file chain in `compose/`).
+- Generate `.env` from the `env/local/common.env` → `env/local/<instance>.env` chain.
+- Validate structure, variables, and manifests (`check_structure.sh`, `check_env_sync.sh`, `validate_env_output.sh`, `validate_compose.sh`).
+- Orchestrate deployment with validations and health checks (`deploy_instance.sh`, `check_health.sh`, `fix_permission_issues.sh`).
+- Run operational maintenance (backups, DB integrity) and template update workflows (`backup.sh`, `check_db_integrity.sh`, `update_from_template.sh`, `detect_template_commits.sh`).
+
 ## Prerequisites and validation snapshot
 
 - Docker Engine **>= 24.x** with Compose v2.20+ (only hard requirements for running the stack)
