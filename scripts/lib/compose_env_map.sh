@@ -35,7 +35,17 @@ compose_env_map__resolve_instance_env() {
   fi
 
   env_local_map["$instance"]="$env_local_rel"
-  out_env_files_list+=("$env_local_rel")
+  local already_listed=false
+  local entry
+  for entry in "${out_env_files_list[@]}"; do
+    if [[ "$entry" == "$env_local_rel" ]]; then
+      already_listed=true
+      break
+    fi
+  done
+  if [[ "$already_listed" == false ]]; then
+    out_env_files_list+=("$env_local_rel")
+  fi
 
   if [[ -f "$env_template_abs" ]]; then
     env_template_map["$instance"]="$env_template_rel"
