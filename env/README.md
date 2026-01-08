@@ -24,18 +24,18 @@ This directory stores templates (`*.example.env`) and instructions for generatin
 
 ### `env/common.example.env`
 
-#### Base template variables
+#### Common template variables
 
 | Variable | Required? | Usage | Reference |
 | --- | --- | --- | --- |
 | `TZ` | Yes | Sets timezone for logs and schedules. | `docker-compose.<instance>.yml`. |
 | `APP_DATA_DIR`/`APP_DATA_DIR_MOUNT` | Optional | Defines the relative persistent directory (`data/<instance>/<app>`) or an alternative absolute path—never use both at the same time. | `scripts/deploy_instance.sh`, `scripts/backup.sh`, `scripts/fix_permission_issues.sh`. |
 | `APP_DATA_UID`/`APP_DATA_GID` | Optional | Adjusts the default owner of persistent volumes. | `scripts/deploy_instance.sh`, `scripts/backup.sh`, `scripts/fix_permission_issues.sh`. |
-| `APP_NETWORK_NAME` | Optional | Logical name of the network shared among applications. | `compose/docker-compose.base.yml`. |
-| `APP_NETWORK_DRIVER` | Optional | Driver used when creating the shared network (e.g., `bridge`, `macvlan`). | `compose/docker-compose.base.yml`. |
-| `APP_NETWORK_SUBNET` | Optional | Subnet reserved for internal services. | `compose/docker-compose.base.yml`. |
-| `APP_NETWORK_GATEWAY` | Optional | Gateway available to containers in the subnet above. | `compose/docker-compose.base.yml`. |
-| `APP_SHARED_DATA_VOLUME_NAME` | Optional | Customizes the persistent volume shared between applications. | `compose/docker-compose.base.yml`. |
+| `APP_NETWORK_NAME` | Optional | Logical name of the network shared among applications. | `compose/docker-compose.common.yml`. |
+| `APP_NETWORK_DRIVER` | Optional | Driver used when creating the shared network (e.g., `bridge`, `macvlan`). | `compose/docker-compose.common.yml`. |
+| `APP_NETWORK_SUBNET` | Optional | Subnet reserved for internal services. | `compose/docker-compose.common.yml`. |
+| `APP_NETWORK_GATEWAY` | Optional | Gateway available to containers in the subnet above. | `compose/docker-compose.common.yml`. |
+| `APP_SHARED_DATA_VOLUME_NAME` | Optional | Customizes the persistent volume shared between applications. | `compose/docker-compose.common.yml`. |
 
 <a id="placeholders-app-worker"></a>
 

@@ -6,12 +6,12 @@
 
 Manifests are chained in blocks. Each step inherits anchors and variables from the previous one.
 
-1. `compose/docker-compose.base.yml` *(optional)* — defines anchors, named volumes, and shared variables. It is loaded automatically when present.
+1. `compose/docker-compose.common.yml` *(optional)* — defines anchors, named volumes, and shared variables. It is loaded automatically when present.
 2. Instance compose file (`docker-compose.<instance>.yml`, e.g., `docker-compose.core.yml`) — consolidated definition for the instance. Add, remove, or scale services directly here.
 3. Optional extra compose files — ad-hoc adjustments appended after the base + instance pair via `COMPOSE_EXTRA_FILES` or `--file`.
 
 ```
-(compose/docker-compose.base.yml) → docker-compose.core.yml → <extra compose file> → ...
+(compose/docker-compose.common.yml) → docker-compose.core.yml → <extra compose file> → ...
 ```
 
 > The scripts (`scripts/deploy_instance.sh`, etc.) automatically follow this order when building the plan.
@@ -22,7 +22,7 @@ Manifests are chained in blocks. Each step inherits anchors and variables from t
 - **Enable/disable services:** keep service definitions inside each `docker-compose.<instance>.yml` and toggle them per environment using `profiles`, `deploy.replicas: 0`, or by removing the service block. The instance file is the single source of truth for what runs.
 - **Extra compose files for experiments:** append extra files when you need temporary changes (for example, feature flags or alternate storage classes) without editing the main instance compose file.
 
-When building the stack, choose the instance compose file and any extra compose files you want to load. The `core` instance can keep monitoring enabled, while `media` disables it by setting `deploy.replicas: 0` in `docker-compose.media.yml`, for example. Keeping the order ensures anchors defined in `compose/docker-compose.base.yml` (when present) remain available to any combination.
+When building the stack, choose the instance compose file and any extra compose files you want to load. The `core` instance can keep monitoring enabled, while `media` disables it by setting `deploy.replicas: 0` in `docker-compose.media.yml`, for example. Keeping the order ensures anchors defined in `compose/docker-compose.common.yml` (when present) remain available to any combination.
 
 ## Essential environment variables
 

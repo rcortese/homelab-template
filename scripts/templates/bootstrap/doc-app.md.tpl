@@ -11,7 +11,7 @@
 ## Manifests
 
 - `compose/docker-compose.{{INSTANCE}}.yml`
-- `compose/docker-compose.base.yml`
+- `compose/docker-compose.common.yml`
 - `compose/extra/<extra>.yml` (optional)
 
 ## Environment variables

@@ -10,7 +10,7 @@ This guide documents how to build the Docker Compose plan using only the base fi
 
 | File type | Location | Role |
 | --------------- | ----------- | ----- |
-| **Base** | `compose/docker-compose.base.yml` (optional) | Holds only anchors and shared volumes reused by services. It is loaded automatically when present; if absent, the plan starts directly with the instance compose file. |
+| **Common** | `compose/docker-compose.common.yml` (optional) | Holds only anchors and shared volumes reused by services. It is loaded automatically when present; if absent, the plan starts directly with the instance compose file. |
 | **Instance compose** | `compose/docker-compose.<instance>.yml` (e.g., [`compose/docker-compose.core.yml`](../compose/docker-compose.core.yml), [`compose/docker-compose.media.yml`](../compose/docker-compose.media.yml)) | Declares every service that should run in the target environment. Use this file to wire networks, volumes, labels, and per-instance defaults without scattering overrides. |
 | **Extra compose files** | Path(s) listed in `COMPOSE_EXTRA_FILES` (optional) | Ad-hoc adjustments layered after the base + instance pair. Ideal for temporary feature flags or experimentation without editing the main compose file. |
 
@@ -31,11 +31,11 @@ Use the instance compose file to control which services start:
 
 ## Stacks with multiple services
 
-When combining several services, load the manifests in blocks (`compose/docker-compose.base.yml`, `compose/docker-compose.<instance>.yml`, and extra compose files) in the order shown below. This ensures anchors and variables are available before the services that consume them.
+When combining several services, load the manifests in blocks (`compose/docker-compose.common.yml`, `compose/docker-compose.<instance>.yml`, and extra compose files) in the order shown below. This ensures anchors and variables are available before the services that consume them.
 
 | Order | File | Purpose |
 | ----- | ------- | ------ |
-| 1 | `compose/docker-compose.base.yml` (when present) | Foundational structure with shared anchors. |
+| 1 | `compose/docker-compose.common.yml` (when present) | Foundational structure with shared anchors. |
 | 2 | `compose/docker-compose.<instance>.yml` (e.g., `compose/docker-compose.core.yml`, `compose/docker-compose.media.yml`) | Complete definition for the selected environment. |
 | 3 | Extra compose files *(optional, repeatable)* | Extra adjustments layered after the main plan. |
 
@@ -51,7 +51,7 @@ When combining several services, load the manifests in blocks (`compose/docker-c
 
    - Set `COMPOSE_EXTRA_FILES` in `env/local/common.env` or `env/local/<instance>.env` to append optional compose files to the generated plan (the root `.env` is generated).
    - Update `env/local/common.env` or `env/local/<instance>.env` when variable overrides are needed, then rerun the generator to refresh the consolidated `.env`.
-   - Re-run the command whenever manifests (`compose/docker-compose.<instance>.yml`, `compose/docker-compose.base.yml`, or extra compose files) change to refresh the root `docker-compose.yml`.
+   - Re-run the command whenever manifests (`compose/docker-compose.<instance>.yml`, `compose/docker-compose.common.yml`, or extra compose files) change to refresh the root `docker-compose.yml`.
    - The helper writes `./docker-compose.yml` and `./.env` at the repository root. Treat both as generated outputs; update `compose/` manifests or `env/*.example.env` templates (then regenerate) instead of editing the root files directly.
 
 2. Use the generated file directly to start or inspect services:
@@ -92,7 +92,7 @@ Example (`table` format):
 Instance: core
 
 Compose files (generated plan):
-  • compose/docker-compose.base.yml
+  • compose/docker-compose.common.yml
   • compose/docker-compose.core.yml
   • compose/extra/metrics.yml (extra file)
 
@@ -111,7 +111,7 @@ Services:
 
 > Align any compose path mentioned below with step 3 of [How to start a derived project](../README.md#how-to-start-a-derived-project) whenever you rename instances in your fork.
 
-- Always load `compose/docker-compose.base.yml` first when it exists.
+- Always load `compose/docker-compose.common.yml` first when it exists.
 - Keep each `docker-compose.<instance>.yml` self-contained: declare networks, volumes, and labels next to the services that consume them.
 - Apply extra compose files after the main instance file and use them sparingly for temporary changes.
 - Keep the file combination in sync with the environment variable chain (`env/local/common.env` → `env/local/<instance>.env`).

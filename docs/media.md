@@ -31,7 +31,7 @@ Follow the [generic checklist](./OPERATIONS.md#generic-deploy-and-post-deploy-ch
 
 ## References
 
-- (`compose/docker-compose.base.yml`, when present) + `docker-compose.<environment>.yml`
+- (`compose/docker-compose.common.yml`, when present) + `docker-compose.<environment>.yml`
 - [Docker Compose combination guide](./COMPOSE_GUIDE.md#stacks-with-multiple-applications) to plan enablement/disablement of auxiliary applications.
 - `env/<environment>.example.env`
 - Additional required scripts (for example, data seeds, converters)
