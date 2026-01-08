@@ -57,7 +57,7 @@ load_compose_discovery() {
     candidate_name="${instance_file##*/}"
     candidate_instance="${candidate_name#docker-compose.}"
     candidate_instance="${candidate_instance%.yml}"
-    if [[ -z "$candidate_instance" || "$candidate_instance" == "base" ]]; then
+    if [[ -z "$candidate_instance" || "$candidate_instance" == "base" || "$candidate_instance" == "common" ]]; then
       continue
     fi
 

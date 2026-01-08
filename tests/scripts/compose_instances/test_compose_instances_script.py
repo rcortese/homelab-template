@@ -22,7 +22,7 @@ def _collect_compose_metadata(repo_root: Path) -> tuple[
     for candidate in compose_candidates:
         name_part = candidate.name.replace("docker-compose.", "")
         instance_name = name_part.replace(".yml", "")
-        if not instance_name or instance_name == "base":
+        if not instance_name or instance_name in {"base", "common"}:
             continue
 
         rel_path = candidate.relative_to(repo_root).as_posix()
