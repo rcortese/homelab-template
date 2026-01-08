@@ -13,7 +13,7 @@ from tests.helpers.compose_instances import load_compose_instances_data
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 SCRIPT_PATH = REPO_ROOT / "scripts" / "validate_compose.sh"
-BASE_COMPOSE_REL = Path("compose/docker-compose.base.yml")
+BASE_COMPOSE_REL = Path("compose/docker-compose.common.yml")
 BASE_COMPOSE = REPO_ROOT / BASE_COMPOSE_REL
 
 

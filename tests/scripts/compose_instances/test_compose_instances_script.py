@@ -154,8 +154,8 @@ def test_compose_instances_outputs_expected_metadata(repo_copy: Path) -> None:
     base_line = find_declare_line(result.stdout, "BASE_COMPOSE_FILE")
     base_match = re.search(r"=\"([^\"]*)\"", base_line)
     assert base_match is not None
-    if (repo_copy / "compose" / "docker-compose.base.yml").exists():
-        expected_base = "compose/docker-compose.base.yml"
+    if (repo_copy / "compose" / "docker-compose.common.yml").exists():
+        expected_base = "compose/docker-compose.common.yml"
     else:
         expected_base = ""
     assert base_match.group(1) == expected_base
@@ -227,7 +227,7 @@ def test_apps_with_base_are_registered_for_all_instances(
 
 def test_missing_base_file_is_allowed(repo_copy: Path) -> None:
     base_paths = [
-        repo_copy / "compose" / "docker-compose.base.yml",
+        repo_copy / "compose" / "docker-compose.common.yml",
     ]
     for base_file in base_paths:
         if base_file.exists():
