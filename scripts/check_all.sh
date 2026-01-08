@@ -37,6 +37,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 "${SCRIPT_DIR}/check_structure.sh"
 "${SCRIPT_DIR}/check_env_sync.sh"
+"${SCRIPT_DIR}/validate_env_output.sh"
 "${SCRIPT_DIR}/validate_compose.sh"
 
 if ((RUN_QUALITY_CHECKS)); then
