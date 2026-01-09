@@ -71,7 +71,8 @@ This document offers a starting point for describing operational processes and h
 - **Order of checks:**
   1. `scripts/check_structure.sh` — ensures required directories and files are present.
   2. `scripts/check_env_sync.sh` — validates synchronization between Compose manifests and `env/*.example.env` files.
-  3. `scripts/validate_compose.sh` — confirms Compose combinations remain valid for supported profiles.
+  3. `scripts/validate_env_output.sh` — verifies generated environment output before running Compose validation.
+  4. `scripts/validate_compose.sh` — confirms Compose combinations remain valid for supported profiles.
 - **Optional quality checks:** pass `--with-quality-checks` to invoke `scripts/run_quality_checks.sh` immediately after the Compose validation. This keeps the default path focused on structural checks while allowing an opt-in full quality sweep.
 - **Failure behavior:** the script runs with `set -euo pipefail` and stops at the first check that returns a non-zero exit code, propagating the message from the helper that failed.
 - **Relevant variables and flags:** use `--with-quality-checks` for the optional quality suite, and export variables accepted by internal scripts (`COMPOSE_INSTANCES`, `COMPOSE_EXTRA_FILES`, `DOCKER_COMPOSE_BIN`, among others) when you need to customize the chain.

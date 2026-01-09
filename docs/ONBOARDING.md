@@ -53,6 +53,7 @@ The `scripts/check_all.sh` aggregator runs the template’s essential structural
 - `scripts/check_structure.sh` – confirms required directories and files are still present.
 - `scripts/check_env_sync.sh` – verifies that Compose manifests and `env/*.example.env` files remain in sync (Docker wrapper with fallback to `scripts/check_env_sync.py`).
   - Use `--instance <name>` (repeatable) when you want to validate only a subset of instances during local adjustments.
+- `scripts/validate_env_output.sh` – confirms generated environment output matches the expected templates before Compose validation.
 - `scripts/validate_compose.sh` – validates the default manifest combinations for the active profiles.
 
 Use `scripts/run_quality_checks.sh` when you want to quickly run the base quality battery without going through every validation — the helper chains `pytest`, `shfmt`, `shellcheck`, and `checkbashisms`. Add `--no-lint` if you only want to run `pytest`.
