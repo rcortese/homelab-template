@@ -13,19 +13,21 @@ source "${_DEPLOY_CONTEXT_DIR}/env_file_chain.sh"
 
 load_deploy_metadata() {
   local repo_root="$1"
+  local instance_filter="${2:-}"
 
-  if [[ -n "${DEPLOY_METADATA_LOADED:-}" ]]; then
+  if [[ -n "${DEPLOY_METADATA_LOADED:-}" && "${DEPLOY_METADATA_INSTANCE_FILTER:-}" == "$instance_filter" ]]; then
     return 0
   fi
 
   local compose_metadata=""
-  if ! compose_metadata="$("${_DEPLOY_CONTEXT_DIR}/compose_instances.sh" "$repo_root" | sed 's/^declare /declare -g /')"; then
+  if ! compose_metadata="$("${_DEPLOY_CONTEXT_DIR}/compose_instances.sh" "$repo_root" "$instance_filter" | sed 's/^declare /declare -g /')"; then
     echo "[!] Failed to load instance metadata." >&2
     return 1
   fi
 
   eval "$compose_metadata"
   DEPLOY_METADATA_LOADED=1
+  DEPLOY_METADATA_INSTANCE_FILTER="$instance_filter"
   return 0
 }
 
@@ -48,7 +50,7 @@ build_deploy_context() {
   local repo_root="$1"
   local instance="$2"
 
-  if ! load_deploy_metadata "$repo_root"; then
+  if ! load_deploy_metadata "$repo_root" "$instance"; then
     return 1
   fi
 
