@@ -1,4 +1,4 @@
-# Consolidated Compose file for the "core" instance (optional overrides for docker-compose.common.yml).
+# Instance override file for the "core" stack (extends docker-compose.common.yml).
 
 services:
   app:
