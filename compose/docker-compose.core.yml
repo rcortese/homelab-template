@@ -1,20 +1,13 @@
-# Consolidated Compose file for the "core" instance.
+# Instance override file for the "core" stack (extends docker-compose.common.yml).
 
 services:
   app:
-    image: example/app:latest
-    restart: unless-stopped
     ports:
       - "${APP_CORE_PORT:-8080}:8080"
     environment:
-      TZ: ${TZ}
-      APP_SECRET: ${APP_SECRET}
-      APP_RETENTION_HOURS: ${APP_RETENTION_HOURS:-168}
       APP_PUBLIC_URL: ${APP_PUBLIC_URL:-}
       APP_WEBHOOK_URL: ${APP_WEBHOOK_URL:-}
     volumes:
-      - ${APP_DATA_DIR_MOUNT:-./${APP_DATA_DIR:-data/${LOCAL_INSTANCE:-core}/app}}:/var/lib/app
-      - ${PWD:-.}/backups:/var/backups
       - type: volume
         source: core_logs
         target: /var/log/app
@@ -29,44 +22,23 @@ services:
       homelab.role: control-plane
 
   worker:
-    image: example/worker:latest
-    restart: unless-stopped
-    depends_on:
-      app:
-        condition: service_started
     environment:
-      WORKER_QUEUE_URL: ${WORKER_QUEUE_URL}
       WORKER_CONCURRENCY: ${WORKER_CORE_CONCURRENCY:-2}
     networks:
       homelab_internal:
         ipv4_address: ${WORKER_CORE_NETWORK_IPV4}
 
   monitoring:
-    image: example/monitoring:latest
-    restart: unless-stopped
     networks:
       homelab_internal:
         ipv4_address: ${MONITORING_NETWORK_IPV4}
 
-  baseonly:
-    image: example/base-only:latest
-    restart: unless-stopped
-
 networks:
-  homelab_internal:
-    name: ${APP_NETWORK_NAME:-homelab_internal}
-    driver: ${APP_NETWORK_DRIVER:-bridge}
-    ipam:
-      config:
-        - subnet: ${APP_NETWORK_SUBNET}
-          gateway: ${APP_NETWORK_GATEWAY}
   core_proxy:
     external: true
     name: ${CORE_PROXY_NETWORK_NAME:-traefik_proxy}
 
 volumes:
-  homelab_shared_data:
-    name: ${APP_SHARED_DATA_VOLUME_NAME:-homelab_shared_data}
   core_logs:
     name: ${CORE_LOGS_VOLUME_NAME:-core_logs}
     driver: local
