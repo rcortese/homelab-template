@@ -8,12 +8,13 @@ source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/compose_env_map.sh"
 
 load_compose_instances() {
   local repo_root_input="${1:-}"
+  local instance_filter="${2:-}"
 
   if ! load_compose_discovery "$repo_root_input"; then
     return 1
   fi
 
-  if ! load_compose_env_map "$repo_root_input"; then
+  if ! load_compose_env_map "$repo_root_input" "$instance_filter"; then
     return 1
   fi
 
@@ -22,8 +23,9 @@ load_compose_instances() {
 
 print_compose_instances() {
   local repo_root_input="${1:-}"
+  local instance_filter="${2:-}"
 
-  if ! load_compose_instances "$repo_root_input"; then
+  if ! load_compose_instances "$repo_root_input" "$instance_filter"; then
     return 1
   fi
 

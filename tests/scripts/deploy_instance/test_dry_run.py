@@ -91,3 +91,19 @@ def test_missing_local_env_file_fails(repo_copy: Path) -> None:
     assert result.returncode == 1
     assert "Missing env/local/core.env." in result.stderr
     assert "cp env/core.example.env env/local/core.env" in result.stderr
+
+
+def test_missing_common_and_instance_envs_reported_together(repo_copy: Path) -> None:
+    common_env = repo_copy / "env" / "local" / "common.env"
+    core_env = repo_copy / "env" / "local" / "core.env"
+    common_env.unlink()
+    core_env.unlink()
+
+    result = run_deploy(repo_copy, "core", "--dry-run")
+
+    assert result.returncode == 1
+    assert "Missing env/local/common.env." in result.stderr
+    assert "cp env/common.example.env env/local/common.env" in result.stderr
+    assert "Missing env/local/core.env." in result.stderr
+    assert "cp env/core.example.env env/local/core.env" in result.stderr
+    assert "Missing env/local/media.env." not in result.stderr

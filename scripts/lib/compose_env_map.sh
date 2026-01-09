@@ -3,6 +3,33 @@
 # shellcheck source=scripts/lib/compose_paths.sh
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/compose_paths.sh"
 
+compose_env_map__append_missing_env() {
+  local -n missing_block_ref="$1"
+  local missing_rel="$2"
+  local template_rel="$3"
+  local env_local_dir_rel="$4"
+  local repo_root="$5"
+
+  local -a lines=()
+  lines+=("[!] Missing ${missing_rel}.")
+  if [[ -n "$template_rel" && -f "$repo_root/$template_rel" ]]; then
+    lines+=("    Copy the template before continuing:")
+    lines+=("    mkdir -p ${env_local_dir_rel}")
+    lines+=("    cp ${template_rel} ${missing_rel}")
+  else
+    lines+=("    Template ${template_rel} was not found.")
+  fi
+
+  local line
+  for line in "${lines[@]}"; do
+    if [[ -z "$missing_block_ref" ]]; then
+      missing_block_ref="$line"
+    else
+      missing_block_ref+=$'\n'"$line"
+    fi
+  done
+}
+
 compose_env_map__resolve_instance_env() {
   local repo_root="$1"
   local instance="$2"
@@ -12,6 +39,7 @@ compose_env_map__resolve_instance_env() {
   local -n env_local_map="$6"
   local -n env_template_map="$7"
   local -n out_env_files_list="$8"
+  local missing_block_ref="$9"
 
   local env_local_rel="$env_local_dir_rel/${instance}.env"
   local env_local_abs="$repo_root/$env_local_rel"
@@ -23,14 +51,12 @@ compose_env_map__resolve_instance_env() {
   out_env_files_list=("${global_env_files[@]}")
 
   if [[ ! -f "$env_local_abs" ]]; then
-    echo "[!] Missing ${env_local_rel}." >&2
-    if [[ -f "$env_template_abs" ]]; then
-      echo "    Copy the template before continuing:" >&2
-      echo "    mkdir -p ${env_local_dir_rel}" >&2
-      echo "    cp ${env_template_rel} ${env_local_rel}" >&2
-    else
-      echo "    Template ${env_template_rel} was not found." >&2
-    fi
+    compose_env_map__append_missing_env \
+      "$missing_block_ref" \
+      "$env_local_rel" \
+      "$env_template_rel" \
+      "$env_local_dir_rel" \
+      "$repo_root"
     return 1
   fi
 
@@ -72,6 +98,8 @@ load_compose_env_map() {
     return 1
   fi
 
+  local instance_filter="${2:-}"
+
   local env_dir_rel="env"
   local env_local_dir_rel="env/local"
 
@@ -82,19 +110,19 @@ load_compose_env_map() {
 
   local global_env_local_rel="$env_local_dir_rel/common.env"
   local global_env_template_rel="$env_dir_rel/common.example.env"
+  local missing=0
+  local missing_block=""
 
   if [[ -f "$repo_root/$global_env_local_rel" ]]; then
     COMPOSE_ENV_GLOBAL_FILES=("$global_env_local_rel")
   else
-    echo "[!] Missing ${global_env_local_rel}." >&2
-    if [[ -f "$repo_root/$global_env_template_rel" ]]; then
-      echo "    Copy the template before continuing:" >&2
-      echo "    mkdir -p ${env_local_dir_rel}" >&2
-      echo "    cp ${global_env_template_rel} ${global_env_local_rel}" >&2
-    else
-      echo "    Template ${global_env_template_rel} was not found." >&2
-    fi
-    return 1
+    compose_env_map__append_missing_env \
+      missing_block \
+      "$global_env_local_rel" \
+      "$global_env_template_rel" \
+      "$env_local_dir_rel" \
+      "$repo_root"
+    missing=1
   fi
 
   local instance
@@ -102,6 +130,13 @@ load_compose_env_map() {
     if [[ ! -v COMPOSE_INSTANCE_FILES[$instance] ]]; then
       echo "[!] Instance '$instance' not found in metadata." >&2
       return 1
+    fi
+
+    if [[ -n "$instance_filter" && "$instance" != "$instance_filter" ]]; then
+      COMPOSE_INSTANCE_ENV_LOCAL["$instance"]=""
+      COMPOSE_INSTANCE_ENV_TEMPLATES["$instance"]=""
+      COMPOSE_INSTANCE_ENV_FILES["$instance"]=""
+      continue
     fi
 
     local -a env_files_list=()
@@ -113,8 +148,9 @@ load_compose_env_map() {
       COMPOSE_ENV_GLOBAL_FILES \
       COMPOSE_INSTANCE_ENV_LOCAL \
       COMPOSE_INSTANCE_ENV_TEMPLATES \
-      env_files_list; then
-      return 1
+      env_files_list \
+      missing_block; then
+      missing=1
     fi
 
     if ((${#env_files_list[@]} > 0)); then
@@ -126,6 +162,11 @@ load_compose_env_map() {
       COMPOSE_INSTANCE_ENV_FILES[$instance]=""
     fi
   done
+
+  if ((missing == 1)); then
+    printf '%s\n' "$missing_block" >&2
+    return 1
+  fi
 
   # Touch globals to satisfy shellcheck: consumers read these arrays after sourcing.
   : "${COMPOSE_ENV_GLOBAL_FILES[@]}"
