@@ -83,7 +83,7 @@ See the summary in the table above. Include `scripts/check_env_sync.sh` in local
 
 ## scripts/check_env_sync.sh
 
-- **Purpose:** compare the manifests (`compose/docker-compose.common.yml`, when present, plus detected overrides) with the corresponding `env/*.example.env` files and flag divergences. The shell wrapper (`scripts/check_env_sync.sh`) prefers running via Docker (`python:3.11-slim`) and falls back to local Python only when necessary, using `scripts/check_env_sync.py` as the main module.
+- **Purpose:** compare the manifests (`compose/docker-compose.common.yml`, when present, plus detected overrides) with the corresponding `env/*.example.env` files and flag divergences. The shell wrapper (`scripts/check_env_sync.sh`) first tries a local Python runtime via `scripts/lib/python_runtime.sh` and falls back to Docker (`python:3.11-slim`) only when a local runtime is unavailable, using `scripts/check_env_sync.py` as the main module.
 - **Typical usage:**
   ```bash
   scripts/check_env_sync.sh
