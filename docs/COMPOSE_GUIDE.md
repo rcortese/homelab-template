@@ -10,7 +10,7 @@ This guide documents how to build the Docker Compose plan using only the base fi
 
 | File type | Location | Role |
 | --------------- | ----------- | ----- |
-| **Base** | `compose/docker-compose.common.yml` (optional) | Holds only anchors and shared volumes reused by services. It is loaded automatically when present; if absent, the plan starts directly with the instance compose file. |
+| **Base** | `compose/docker-compose.common.yml` (optional) | Holds shared services and shared resources (anchors, networks, volumes) that apply to every instance. It is loaded automatically when present; if absent, the plan starts directly with the instance compose file. |
 | **Instance compose** | `compose/docker-compose.<instance>.yml` (e.g., [`compose/docker-compose.core.yml`](../compose/docker-compose.core.yml), [`compose/docker-compose.media.yml`](../compose/docker-compose.media.yml)) | Declares every service that should run in the target environment. Use this file to wire networks, volumes, labels, and per-instance defaults without scattering overrides. |
 | **Extra compose files** | Path(s) listed in `COMPOSE_EXTRA_FILES` (optional) | Ad-hoc adjustments layered after the base + instance pair. Ideal for temporary feature flags or experimentation without editing the main compose file. |
 
@@ -112,6 +112,8 @@ Services:
 > Align any compose path mentioned below with step 3 of [How to start a derived project](../README.md#how-to-start-a-derived-project) whenever you rename instances in your fork.
 
 - Always load `compose/docker-compose.common.yml` first when it exists.
+- When a service is shared but differs between instances, define the base service in `compose/docker-compose.common.yml` and place only the differing fields in `compose/docker-compose.<instance>.yml`.
+- When a service exists only in one instance, define it only in that instance file.
 - Keep each `docker-compose.<instance>.yml` self-contained: declare networks, volumes, and labels next to the services that consume them.
 - Apply extra compose files after the main instance file and use them sparingly for temporary changes.
 - Keep the file combination in sync with the environment variable chain (`env/local/common.env` → `env/local/<instance>.env`).
