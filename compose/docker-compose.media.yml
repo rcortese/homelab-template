@@ -1,19 +1,12 @@
-# Consolidated Compose file for the "media" instance.
+# Consolidated Compose file for the "media" instance (optional overrides for docker-compose.common.yml).
 
 services:
   app:
-    image: example/app:latest
-    restart: unless-stopped
     ports:
       - "${APP_MEDIA_PORT:-8081}:8080"
     environment:
-      TZ: ${TZ}
-      APP_SECRET: ${APP_SECRET}
-      APP_RETENTION_HOURS: ${APP_RETENTION_HOURS:-168}
       MEDIA_ROOT: /srv/media
     volumes:
-      - ${APP_DATA_DIR_MOUNT:-./${APP_DATA_DIR:-data/${LOCAL_INSTANCE:-media}/app}}:/var/lib/app
-      - ${PWD:-.}/backups:/var/backups
       - type: bind
         source: ${MEDIA_HOST_PATH}
         target: /mnt/media
@@ -26,13 +19,7 @@ services:
       homelab.backup: skip
 
   worker:
-    image: example/worker:latest
-    restart: unless-stopped
-    depends_on:
-      app:
-        condition: service_started
     environment:
-      WORKER_QUEUE_URL: ${WORKER_QUEUE_URL}
       WORKER_CONCURRENCY: ${WORKER_MEDIA_CONCURRENCY:-1}
     networks:
       homelab_internal:
@@ -41,28 +28,11 @@ services:
       - media_cache:/var/cache/transcoder
 
   monitoring:
-    image: example/monitoring:latest
-    restart: unless-stopped
     networks:
       homelab_internal:
         ipv4_address: ${MONITORING_NETWORK_IPV4}
 
-  baseonly:
-    image: example/base-only:latest
-    restart: unless-stopped
-
-networks:
-  homelab_internal:
-    name: ${APP_NETWORK_NAME:-homelab_internal}
-    driver: ${APP_NETWORK_DRIVER:-bridge}
-    ipam:
-      config:
-        - subnet: ${APP_NETWORK_SUBNET}
-          gateway: ${APP_NETWORK_GATEWAY}
-
 volumes:
-  homelab_shared_data:
-    name: ${APP_SHARED_DATA_VOLUME_NAME:-homelab_shared_data}
   media_cache:
     name: ${MEDIA_CACHE_VOLUME_NAME:-media_cache}
     driver: local

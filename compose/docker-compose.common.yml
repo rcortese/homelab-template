@@ -1,4 +1,4 @@
-# Consolidated base Compose file containing shared resources and base application manifests.
+# Optional base Compose file containing shared resources and base application manifests.
 
 services:
   app:
@@ -12,8 +12,7 @@ services:
       - ${APP_DATA_DIR_MOUNT:-./${APP_DATA_DIR:-data/${LOCAL_INSTANCE:-core}/app}}:/var/lib/app
       - ${PWD:-.}/backups:/var/backups
     networks:
-      homelab_internal:
-        ipv4_address: ${APP_NETWORK_IPV4}
+      homelab_internal: {}
 
   worker:
     image: example/worker:latest
@@ -30,8 +29,7 @@ services:
     image: example/monitoring:latest
     restart: unless-stopped
     networks:
-      homelab_internal:
-        ipv4_address: ${MONITORING_NETWORK_IPV4}
+      homelab_internal: {}
 
   baseonly:
     image: example/base-only:latest
