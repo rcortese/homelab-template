@@ -261,7 +261,7 @@ if [[ ! -d "$compose_tmp_dir" ]]; then
 fi
 : >"$compose_tmp_file"
 
-generate_cmd=(LOCAL_INSTANCE="$INSTANCE_NAME" "${compose_cmd[@]}" config --output "$compose_tmp_file")
+generate_cmd=(env LOCAL_INSTANCE="$INSTANCE_NAME" "${compose_cmd[@]}" config --output "$compose_tmp_file")
 
 if ! "${generate_cmd[@]}"; then
   echo "Error: failed to generate docker-compose.yml." >&2
@@ -271,7 +271,7 @@ fi
   printf '%s\n' "$GENERATED_HEADER"
   cat "$compose_tmp_file"
 } >"$OUTPUT_FILE"
-validate_cmd=(LOCAL_INSTANCE="$INSTANCE_NAME" "${compose_cmd[@]}" -f "$OUTPUT_FILE" config -q)
+validate_cmd=(env LOCAL_INSTANCE="$INSTANCE_NAME" "${compose_cmd[@]}" -f "$OUTPUT_FILE" config -q)
 if ! "${validate_cmd[@]}"; then
   echo "Error: inconsistencies detected while validating $OUTPUT_FILE." >&2
   exit 1

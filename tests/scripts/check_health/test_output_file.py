@@ -8,7 +8,7 @@ from .utils import run_check_health
 
 
 def test_json_output_writes_file_with_matching_content(
-    docker_stub: DockerStub, tmp_path: Path
+    docker_stub: DockerStub, repo_copy: Path, tmp_path: Path
 ) -> None:
     output_file = tmp_path / "status.json"
 
@@ -17,6 +17,8 @@ def test_json_output_writes_file_with_matching_content(
     result = run_check_health(
         args=["--format", "json", "--output", str(output_file), "core"],
         env=env,
+        cwd=repo_copy,
+        script_path=repo_copy / "scripts" / "check_health.sh",
     )
 
     assert result.returncode == 0, result.stderr
@@ -26,7 +28,9 @@ def test_json_output_writes_file_with_matching_content(
     assert file_content == result.stdout
 
 
-def test_output_file_not_created_when_execution_fails(tmp_path: Path) -> None:
+def test_output_file_not_created_when_execution_fails(
+    repo_copy: Path, tmp_path: Path
+) -> None:
     output_file = tmp_path / "status.json"
 
     env = {"DOCKER_COMPOSE_BIN": "definitely-missing-binary"}
@@ -34,6 +38,8 @@ def test_output_file_not_created_when_execution_fails(tmp_path: Path) -> None:
     result = run_check_health(
         args=["--format", "json", "--output", str(output_file), "core"],
         env=env,
+        cwd=repo_copy,
+        script_path=repo_copy / "scripts" / "check_health.sh",
     )
 
     assert result.returncode != 0

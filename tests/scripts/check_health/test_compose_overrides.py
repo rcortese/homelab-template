@@ -13,23 +13,34 @@ from .utils import (
 )
 
 
-def test_ignores_compose_file_overrides(docker_stub: DockerStub) -> None:
-    repo_root = Path(__file__).resolve().parents[3]
+def test_ignores_compose_file_overrides(
+    docker_stub: DockerStub, repo_copy: Path
+) -> None:
+    repo_root = repo_copy
 
     env = {
         "COMPOSE_FILES": "compose/docker-compose.common.yml compose/extra.yml",
-        "COMPOSE_ENV_FILES": "env/common.example.env",
+        "COMPOSE_ENV_FILES": "env/local/common.env env/local/core.env",
     }
 
-    result = run_check_health(args=["core"], env=env)
+    result = run_check_health(
+        args=["core"],
+        env=env,
+        cwd=repo_copy,
+        script_path=repo_copy / "scripts" / "check_health.sh",
+    )
 
     assert result.returncode == 0, result.stderr
 
     calls = docker_stub.read_calls()
-    expected_env = str((repo_root / "env" / "common.example.env").resolve())
+    expected_env = [
+        str((repo_root / "env" / "local" / "common.env").resolve()),
+        str((repo_root / "env" / "local" / "core.env").resolve()),
+    ]
     consolidated_file = repo_root / "docker-compose.yml"
     compose_files = [
-        str((repo_root / path).resolve()) for path in expected_plan_for_instance("core")
+        str((repo_root / path).resolve())
+        for path in expected_plan_for_instance("core", repo_root=repo_copy)
     ]
     assert calls == expected_consolidated_plan_calls(
         expected_env, compose_files, consolidated_file
@@ -47,11 +58,11 @@ def test_ignores_compose_file_overrides(docker_stub: DockerStub) -> None:
 
 
 def test_ignores_compose_extra_files_from_env_file(
-    docker_stub: DockerStub, tmp_path: Path
+    docker_stub: DockerStub, repo_copy: Path, tmp_path: Path
 ) -> None:
     env_file = tmp_path / "custom.env"
     env_file.write_text(
-        "COMPOSE_EXTRA_FILES=compose/extra/extra.yml\n",
+        f"REPO_ROOT={repo_copy}\nCOMPOSE_EXTRA_FILES=compose/extra/extra.yml\n",
         encoding="utf-8",
     )
 
@@ -60,16 +71,22 @@ def test_ignores_compose_extra_files_from_env_file(
         "COMPOSE_ENV_FILES": str(env_file),
     }
 
-    result = run_check_health(args=["core"], env=env)
+    result = run_check_health(
+        args=["core"],
+        env=env,
+        cwd=repo_copy,
+        script_path=repo_copy / "scripts" / "check_health.sh",
+    )
 
     assert result.returncode == 0, result.stderr
     assert "Warning:" not in result.stderr
     assert "[*] Containers:" in result.stdout
 
-    repo_root = Path(__file__).resolve().parents[3]
+    repo_root = repo_copy
     consolidated_file = repo_root / "docker-compose.yml"
     expected_files = [
-        str((repo_root / path).resolve()) for path in expected_plan_for_instance("core")
+        str((repo_root / path).resolve())
+        for path in expected_plan_for_instance("core", repo_root=repo_copy)
     ]
     calls = docker_stub.read_calls()
     assert calls == expected_consolidated_plan_calls(
@@ -83,8 +100,10 @@ def test_ignores_compose_extra_files_from_env_file(
     ]
 
 
-def test_ignores_blank_and_duplicate_compose_tokens(docker_stub: DockerStub) -> None:
-    repo_root = Path(__file__).resolve().parents[3]
+def test_ignores_blank_and_duplicate_compose_tokens(
+    docker_stub: DockerStub, repo_copy: Path
+) -> None:
+    repo_root = repo_copy
     compose_base = "compose/docker-compose.common.yml"
 
     env = {
@@ -92,7 +111,12 @@ def test_ignores_blank_and_duplicate_compose_tokens(docker_stub: DockerStub) -> 
         "COMPOSE_EXTRA_FILES": f"  {compose_base}    {compose_base}\n   {compose_base}   ",
     }
 
-    result = run_check_health(args=["core"], env=env)
+    result = run_check_health(
+        args=["core"],
+        env=env,
+        cwd=repo_copy,
+        script_path=repo_copy / "scripts" / "check_health.sh",
+    )
 
     assert result.returncode == 0, result.stderr
     assert "Warning:" not in result.stderr
@@ -104,11 +128,14 @@ def test_ignores_blank_and_duplicate_compose_tokens(docker_stub: DockerStub) -> 
 
     expected_env_files = [
         str((repo_root / path).resolve())
-        for path in expected_env_for_instance("core")
+        for path in expected_env_for_instance("core", repo_root=repo_copy)
     ]
     plan_calls = expected_consolidated_plan_calls(
         expected_env_files,
-        [str((repo_root / path).resolve()) for path in expected_plan_for_instance("core")],
+        [
+            str((repo_root / path).resolve())
+            for path in expected_plan_for_instance("core", repo_root=repo_copy)
+        ],
         consolidated_file,
     )
     assert calls[:2] == plan_calls

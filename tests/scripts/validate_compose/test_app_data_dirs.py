@@ -24,7 +24,9 @@ def test_derives_local_instance_for_compose(
     assert env_records[-1].get("LOCAL_INSTANCE") == instance
 
 
-def test_rejects_legacy_app_data_overrides(repo_copy: Path) -> None:
+def test_rejects_legacy_app_data_overrides(
+    repo_copy: Path, docker_stub: DockerStub
+) -> None:
     env_file = repo_copy / "env" / "local" / "core.env"
     env_file.write_text(
         env_file.read_text(encoding="utf-8") + "APP_DATA_DIR=data/core-root\n",

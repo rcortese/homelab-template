@@ -8,7 +8,6 @@ import textwrap
 import pytest
 
 from .utils import (
-    REPO_ROOT,
     expected_consolidated_calls,
     get_instance_metadata_map,
     load_instance_metadata,
@@ -34,10 +33,11 @@ def _parse_instances(value: str) -> list[str]:
 
 def test_accepts_mixed_separators_and_invokes_compose_for_each_instance(
     docker_stub: DockerStub,
+    repo_copy: Path,
 ) -> None:
     docker_stub.set_exit_code(0)
 
-    metadata_sequence = list(load_instance_metadata())
+    metadata_sequence = list(load_instance_metadata(repo_copy))
     assert metadata_sequence, "Expected at least one compose instance for validation tests"
 
     names = [metadata.name for metadata in metadata_sequence]
@@ -46,7 +46,10 @@ def test_accepts_mixed_separators_and_invokes_compose_for_each_instance(
     else:
         instances = f" {names[0]} , , {names[0]}  ,  {names[0]} "
 
-    result = run_validate_compose({"COMPOSE_INSTANCES": instances})
+    result = run_validate_compose(
+        {"COMPOSE_INSTANCES": instances},
+        cwd=repo_copy,
+    )
 
     assert result.returncode == 0, result.stderr
     calls = docker_stub.read_calls()
@@ -61,29 +64,35 @@ def test_accepts_mixed_separators_and_invokes_compose_for_each_instance(
 
     assert len(calls) == len(unique_instances) * 2
 
-    metadata_map = get_instance_metadata_map()
+    metadata_map = get_instance_metadata_map(repo_copy)
 
     for offset, instance_name in enumerate(unique_instances):
         assert instance_name in metadata_map, f"Unknown instance '{instance_name}' in test setup"
         metadata = metadata_map[instance_name]
-        expected_env = metadata.resolved_env_chain()
-        expected_files = metadata.compose_files()
+        expected_env = metadata.resolved_env_chain(repo_copy)
+        expected_files = metadata.compose_files(repo_copy)
         start = offset * 2
         assert calls[start : start + 2] == expected_consolidated_calls(
-            expected_env, expected_files, REPO_ROOT / "docker-compose.yml"
+            expected_env,
+            expected_files,
+            repo_copy / "docker-compose.yml",
         )
 
 
-def test_unknown_instance_returns_error(docker_stub: DockerStub) -> None:
-    result = run_validate_compose({"COMPOSE_INSTANCES": "unknown"})
+def test_unknown_instance_returns_error(
+    docker_stub: DockerStub, repo_copy: Path
+) -> None:
+    result = run_validate_compose({"COMPOSE_INSTANCES": "unknown"}, cwd=repo_copy)
 
     assert result.returncode == 1
     assert "unknown instance" in result.stderr
     assert docker_stub.read_calls() == []
 
 
-def test_errors_when_compose_command_missing(docker_stub: DockerStub) -> None:
-    metadata_sequence = list(load_instance_metadata())
+def test_errors_when_compose_command_missing(
+    docker_stub: DockerStub, repo_copy: Path
+) -> None:
+    metadata_sequence = list(load_instance_metadata(repo_copy))
     assert metadata_sequence, "Expected at least one compose instance for validation tests"
     target_instance = metadata_sequence[0].name
 
@@ -92,7 +101,7 @@ def test_errors_when_compose_command_missing(docker_stub: DockerStub) -> None:
         "COMPOSE_INSTANCES": target_instance,
     }
 
-    result = run_validate_compose(env)
+    result = run_validate_compose(env, cwd=repo_copy)
 
     assert result.returncode == 127
     assert (
@@ -104,9 +113,9 @@ def test_errors_when_compose_command_missing(docker_stub: DockerStub) -> None:
 
 @pytest.mark.parametrize("instances", [" , ,  "])
 def test_only_separators_in_compose_instances_returns_error(
-    instances: str, docker_stub: DockerStub
+    instances: str, docker_stub: DockerStub, repo_copy: Path
 ) -> None:
-    result = run_validate_compose({"COMPOSE_INSTANCES": instances})
+    result = run_validate_compose({"COMPOSE_INSTANCES": instances}, cwd=repo_copy)
 
     assert result.returncode == 1
     assert "Error: no instance provided for validation." in result.stderr
@@ -115,14 +124,18 @@ def test_only_separators_in_compose_instances_returns_error(
 
 def test_reports_failure_when_compose_command_fails_with_docker_stub(
     docker_stub: DockerStub,
+    repo_copy: Path,
 ) -> None:
     docker_stub.set_exit_code(1)
 
-    metadata_sequence = list(load_instance_metadata())
+    metadata_sequence = list(load_instance_metadata(repo_copy))
     assert metadata_sequence, "Expected at least one compose instance for validation tests"
     target_instance = metadata_sequence[0].name
 
-    result = run_validate_compose({"COMPOSE_INSTANCES": target_instance})
+    result = run_validate_compose(
+        {"COMPOSE_INSTANCES": target_instance},
+        cwd=repo_copy,
+    )
 
     assert result.returncode != 0
     assert (
@@ -130,8 +143,8 @@ def test_reports_failure_when_compose_command_fails_with_docker_stub(
         in result.stderr
     )
 
-    metadata_map = get_instance_metadata_map()
-    files = metadata_map[target_instance].compose_files()
+    metadata_map = get_instance_metadata_map(repo_copy)
+    files = metadata_map[target_instance].compose_files(repo_copy)
     for file in files:
         assert str(file) in result.stderr
 
@@ -139,8 +152,10 @@ def test_reports_failure_when_compose_command_fails_with_docker_stub(
     assert len(calls) == 2
 
 
-def test_compose_failure_reports_diagnostics(tmp_path: Path) -> None:
-    metadata_sequence = list(load_instance_metadata())
+def test_compose_failure_reports_diagnostics(
+    repo_copy: Path, tmp_path: Path
+) -> None:
+    metadata_sequence = list(load_instance_metadata(repo_copy))
     assert metadata_sequence, "Expected at least one compose instance for validation tests"
 
     target_instance = metadata_sequence[0].name
@@ -163,7 +178,8 @@ def test_compose_failure_reports_diagnostics(tmp_path: Path) -> None:
         {
             "COMPOSE_INSTANCES": target_instance,
             "DOCKER_COMPOSE_BIN": str(compose_script),
-        }
+        },
+        cwd=repo_copy,
     )
 
     assert result.returncode != 0
@@ -175,10 +191,10 @@ def test_compose_failure_reports_diagnostics(tmp_path: Path) -> None:
         for line in stderr_lines
     ), result.stderr
 
-    metadata_map = get_instance_metadata_map()
+    metadata_map = get_instance_metadata_map(repo_copy)
     metadata = metadata_map[target_instance]
 
-    expected_files = " ".join(str(path) for path in metadata.compose_files())
+    expected_files = " ".join(str(path) for path in metadata.compose_files(repo_copy))
     files_line = next(
         (line.strip() for line in stderr_lines if line.strip().startswith("files:")),
         "",
@@ -189,7 +205,9 @@ def test_compose_failure_reports_diagnostics(tmp_path: Path) -> None:
         (line.strip() for line in stderr_lines if line.strip().startswith("env files:")),
         "",
     )
-    resolved_env_chain = [str(path) for path in metadata.resolved_env_chain()]
+    resolved_env_chain = [
+        str(path) for path in metadata.resolved_env_chain(repo_copy)
+    ]
     if resolved_env_chain:
         assert env_line == f"env files: {' '.join(resolved_env_chain)}"
     else:

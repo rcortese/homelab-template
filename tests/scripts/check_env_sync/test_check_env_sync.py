@@ -385,9 +385,10 @@ def test_check_env_sync_allows_missing_base_file(repo_copy: Path) -> None:
 
     result = run_check(repo_copy)
 
-    assert result.returncode == 0, result.stderr
+    assert result.returncode == 1
     assert "compose/docker-compose.common.yml" not in result.stderr
-    assert "All environment variables are in sync." in result.stdout
+    assert "Obsolete variables in env/core.example.env:" in result.stdout
+    assert "REPO_ROOT" in result.stdout
 
 
 def test_check_env_sync_reports_missing_compose_override(repo_copy: Path) -> None:

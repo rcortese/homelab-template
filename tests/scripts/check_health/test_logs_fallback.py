@@ -25,7 +25,10 @@ def _strip_env_and_file_flags(call: list[str]) -> list[str]:
 
 
 def test_logs_fallback_through_alternative_services(
-    docker_stub: DockerStub, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    docker_stub: DockerStub,
+    repo_copy: Path,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     state_file = tmp_path / "fail_once_state"
     docker_stub.reset_fail_once_state()
@@ -36,7 +39,11 @@ def test_logs_fallback_through_alternative_services(
     monkeypatch.setenv("DOCKER_STUB_FAIL_ONCE_STATE", str(state_file))
     monkeypatch.setenv("DOCKER_STUB_SERVICES_OUTPUT", "svc-api")
 
-    result = run_check_health(args=["core"])
+    result = run_check_health(
+        args=["core"],
+        cwd=repo_copy,
+        script_path=repo_copy / "scripts" / "check_health.sh",
+    )
 
     assert result.returncode == 0, result.stderr
 
@@ -54,7 +61,7 @@ def test_logs_fallback_through_alternative_services(
 
 
 def test_logs_reports_failure_when_all_services_fail(
-    docker_stub: DockerStub, monkeypatch: pytest.MonkeyPatch
+    docker_stub: DockerStub, repo_copy: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setenv("DOCKER_STUB_ALWAYS_FAIL_LOGS", "1")
 
@@ -63,7 +70,12 @@ def test_logs_reports_failure_when_all_services_fail(
         "DOCKER_STUB_SERVICES_OUTPUT": "svc-aux",
     }
 
-    result = run_check_health(args=["core"], env=env)
+    result = run_check_health(
+        args=["core"],
+        env=env,
+        cwd=repo_copy,
+        script_path=repo_copy / "scripts" / "check_health.sh",
+    )
 
     assert result.returncode != 0
     assert "Failed to retrieve logs for services" in result.stderr
@@ -83,14 +95,21 @@ def test_logs_reports_failure_when_all_services_fail(
     ]
 
 
-def test_logs_handles_comma_separated_health_services(docker_stub: DockerStub) -> None:
+def test_logs_handles_comma_separated_health_services(
+    docker_stub: DockerStub, repo_copy: Path
+) -> None:
     env = {
         "HEALTH_SERVICES": "svc-core,svc-extra",
         "DOCKER_STUB_FAIL_ALWAYS_FOR": "svc-core",
         "DOCKER_STUB_SERVICES_OUTPUT": "svc-auto",
     }
 
-    result = run_check_health(args=["core"], env=env)
+    result = run_check_health(
+        args=["core"],
+        env=env,
+        cwd=repo_copy,
+        script_path=repo_copy / "scripts" / "check_health.sh",
+    )
 
     assert result.returncode == 0, result.stderr
     assert "Warning: Failed to retrieve logs for services: svc-core" in result.stderr
@@ -109,13 +128,20 @@ def test_logs_handles_comma_separated_health_services(docker_stub: DockerStub) -
     ]
 
 
-def test_logs_attempts_all_services_even_after_success(docker_stub: DockerStub) -> None:
+def test_logs_attempts_all_services_even_after_success(
+    docker_stub: DockerStub, repo_copy: Path
+) -> None:
     env = {
         "HEALTH_SERVICES": "svc-main svc-extra",
         "DOCKER_STUB_SERVICES_OUTPUT": "svc-auto",
     }
 
-    result = run_check_health(args=["core"], env=env)
+    result = run_check_health(
+        args=["core"],
+        env=env,
+        cwd=repo_copy,
+        script_path=repo_copy / "scripts" / "check_health.sh",
+    )
 
     assert result.returncode == 0, result.stderr
     assert "Warning:" not in result.stderr
@@ -134,10 +160,17 @@ def test_logs_attempts_all_services_even_after_success(docker_stub: DockerStub) 
     ]
 
 
-def test_logs_without_targets_uses_compose_services(docker_stub: DockerStub) -> None:
+def test_logs_without_targets_uses_compose_services(
+    docker_stub: DockerStub, repo_copy: Path
+) -> None:
     env = {"DOCKER_STUB_SERVICES_OUTPUT": "svc-one\nsvc-two"}
 
-    result = run_check_health(args=["core"], env=env)
+    result = run_check_health(
+        args=["core"],
+        env=env,
+        cwd=repo_copy,
+        script_path=repo_copy / "scripts" / "check_health.sh",
+    )
 
     assert result.returncode == 0, result.stderr
 
@@ -155,11 +188,16 @@ def test_logs_without_targets_uses_compose_services(docker_stub: DockerStub) -> 
 
 
 def test_logs_without_targets_and_no_services_reports_error(
-    docker_stub: DockerStub,
+    docker_stub: DockerStub, repo_copy: Path
 ) -> None:
     env = {"DOCKER_STUB_SERVICES_OUTPUT": ""}
 
-    result = run_check_health(args=["core"], env=env)
+    result = run_check_health(
+        args=["core"],
+        env=env,
+        cwd=repo_copy,
+        script_path=repo_copy / "scripts" / "check_health.sh",
+    )
 
     assert result.returncode != 0
     assert "no services were found" in result.stderr

@@ -13,10 +13,15 @@ from .utils import (
 )
 
 
-def test_errors_when_compose_command_missing() -> None:
+def test_errors_when_compose_command_missing(repo_copy: Path) -> None:
     env = {"DOCKER_COMPOSE_BIN": "definitely-missing-binary"}
 
-    result = run_check_health(args=["core"], env=env)
+    result = run_check_health(
+        args=["core"],
+        env=env,
+        cwd=repo_copy,
+        script_path=repo_copy / "scripts" / "check_health.sh",
+    )
 
     assert result.returncode == 127
     assert (
@@ -25,24 +30,31 @@ def test_errors_when_compose_command_missing() -> None:
     )
 
 
-def test_respects_docker_compose_bin_override(docker_stub: DockerStub) -> None:
+def test_respects_docker_compose_bin_override(
+    docker_stub: DockerStub, repo_copy: Path
+) -> None:
     env = {"DOCKER_COMPOSE_BIN": "docker --context remote compose"}
 
-    result = run_check_health(args=["core"], env=env)
+    result = run_check_health(
+        args=["core"],
+        env=env,
+        cwd=repo_copy,
+        script_path=repo_copy / "scripts" / "check_health.sh",
+    )
 
     assert result.returncode == 0, result.stderr
 
     calls = docker_stub.read_calls()
-    repo_root = Path(__file__).resolve().parents[3]
+    repo_root = repo_copy
     expected_files = [
         str((repo_root / path).resolve())
-        for path in expected_plan_for_instance("core")
+        for path in expected_plan_for_instance("core", repo_root=repo_copy)
     ]
     consolidated_file = repo_root / "docker-compose.yml"
     base_cmd = ["--context", "remote", "compose"]
     expected_env_files = [
         str((repo_root / path).resolve())
-        for path in expected_env_for_instance("core")
+        for path in expected_env_for_instance("core", repo_root=repo_copy)
     ]
     assert calls == expected_consolidated_plan_calls(
         expected_env_files,
@@ -64,9 +76,13 @@ def test_respects_docker_compose_bin_override(docker_stub: DockerStub) -> None:
 
 @pytest.mark.parametrize("arg", ["-h", "--help"])
 def test_help_flags_exit_early_and_show_usage(
-    docker_stub: DockerStub, arg: str
+    docker_stub: DockerStub, repo_copy: Path, arg: str
 ) -> None:
-    result = run_check_health(args=[arg])
+    result = run_check_health(
+        args=[arg],
+        cwd=repo_copy,
+        script_path=repo_copy / "scripts" / "check_health.sh",
+    )
 
     assert result.returncode == 0, result.stderr
     assert "Usage: scripts/check_health.sh" in result.stdout
