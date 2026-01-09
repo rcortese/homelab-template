@@ -279,7 +279,7 @@ def test_build_sync_report_uses_runtime_provided_variables(
         for variables in report.missing_by_instance.values()
         for variable in variables
     }
-    assert "PWD" not in missing_vars
+    assert "LOCAL_INSTANCE" not in missing_vars
 
     monkeypatch.setattr("scripts.check_env_sync.RUNTIME_PROVIDED_VARIABLES", set())
 
@@ -289,7 +289,7 @@ def test_build_sync_report_uses_runtime_provided_variables(
         for variables in report_without_runtime.missing_by_instance.values()
         for variable in variables
     }
-    assert "PWD" in missing_without_runtime
+    assert "LOCAL_INSTANCE" in missing_without_runtime
 
 
 def test_build_sync_report_uses_common_and_implicit_vars(monkeypatch, tmp_path: Path) -> None:
@@ -385,9 +385,10 @@ def test_check_env_sync_allows_missing_base_file(repo_copy: Path) -> None:
 
     result = run_check(repo_copy)
 
-    assert result.returncode == 0, result.stderr
+    assert result.returncode == 1
     assert "compose/docker-compose.common.yml" not in result.stderr
-    assert "All environment variables are in sync." in result.stdout
+    assert "Obsolete variables in env/core.example.env:" in result.stdout
+    assert "REPO_ROOT" in result.stdout
 
 
 def test_check_env_sync_reports_missing_compose_override(repo_copy: Path) -> None:

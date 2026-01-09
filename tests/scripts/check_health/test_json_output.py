@@ -13,7 +13,7 @@ from .utils import run_check_health
 
 
 @pytest.mark.usefixtures("docker_stub")
-def test_json_output_structure(docker_stub: DockerStub) -> None:
+def test_json_output_structure(docker_stub: DockerStub, repo_copy: Path) -> None:
     path_entries = os.environ.get("PATH", "").split(os.pathsep)
     assert path_entries, "PATH is expected to include the Docker stub directory"
     stub_dir = Path(path_entries[0])
@@ -43,7 +43,12 @@ def test_json_output_structure(docker_stub: DockerStub) -> None:
         "DOCKER_STUB_LOG_CONTENT_app": "Simulated log entry for app",
     }
 
-    result = run_check_health(["--format", "json", "core"], env=env)
+    result = run_check_health(
+        ["--format", "json", "core"],
+        env=env,
+        cwd=repo_copy,
+        script_path=repo_copy / "scripts" / "check_health.sh",
+    )
 
     assert result.returncode == 0, result.stderr
     payload = json.loads(result.stdout)

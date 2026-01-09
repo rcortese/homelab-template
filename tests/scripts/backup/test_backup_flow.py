@@ -149,13 +149,7 @@ def test_successful_backup_creates_snapshot_and_restarts_stack(
         ),
     )
 
-    env_file = repo_copy / "env" / "local" / "core.env"
-    env_file.write_text(
-        env_file.read_text(encoding="utf-8") + "APP_DATA_DIR=data/core-root\n",
-        encoding="utf-8",
-    )
-
-    data_mount = repo_copy / "data" / "core-root" / "core"
+    data_mount = repo_copy / "data" / "core" / "app"
     data_mount.mkdir(parents=True)
     (data_mount / "db.sqlite").write_text("payload", encoding="utf-8")
 
@@ -200,13 +194,7 @@ def test_copy_failure_still_attempts_restart(
         ),
     )
 
-    env_file = repo_copy / "env" / "local" / "core.env"
-    env_file.write_text(
-        env_file.read_text(encoding="utf-8") + "APP_DATA_DIR=data/core-root\n",
-        encoding="utf-8",
-    )
-
-    data_mount = repo_copy / "data" / "core-root" / "core"
+    data_mount = repo_copy / "data" / "core" / "app"
     data_mount.mkdir(parents=True)
     (data_mount / "db.sqlite").write_text("payload", encoding="utf-8")
 
@@ -221,7 +209,7 @@ def test_copy_failure_still_attempts_restart(
     _assert_compose_restart_calls(compose_log, expected_core_apps)
     assert cp_log.read_text(encoding="utf-8").splitlines() == [
         "-a",
-        f"{repo_copy}/data/core-root/core/.",
+        f"{repo_copy}/data/core/app/.",
         f"{repo_copy}/backups/core-20240101-030405/",
     ]
 
@@ -252,13 +240,7 @@ def test_restart_failure_propagates_exit_code(
         ),
     )
 
-    env_file = repo_copy / "env" / "local" / "core.env"
-    env_file.write_text(
-        env_file.read_text(encoding="utf-8") + "APP_DATA_DIR=data/core-root\n",
-        encoding="utf-8",
-    )
-
-    data_mount = repo_copy / "data" / "core-root" / "core"
+    data_mount = repo_copy / "data" / "core" / "app"
     data_mount.mkdir(parents=True)
     (data_mount / "db.sqlite").write_text("payload", encoding="utf-8")
 
@@ -291,13 +273,7 @@ def test_detected_apps_prioritize_known_order(
         ),
     )
 
-    env_file = repo_copy / "env" / "local" / "core.env"
-    env_file.write_text(
-        env_file.read_text(encoding="utf-8") + "APP_DATA_DIR=data/core-root\n",
-        encoding="utf-8",
-    )
-
-    data_mount = repo_copy / "data" / "core-root" / "core"
+    data_mount = repo_copy / "data" / "core" / "app"
     data_mount.mkdir(parents=True)
 
     result = run_backup(repo_copy, "core")
@@ -334,13 +310,7 @@ def test_no_restart_when_no_active_services(
         ),
     )
 
-    env_file = repo_copy / "env" / "local" / "core.env"
-    env_file.write_text(
-        env_file.read_text(encoding="utf-8") + "APP_DATA_DIR=data/core-root\n",
-        encoding="utf-8",
-    )
-
-    data_mount = repo_copy / "data" / "core-root" / "core"
+    data_mount = repo_copy / "data" / "core" / "app"
     data_mount.mkdir(parents=True)
 
     result = run_backup(repo_copy, "core")

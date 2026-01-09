@@ -45,10 +45,9 @@ if ! deploy_context_eval="$(build_deploy_context "$REPO_ROOT" "$INSTANCE")"; the
 fi
 eval "$deploy_context_eval"
 
-export APP_DATA_DIR="${DEPLOY_CONTEXT[APP_DATA_DIR]}"
-export APP_DATA_DIR_MOUNT="${DEPLOY_CONTEXT[APP_DATA_DIR_MOUNT]}"
 export COMPOSE_ENV_FILES="${DEPLOY_CONTEXT[COMPOSE_ENV_FILES]}"
 export COMPOSE_FILES="${DEPLOY_CONTEXT[COMPOSE_FILES]}"
+export LOCAL_INSTANCE="$INSTANCE"
 COMPOSE_ROOT_FILE="$REPO_ROOT/docker-compose.yml"
 
 declare -a COMPOSE_CMD=()

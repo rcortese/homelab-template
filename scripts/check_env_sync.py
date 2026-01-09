@@ -17,7 +17,7 @@ from typing import Dict, Iterable, List, Mapping, Sequence, Set
 
 import yaml
 
-RUNTIME_PROVIDED_VARIABLES: Set[str] = {"PWD"}
+RUNTIME_PROVIDED_VARIABLES: Set[str] = {"LOCAL_INSTANCE"}
 DEFAULT_IMPLICIT_ENV_VARS: Set[str] = {"APP_DATA_UID", "APP_DATA_GID"}
 # Additional variables implicitly accepted by the project without being listed in
 # env templates. Projects can provide overrides in scripts/local/check_env_sync.py

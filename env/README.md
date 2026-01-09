@@ -29,7 +29,6 @@ This directory stores templates (`*.example.env`) and instructions for generatin
 | Variable | Required? | Usage | Reference |
 | --- | --- | --- | --- |
 | `TZ` | Yes | Sets timezone for logs and schedules. | `docker-compose.<instance>.yml`. |
-| `APP_DATA_DIR`/`APP_DATA_DIR_MOUNT` | Optional | Defines the relative persistent directory (`data/<instance>/<app>`) or an alternative absolute path—never use both at the same time. | `scripts/deploy_instance.sh`, `scripts/backup.sh`, `scripts/fix_permission_issues.sh`. |
 | `APP_DATA_UID`/`APP_DATA_GID` | Optional | Adjusts the default owner of persistent volumes. | `scripts/deploy_instance.sh`, `scripts/backup.sh`, `scripts/fix_permission_issues.sh`. |
 | `APP_NETWORK_NAME` | Optional | Logical name of the network shared among applications. | `compose/docker-compose.common.yml`. |
 | `APP_NETWORK_DRIVER` | Optional | Driver used when creating the shared network (e.g., `bridge`, `macvlan`). | `compose/docker-compose.common.yml`. |
@@ -53,6 +52,7 @@ Create a table similar to the one below for each `env/<target>.example.env` file
 
 | Variable | Required? | Usage | Reference |
 | --- | --- | --- | --- |
+| `REPO_ROOT` | Yes | Absolute path to the repository root used by Compose volume mounts. | `docker-compose.<instance>.yml` and `scripts/build_compose_file.sh`. |
 | `APP_PUBLIC_URL` | Optional | Sets the public URL for links and cookies. | `docker-compose.<instance>.yml` (e.g., `docker-compose.core.yml`). |
 | `COMPOSE_EXTRA_FILES` | Optional | Lists additional compose files applied after the instance override (space- or comma-separated). | `scripts/deploy_instance.sh`, `scripts/validate_compose.sh`, `scripts/lib/compose_defaults.sh`. |
 
@@ -70,9 +70,9 @@ The instance templates include illustrative placeholders that should be renamed 
 
 Rename these identifiers to terms aligned with your domain (for example, `PORTAL_PUBLIC_URL`, `PORTAL_NETWORK_IPV4`, `ACME_PROXY_NETWORK_NAME`) and update the associated manifests to avoid leftover default values.
 
-> **Note:** the main persistent directory follows the `data/<instance>/<app>` convention using the primary service slug for the stack. Leave `APP_DATA_DIR` and `APP_DATA_DIR_MOUNT` blank to automatically use this relative fallback. Provide **only one** of them when you need to customize the path (relative or absolute, respectively); the scripts error out if both are set at the same time. Adjust `APP_DATA_UID` and `APP_DATA_GID` to align permissions.
+> **Note:** the main persistent directory follows the `data/<instance>/app` convention relative to `REPO_ROOT`. Adjust `APP_DATA_UID` and `APP_DATA_GID` to align permissions.
 
-> **New flow (`LOCAL_INSTANCE`)**: the wrappers (such as `scripts/deploy_instance.sh`) automatically export `LOCAL_INSTANCE` based on the `.env` file for the active instance (e.g., `core`, `media`). This variable injects the instance segment into the fallback `data/<instance>/<app>` used by the manifests. When running `docker compose` directly, export `LOCAL_INSTANCE=<instance>` before the command or reuse the scripts to avoid directory mismatches.
+> **`LOCAL_INSTANCE` flow:** the wrappers (such as `scripts/deploy_instance.sh`) derive `LOCAL_INSTANCE` based on the selected instance (e.g., `core`, `media`) and write it into the generated `.env`. Use the scripts or the generated `.env` when running `docker compose` so the manifests receive the correct instance name.
 
 ## Best practices
 

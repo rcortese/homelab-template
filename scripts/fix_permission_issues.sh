@@ -85,8 +85,8 @@ fi
 target_uid="${DEPLOY_CONTEXT[DATA_UID]}"
 target_gid="${DEPLOY_CONTEXT[DATA_GID]}"
 target_owner="${DEPLOY_CONTEXT[APP_DATA_UID_GID]}"
-app_data_dir="${DEPLOY_CONTEXT[APP_DATA_DIR]}"
-app_data_dir_mount="${DEPLOY_CONTEXT[APP_DATA_DIR_MOUNT]}"
+app_data_dir="${DEPLOY_CONTEXT[APP_DATA_REL]}"
+app_data_dir_mount="${DEPLOY_CONTEXT[APP_DATA_PATH]}"
 compose_env_files="${DEPLOY_CONTEXT[COMPOSE_ENV_FILES]}"
 
 cat <<SUMMARY

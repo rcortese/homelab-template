@@ -36,6 +36,17 @@ def test_missing_compose_file_in_temporary_copy(
     shutil.copytree(REPO_ROOT / "compose", repo_copy / "compose")
     shutil.copytree(REPO_ROOT / "scripts", repo_copy / "scripts")
     shutil.copytree(REPO_ROOT / "env", repo_copy / "env")
+    env_local = repo_copy / "env" / "local"
+    env_local.mkdir(parents=True, exist_ok=True)
+    (env_local / "common.env").write_text(
+        "TZ=UTC\nAPP_SECRET=test-secret\nAPP_RETENTION_HOURS=24\nAPP_DATA_UID=1000\nAPP_DATA_GID=1000\n",
+        encoding="utf-8",
+    )
+    for instance in ("core", "media"):
+        (env_local / f"{instance}.env").write_text(
+            f"REPO_ROOT={repo_copy}\n",
+            encoding="utf-8",
+        )
 
     missing_file = _select_manifest(repo_copy)
     missing_file.unlink()

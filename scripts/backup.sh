@@ -38,8 +38,7 @@ eval "$deploy_context_eval"
 
 export COMPOSE_ENV_FILES="${DEPLOY_CONTEXT[COMPOSE_ENV_FILES]}"
 export COMPOSE_FILES="${DEPLOY_CONTEXT[COMPOSE_FILES]}"
-export APP_DATA_DIR="${DEPLOY_CONTEXT[APP_DATA_DIR]}"
-export APP_DATA_DIR_MOUNT="${DEPLOY_CONTEXT[APP_DATA_DIR_MOUNT]}"
+export LOCAL_INSTANCE="$INSTANCE"
 COMPOSE_ROOT_FILE="$REPO_ROOT/docker-compose.yml"
 
 declare -a DOCKER_COMPOSE_CMD=()
@@ -123,17 +122,17 @@ else
   exit 1
 fi
 
-app_data_dir_rel="${DEPLOY_CONTEXT[APP_DATA_DIR]}"
-app_data_dir_mount="${DEPLOY_CONTEXT[APP_DATA_DIR_MOUNT]}"
+app_data_dir_rel="${DEPLOY_CONTEXT[APP_DATA_REL]}"
+app_data_path="${DEPLOY_CONTEXT[APP_DATA_PATH]}"
 
-echo "[*] Data directory (relative base): ${app_data_dir_rel:-<not configured>}"
+echo "[*] Data directory (relative): ${app_data_dir_rel:-<not configured>}"
 
-if [[ -z "$app_data_dir_mount" ]]; then
+if [[ -z "$app_data_path" ]]; then
   echo "[!] Data directory not identified for instance '$INSTANCE'." >&2
   exit 1
 fi
 
-data_src="$app_data_dir_mount"
+data_src="$app_data_path"
 
 if [[ ! -d "$data_src" ]]; then
   echo "[!] Data directory '$data_src' does not exist." >&2

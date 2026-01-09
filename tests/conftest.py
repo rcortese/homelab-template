@@ -86,17 +86,11 @@ import pathlib
 import sys
 
 log_path = pathlib.Path(os.environ[\"DOCKER_STUB_LOG\"])
-app_data_dir_mount = os.environ.get(\"APP_DATA_DIR_MOUNT\")
-absolute_mount = None
-if app_data_dir_mount:
-    absolute_mount = os.path.abspath(app_data_dir_mount)
 record = {
     \"args\": sys.argv[1:],
     \"env\": {
-        \"APP_DATA_DIR\": os.environ.get(\"APP_DATA_DIR\"),
-        \"APP_DATA_DIR_MOUNT\": os.environ.get(\"APP_DATA_DIR_MOUNT\"),
-        \"APP_DATA_DIR_MOUNT_ABS\": absolute_mount,
         \"LOCAL_INSTANCE\": os.environ.get(\"LOCAL_INSTANCE\"),
+        \"REPO_ROOT\": os.environ.get(\"REPO_ROOT\"),
     },
 }
 with log_path.open(\"a\", encoding=\"utf-8\") as handle:
@@ -235,6 +229,12 @@ def repo_copy(
         local_path = local_env_dir / f"{name}.env"
         if not local_path.exists():
             local_path.write_text("", encoding="utf-8")
+        content = local_path.read_text(encoding="utf-8")
+        if "REPO_ROOT=" not in content:
+            local_path.write_text(
+                content + f"REPO_ROOT={copy_root}\n",
+                encoding="utf-8",
+            )
 
     override_only_dir = copy_root / "compose" / "apps" / "overrideonly"
     override_only_dir.mkdir(parents=True, exist_ok=True)

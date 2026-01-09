@@ -82,6 +82,10 @@ def test_applies_extras_and_explicit_env_chain(
     extra_env3 = repo_copy / "env" / "custom3.env"
     for env_file in (extra_env1, extra_env2, extra_env3):
         env_file.write_text("PLACEHOLDER=1\n", encoding="utf-8")
+    extra_env1.write_text(
+        f"REPO_ROOT={repo_copy}\nPLACEHOLDER=1\n",
+        encoding="utf-8",
+    )
 
     extras_dir = repo_copy / "compose" / "extras"
     extras_dir.mkdir(parents=True, exist_ok=True)
@@ -154,7 +158,8 @@ def test_writes_consolidated_env_output_with_order(
     base_env_file = repo_copy / "env" / "custom-base.env"
     override_env_file = repo_copy / "env" / "custom-override.env"
     base_env_file.write_text(
-        "ALPHA=1\nSHARED=from_base\nOVERRIDE=keep\n", encoding="utf-8"
+        f"REPO_ROOT={repo_copy}\nALPHA=1\nSHARED=from_base\nOVERRIDE=keep\n",
+        encoding="utf-8",
     )
     override_env_file.write_text(
         "SHARED=from_override\nNEW_VAR=value\n", encoding="utf-8"
@@ -184,7 +189,9 @@ def test_writes_consolidated_env_output_with_order(
     assert result.returncode == 0, result.stderr
     assert env_output.read_text(encoding="utf-8") == (
         f"{GENERATED_HEADER}\n"
+        f"REPO_ROOT={repo_copy}\n"
         "ALPHA=1\nSHARED=from_override\nOVERRIDE=keep\nNEW_VAR=value\n"
+        "LOCAL_INSTANCE=core\n"
     )
     assert str(env_output) in result.stdout
 
@@ -200,7 +207,10 @@ def test_refreshes_default_env_output(repo_copy: Path, tmp_path: Path) -> None:
     default_env_output.write_text("OLD=1\n", encoding="utf-8")
 
     core_env = repo_copy / "env" / "local" / "core.env"
-    core_env.write_text("APP_SECRET=override-secret\nAPP_DATA_UID=2000\n", encoding="utf-8")
+    core_env.write_text(
+        f"REPO_ROOT={repo_copy}\nAPP_SECRET=override-secret\nAPP_DATA_UID=2000\n",
+        encoding="utf-8",
+    )
 
     result = run_build_compose_file(
         args=["core"],
@@ -219,4 +229,6 @@ def test_refreshes_default_env_output(repo_copy: Path, tmp_path: Path) -> None:
         "APP_RETENTION_HOURS=24",
         "APP_DATA_UID=2000",
         "APP_DATA_GID=1000",
+        f"REPO_ROOT={repo_copy}",
+        "LOCAL_INSTANCE=core",
     ]
