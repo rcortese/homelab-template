@@ -43,10 +43,7 @@ def test_missing_compose_file_in_temporary_copy(
         encoding="utf-8",
     )
     for instance in ("core", "media"):
-        (env_local / f"{instance}.env").write_text(
-            f"REPO_ROOT={repo_copy}\n",
-            encoding="utf-8",
-        )
+        (env_local / f"{instance}.env").write_text("", encoding="utf-8")
 
     missing_file = _select_manifest(repo_copy)
     missing_file.unlink()

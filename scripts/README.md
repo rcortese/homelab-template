@@ -11,7 +11,7 @@ Utilities under `scripts/lib/` are never executed alone: they expose reusable fu
 ## Usage conventions
 
 - **Resilient shell:** all Bash scripts adopt `set -euo pipefail` to abort on failures and prevent undeclared variables. Preserve this setting when writing new helpers.
-- **Shared environment variables:** helpers accept variables such as `COMPOSE_INSTANCES`, `COMPOSE_EXTRA_FILES`, `DOCKER_COMPOSE_BIN`, `REPO_ROOT`, `APP_DATA_UID`/`APP_DATA_GID`, among others. See each section in [`docs/OPERATIONS.md`](../docs/OPERATIONS.md) for details and export them before execution when you need to customize behavior.
+- **Shared environment variables:** helpers accept variables such as `COMPOSE_INSTANCES`, `COMPOSE_EXTRA_FILES`, `DOCKER_COMPOSE_BIN`, and `APP_DATA_UID`/`APP_DATA_GID`, among others. `REPO_ROOT` is derived by the scripts and written to the generated root `.env` (do not set it manually). See each section in [`docs/OPERATIONS.md`](../docs/OPERATIONS.md) for details and export them before execution when you need to customize behavior.
 - **External dependencies:** ensure Docker Compose v2 is available (`docker compose ...`) along with the tools used by linters (for example, `shfmt`, `shellcheck`, `checkbashisms`). Python snippets run via the official image (`python:3.11-slim`) when Docker is present; the local Python 3 runtime is used only as a fallback and automatically installs `requirements-dev.txt` dependencies if needed. Some flows also rely on `git`, `tar`, `jq`, and GNU coreutils.
 
 ## Catalog by category

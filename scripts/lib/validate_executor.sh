@@ -189,8 +189,8 @@ validate_executor_prepare_plan() {
     done
   fi
 
-  if [[ -z "${env_loaded[REPO_ROOT]:-}" ]]; then
-    echo "[x] instance=\"$instance\" (missing REPO_ROOT in env file chain)" >&2
+  if [[ -n "${env_loaded[REPO_ROOT]:-}" ]]; then
+    echo "[x] instance=\"$instance\" (REPO_ROOT must not be set in env files)" >&2
     return 1
   fi
 
@@ -205,6 +205,7 @@ validate_executor_prepare_plan() {
   fi
 
   derived_env_ref[LOCAL_INSTANCE]="$instance"
+  derived_env_ref[REPO_ROOT]="$repo_root"
 
   # Touch nameref arrays so shellcheck recognizes they are consumed by callers.
   : "${env_args_ref[@]}"

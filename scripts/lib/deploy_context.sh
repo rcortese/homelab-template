@@ -192,10 +192,8 @@ build_deploy_context() {
     fi
   done
 
-  local env_repo_root="${loaded_env_values[REPO_ROOT]:-}"
-  if [[ -z "$env_repo_root" ]]; then
-    echo "[!] Missing REPO_ROOT in env file chain for instance '$instance'." >&2
-    echo "    Set REPO_ROOT in env/local/${instance}.env (see env/${instance}.example.env)." >&2
+  if [[ -n "${loaded_env_values[REPO_ROOT]:-}" ]]; then
+    echo "[!] REPO_ROOT must not be set in env files; it is derived by scripts." >&2
     return 1
   fi
 

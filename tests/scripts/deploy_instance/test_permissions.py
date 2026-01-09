@@ -56,9 +56,9 @@ def test_deploy_without_privileges_skips_chown(repo_copy: Path) -> None:
         assert Path(directory).exists()
 
 
-def test_deploy_requires_repo_root(repo_copy: Path) -> None:
+def test_deploy_rejects_repo_root_override(repo_copy: Path) -> None:
     core_env = repo_copy / "env" / "local" / "core.env"
-    core_env.write_text("", encoding="utf-8")
+    core_env.write_text("REPO_ROOT=/tmp/override\n", encoding="utf-8")
 
     result = run_deploy(
         repo_copy,
@@ -71,7 +71,7 @@ def test_deploy_requires_repo_root(repo_copy: Path) -> None:
     )
 
     assert result.returncode != 0
-    assert "Missing REPO_ROOT" in result.stderr
+    assert "REPO_ROOT must not be set in env files" in result.stderr
 
 
 def test_deploy_rejects_legacy_app_data_dir(repo_copy: Path) -> None:

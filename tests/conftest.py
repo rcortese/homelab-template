@@ -229,12 +229,6 @@ def repo_copy(
         local_path = local_env_dir / f"{name}.env"
         if not local_path.exists():
             local_path.write_text("", encoding="utf-8")
-        content = local_path.read_text(encoding="utf-8")
-        if "REPO_ROOT=" not in content:
-            local_path.write_text(
-                content + f"REPO_ROOT={copy_root}\n",
-                encoding="utf-8",
-            )
 
     override_only_dir = copy_root / "compose" / "apps" / "overrideonly"
     override_only_dir.mkdir(parents=True, exist_ok=True)

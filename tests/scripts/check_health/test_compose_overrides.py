@@ -62,7 +62,7 @@ def test_ignores_compose_extra_files_from_env_file(
 ) -> None:
     env_file = tmp_path / "custom.env"
     env_file.write_text(
-        f"REPO_ROOT={repo_copy}\nCOMPOSE_EXTRA_FILES=compose/extra/extra.yml\n",
+        "COMPOSE_EXTRA_FILES=compose/extra/extra.yml\n",
         encoding="utf-8",
     )
 

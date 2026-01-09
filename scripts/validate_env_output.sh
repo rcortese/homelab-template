@@ -139,6 +139,8 @@ if ! env_file_chain__merge_to_file \
   "${COMPOSE_ENV_FILES_RESOLVED[@]}"; then
   exit 1
 fi
+printf 'REPO_ROOT=%s\n' "$REPO_ROOT" >>"$tmp_env_file"
+printf 'LOCAL_INSTANCE=%s\n' "$INSTANCE_NAME" >>"$tmp_env_file"
 
 if [[ ! -f "$ENV_OUTPUT_FILE" ]]; then
   echo "Error: root .env file not found at $ENV_OUTPUT_FILE." >&2
