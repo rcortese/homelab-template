@@ -7,9 +7,6 @@ VALIDATE_EXECUTOR_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=scripts/lib/env_file_chain.sh
 source "$VALIDATE_EXECUTOR_DIR/env_file_chain.sh"
 
-# shellcheck source=scripts/lib/env_helpers.sh
-source "$VALIDATE_EXECUTOR_DIR/env_helpers.sh"
-
 # shellcheck source=scripts/lib/compose_plan.sh
 source "$VALIDATE_EXECUTOR_DIR/compose_plan.sh"
 
@@ -172,14 +169,13 @@ validate_executor_prepare_plan() {
   fi
 
   derived_env_ref=()
-  local primary_app="$instance"
 
   declare -A env_loaded=()
   if [[ ${#env_files_abs[@]} -gt 0 ]]; then
     local env_file_path env_output line
     for env_file_path in "${env_files_abs[@]}"; do
       if [[ -f "$env_file_path" ]]; then
-        if env_output="$("$env_loader" "$env_file_path" APP_DATA_DIR APP_DATA_DIR_MOUNT 2>/dev/null)"; then
+        if env_output="$("$env_loader" "$env_file_path" REPO_ROOT LOCAL_INSTANCE APP_DATA_DIR APP_DATA_DIR_MOUNT 2>/dev/null)"; then
           while IFS= read -r line; do
             [[ -z "$line" ]] && continue
             if [[ "$line" == *=* ]]; then
@@ -193,109 +189,22 @@ validate_executor_prepare_plan() {
     done
   fi
 
-  local app_data_dir_value="${APP_DATA_DIR:-}"
-  local app_data_dir_mount_value="${APP_DATA_DIR_MOUNT:-}"
-
-  if [[ -z "$app_data_dir_value" && -n "${env_loaded[APP_DATA_DIR]:-}" ]]; then
-    app_data_dir_value="${env_loaded[APP_DATA_DIR]}"
-  fi
-  if [[ -z "$app_data_dir_mount_value" && -n "${env_loaded[APP_DATA_DIR_MOUNT]:-}" ]]; then
-    app_data_dir_mount_value="${env_loaded[APP_DATA_DIR_MOUNT]}"
+  if [[ -z "${env_loaded[REPO_ROOT]:-}" ]]; then
+    echo "[x] instance=\"$instance\" (missing REPO_ROOT in env file chain)" >&2
+    return 1
   fi
 
-  local default_app_data_dir=""
-  local service_slug=""
-  if [[ -n "$primary_app" ]]; then
-    service_slug="$primary_app"
-    if [[ -n "$instance" ]]; then
-      default_app_data_dir="data/${instance}/${primary_app}"
-    fi
+  if [[ -n "${env_loaded[LOCAL_INSTANCE]:-}" ]]; then
+    echo "[x] instance=\"$instance\" (LOCAL_INSTANCE must not be set in env files)" >&2
+    return 1
   fi
 
-  local derived_app_data_dir=""
-  local derived_app_data_dir_mount=""
-  local precomputed_values=0
-
-  if [[ -n "$service_slug" && -n "$app_data_dir_value" && -n "$app_data_dir_mount_value" ]]; then
-    local temp_app_data_dir=""
-    local temp_app_data_mount=""
-
-    if env_helpers__derive_app_data_paths \
-      "$repo_root" \
-      "$service_slug" \
-      "$default_app_data_dir" \
-      "$app_data_dir_value" \
-      "" \
-      temp_app_data_dir \
-      temp_app_data_mount; then
-      if [[ -n "$temp_app_data_mount" && "$temp_app_data_mount" == "$app_data_dir_mount_value" ]]; then
-        derived_app_data_dir="$temp_app_data_dir"
-        derived_app_data_dir_mount="$app_data_dir_mount_value"
-        precomputed_values=1
-      fi
-    fi
-
-    if ((precomputed_values == 0)); then
-      temp_app_data_dir=""
-      temp_app_data_mount=""
-      if env_helpers__derive_app_data_paths \
-        "$repo_root" \
-        "$service_slug" \
-        "$default_app_data_dir" \
-        "" \
-        "$app_data_dir_mount_value" \
-        temp_app_data_dir \
-        temp_app_data_mount; then
-        if [[ -n "$temp_app_data_mount" && "$temp_app_data_mount" == "$app_data_dir_mount_value" ]]; then
-          if [[ -z "$temp_app_data_dir" ]]; then
-            temp_app_data_dir="$app_data_dir_value"
-          fi
-          derived_app_data_dir="$temp_app_data_dir"
-          derived_app_data_dir_mount="$temp_app_data_mount"
-          precomputed_values=1
-        fi
-      fi
-    fi
-
-    if ((precomputed_values == 0)); then
-      echo "[x] instance=\"$instance\" (APP_DATA_DIR and APP_DATA_DIR_MOUNT cannot be set simultaneously)" >&2
-      return 1
-    fi
-
-    app_data_dir_value="$derived_app_data_dir"
-    app_data_dir_mount_value="$derived_app_data_dir_mount"
+  if [[ -n "${env_loaded[APP_DATA_DIR]:-}" || -n "${env_loaded[APP_DATA_DIR_MOUNT]:-}" ]]; then
+    echo "[x] instance=\"$instance\" (APP_DATA_DIR and APP_DATA_DIR_MOUNT are no longer supported)" >&2
+    return 1
   fi
 
-  local should_derive=0
-  if [[ -n "$default_app_data_dir" || -n "$app_data_dir_value" || -n "$app_data_dir_mount_value" ]]; then
-    should_derive=1
-  fi
-
-  if ((precomputed_values == 1)); then
-    should_derive=0
-  fi
-
-  if ((precomputed_values == 1)); then
-    :
-  elif ((should_derive == 1)); then
-    if ! env_helpers__derive_app_data_paths \
-      "$repo_root" \
-      "$service_slug" \
-      "$default_app_data_dir" \
-      "$app_data_dir_value" \
-      "$app_data_dir_mount_value" \
-      derived_app_data_dir \
-      derived_app_data_dir_mount; then
-      echo "[x] instance=\"$instance\" (failed to derive persistent directories)" >&2
-      return 1
-    fi
-  else
-    derived_app_data_dir="$app_data_dir_value"
-    derived_app_data_dir_mount="$app_data_dir_mount_value"
-  fi
-
-  derived_env_ref[APP_DATA_DIR]="$derived_app_data_dir"
-  derived_env_ref[APP_DATA_DIR_MOUNT]="$derived_app_data_dir_mount"
+  derived_env_ref[LOCAL_INSTANCE]="$instance"
 
   # Touch nameref arrays so shellcheck recognizes they are consumed by callers.
   : "${env_args_ref[@]}"
@@ -344,8 +253,7 @@ validate_executor_run_instances() {
     fi
 
     echo "==> Validating $instance"
-    local app_data_dir_env="${derived_env[APP_DATA_DIR]:-}"
-    local app_data_dir_mount_env="${derived_env[APP_DATA_DIR_MOUNT]:-}"
+    local local_instance_env="${derived_env[LOCAL_INSTANCE]:-}"
 
     local -a env_files_pretty=()
     if ((${#env_args[@]} > 0)); then
@@ -368,8 +276,7 @@ validate_executor_run_instances() {
 
     if [[ "${VALIDATE_USE_LEGACY_PLAN:-false}" == "true" ]]; then
       if compose_output_file=$(mktemp -t validate-compose-config.XXXXXX 2>/dev/null); then
-        APP_DATA_DIR="$app_data_dir_env" \
-          APP_DATA_DIR_MOUNT="$app_data_dir_mount_env" \
+        LOCAL_INSTANCE="$local_instance_env" \
           "${compose_cmd[@]}" "${env_args[@]}" "${compose_args[@]}" config \
           >"$compose_output_file" 2>&1
         compose_status=$?
@@ -387,7 +294,7 @@ validate_executor_run_instances() {
           else
             echo "   env files: (none)" >&2
           fi
-          echo "   derived env: APP_DATA_DIR=\"$app_data_dir_env\" APP_DATA_DIR_MOUNT=\"$app_data_dir_mount_env\"" >&2
+          echo "   derived env: LOCAL_INSTANCE=\"$local_instance_env\"" >&2
           if [[ -n "$compose_output" ]]; then
             echo "   docker compose config output:" >&2
             while IFS= read -r compose_line; do
@@ -397,8 +304,7 @@ validate_executor_run_instances() {
           status=1
         fi
       else
-        APP_DATA_DIR="$app_data_dir_env" \
-          APP_DATA_DIR_MOUNT="$app_data_dir_mount_env" \
+        LOCAL_INSTANCE="$local_instance_env" \
           "${compose_cmd[@]}" "${env_args[@]}" "${compose_args[@]}" config >/dev/null 2>&1
         compose_status=$?
 
@@ -412,7 +318,7 @@ validate_executor_run_instances() {
           else
             echo "   env files: (none)" >&2
           fi
-          echo "   derived env: APP_DATA_DIR=\"$app_data_dir_env\" APP_DATA_DIR_MOUNT=\"$app_data_dir_mount_env\"" >&2
+          echo "   derived env: LOCAL_INSTANCE=\"$local_instance_env\"" >&2
           status=1
         fi
       fi
@@ -445,7 +351,7 @@ validate_executor_run_instances() {
         else
           echo "   env files: (none)" >&2
         fi
-        echo "   derived env: APP_DATA_DIR=\"$app_data_dir_env\" APP_DATA_DIR_MOUNT=\"$app_data_dir_mount_env\"" >&2
+        echo "   derived env: LOCAL_INSTANCE=\"$local_instance_env\"" >&2
         status=1
         if [[ -n "$compose_output_file" && -f "$compose_output_file" ]]; then
           compose_output=$(<"$compose_output_file")
@@ -469,8 +375,7 @@ validate_executor_run_instances() {
       consolidated_cmd+=(-f "$consolidated_file")
 
       if compose_output_file=$(mktemp -t validate-compose-config.XXXXXX 2>/dev/null); then
-        APP_DATA_DIR="$app_data_dir_env" \
-          APP_DATA_DIR_MOUNT="$app_data_dir_mount_env" \
+        LOCAL_INSTANCE="$local_instance_env" \
           "${consolidated_cmd[@]}" config -q \
           >"$compose_output_file" 2>&1
         compose_status=$?
@@ -488,7 +393,7 @@ validate_executor_run_instances() {
           else
             echo "   env files: (none)" >&2
           fi
-          echo "   derived env: APP_DATA_DIR=\"$app_data_dir_env\" APP_DATA_DIR_MOUNT=\"$app_data_dir_mount_env\"" >&2
+          echo "   derived env: LOCAL_INSTANCE=\"$local_instance_env\"" >&2
           if [[ -n "$compose_output" ]]; then
             echo "   docker compose config output:" >&2
             while IFS= read -r compose_line; do
@@ -498,8 +403,7 @@ validate_executor_run_instances() {
           status=1
         fi
       else
-        APP_DATA_DIR="$app_data_dir_env" \
-          APP_DATA_DIR_MOUNT="$app_data_dir_mount_env" \
+        LOCAL_INSTANCE="$local_instance_env" \
           "${consolidated_cmd[@]}" config -q >/dev/null 2>&1
         compose_status=$?
         if ((compose_status == 0)); then
@@ -513,7 +417,7 @@ validate_executor_run_instances() {
           else
             echo "   env files: (none)" >&2
           fi
-          echo "   derived env: APP_DATA_DIR=\"$app_data_dir_env\" APP_DATA_DIR_MOUNT=\"$app_data_dir_mount_env\"" >&2
+          echo "   derived env: LOCAL_INSTANCE=\"$local_instance_env\"" >&2
           status=1
         fi
       fi

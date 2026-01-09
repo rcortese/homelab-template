@@ -279,7 +279,7 @@ def test_build_sync_report_uses_runtime_provided_variables(
         for variables in report.missing_by_instance.values()
         for variable in variables
     }
-    assert "PWD" not in missing_vars
+    assert "LOCAL_INSTANCE" not in missing_vars
 
     monkeypatch.setattr("scripts.check_env_sync.RUNTIME_PROVIDED_VARIABLES", set())
 
@@ -289,7 +289,7 @@ def test_build_sync_report_uses_runtime_provided_variables(
         for variables in report_without_runtime.missing_by_instance.values()
         for variable in variables
     }
-    assert "PWD" in missing_without_runtime
+    assert "LOCAL_INSTANCE" in missing_without_runtime
 
 
 def test_build_sync_report_uses_common_and_implicit_vars(monkeypatch, tmp_path: Path) -> None:

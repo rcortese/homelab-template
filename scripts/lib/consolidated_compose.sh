@@ -52,12 +52,10 @@ compose_generate_consolidated() {
     output_file="$repo_root/${output_file#./}"
   fi
 
-  local app_data_dir_value=""
-  local app_data_dir_mount_value=""
+  local local_instance=""
   if [[ -n "$env_assoc_name" ]]; then
     local -n __env_assoc_ref=$env_assoc_name
-    app_data_dir_value="${__env_assoc_ref[APP_DATA_DIR]:-}"
-    app_data_dir_mount_value="${__env_assoc_ref[APP_DATA_DIR_MOUNT]:-}"
+    local_instance="${__env_assoc_ref[LOCAL_INSTANCE]:-}"
   fi
 
   local output_dir
@@ -71,8 +69,7 @@ compose_generate_consolidated() {
 
   local compose_status=0
 
-  APP_DATA_DIR="$app_data_dir_value" \
-    APP_DATA_DIR_MOUNT="$app_data_dir_mount_value" \
+  LOCAL_INSTANCE="$local_instance" \
     "${__compose_cmd_ref[@]}" config >"$output_file" || compose_status=$?
 
   if ((compose_status != 0)); then

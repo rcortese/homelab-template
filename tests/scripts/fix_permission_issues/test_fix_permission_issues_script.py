@@ -17,11 +17,9 @@ def _snapshot_tree(root: Path) -> tuple[set[Path], set[Path]]:
     return directories, files
 
 
-def _append_env_values(env_file: Path, *, data_dir: str | None = None, uid: int | None = None, gid: int | None = None) -> None:
+def _append_env_values(env_file: Path, *, uid: int | None = None, gid: int | None = None) -> None:
     current = env_file.read_text(encoding="utf-8")
     lines: list[str] = []
-    if data_dir is not None:
-        lines.append(f"APP_DATA_DIR={data_dir}\n")
     if uid is not None:
         lines.append(f"APP_DATA_UID={uid}\n")
     if gid is not None:
@@ -52,7 +50,7 @@ def test_dry_run_outputs_planned_actions(repo_copy: Path) -> None:
     _append_env_values(env_file, uid=uid, gid=gid)
 
     data_dir = repo_copy / "data" / "core"
-    data_mount = data_dir / "core"
+    data_mount = data_dir / "app"
     backups_dir = repo_copy / "backups"
     expected_dirs = (data_mount, backups_dir)
 
@@ -105,15 +103,15 @@ def test_dry_run_outputs_planned_actions(repo_copy: Path) -> None:
 def test_script_creates_directories_and_applies_owner(repo_copy: Path) -> None:
     env_file = repo_copy / "env" / "local" / "core.env"
     uid, gid = _current_ids()
-    _append_env_values(env_file, data_dir="custom-storage", uid=uid, gid=gid)
+    _append_env_values(env_file, uid=uid, gid=gid)
 
     result = _run_script(repo_copy, "core")
 
     assert result.returncode == 0, result.stderr
     stdout = result.stdout
 
-    data_dir = repo_copy / "custom-storage"
-    data_mount = data_dir / "core"
+    data_dir = repo_copy / "data" / "core"
+    data_mount = data_dir / "app"
     backups_dir = repo_copy / "backups"
 
     assert data_dir.is_dir()

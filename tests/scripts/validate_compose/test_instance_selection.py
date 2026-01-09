@@ -199,8 +199,7 @@ def test_compose_failure_reports_diagnostics(tmp_path: Path) -> None:
         (line.strip() for line in stderr_lines if line.strip().startswith("derived env:")),
         "",
     )
-    assert derived_line.startswith("derived env: APP_DATA_DIR=")
-    assert "APP_DATA_DIR_MOUNT=" in derived_line
+    assert derived_line.startswith("derived env: LOCAL_INSTANCE=")
 
     assert "docker compose config output:" in result.stderr
     assert "     line-from-compose stdout" in result.stderr

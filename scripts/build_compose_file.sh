@@ -185,6 +185,39 @@ if ((${#COMPOSE_ENV_FILES_LIST[@]} > 0)); then
   )
 fi
 
+declare -A env_loaded=()
+if ((${#COMPOSE_ENV_FILES_RESOLVED[@]} > 0)); then
+  for env_file in "${COMPOSE_ENV_FILES_RESOLVED[@]}"; do
+    if [[ -f "$env_file" ]]; then
+      if env_output="$("$SCRIPT_DIR/lib/env_loader.sh" "$env_file" REPO_ROOT LOCAL_INSTANCE APP_DATA_DIR APP_DATA_DIR_MOUNT 2>/dev/null)"; then
+        while IFS= read -r line; do
+          [[ -z "$line" ]] && continue
+          if [[ "$line" == *=* ]]; then
+            key="${line%%=*}"
+            value="${line#*=}"
+            env_loaded[$key]="$value"
+          fi
+        done <<<"$env_output"
+      fi
+    fi
+  done
+fi
+
+if [[ -z "${env_loaded[REPO_ROOT]:-}" ]]; then
+  echo "Error: REPO_ROOT must be set in the env file chain for instance '$INSTANCE_NAME'." >&2
+  exit 1
+fi
+
+if [[ -n "${env_loaded[LOCAL_INSTANCE]:-}" ]]; then
+  echo "Error: LOCAL_INSTANCE must not be set in env files; it is derived by scripts." >&2
+  exit 1
+fi
+
+if [[ -n "${env_loaded[APP_DATA_DIR]:-}" || -n "${env_loaded[APP_DATA_DIR_MOUNT]:-}" ]]; then
+  echo "Error: APP_DATA_DIR and APP_DATA_DIR_MOUNT are no longer supported." >&2
+  exit 1
+fi
+
 if ! cd "$REPO_ROOT"; then
   echo "Error: could not access repository directory: $REPO_ROOT" >&2
   exit 1
@@ -196,6 +229,7 @@ if ! env_file_chain__merge_to_file \
   "${COMPOSE_ENV_FILES_RESOLVED[@]}"; then
   exit 1
 fi
+printf 'LOCAL_INSTANCE=%s\n' "$INSTANCE_NAME" >>"$ENV_OUTPUT_FILE"
 
 declare -a compose_cmd=()
 if ! compose_resolve_command compose_cmd; then
@@ -227,7 +261,7 @@ if [[ ! -d "$compose_tmp_dir" ]]; then
 fi
 : >"$compose_tmp_file"
 
-generate_cmd=("${compose_cmd[@]}" config --output "$compose_tmp_file")
+generate_cmd=(LOCAL_INSTANCE="$INSTANCE_NAME" "${compose_cmd[@]}" config --output "$compose_tmp_file")
 
 if ! "${generate_cmd[@]}"; then
   echo "Error: failed to generate docker-compose.yml." >&2
@@ -237,7 +271,7 @@ fi
   printf '%s\n' "$GENERATED_HEADER"
   cat "$compose_tmp_file"
 } >"$OUTPUT_FILE"
-validate_cmd=("${compose_cmd[@]}" -f "$OUTPUT_FILE" config -q)
+validate_cmd=(LOCAL_INSTANCE="$INSTANCE_NAME" "${compose_cmd[@]}" -f "$OUTPUT_FILE" config -q)
 if ! "${validate_cmd[@]}"; then
   echo "Error: inconsistencies detected while validating $OUTPUT_FILE." >&2
   exit 1

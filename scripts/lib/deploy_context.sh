@@ -2,9 +2,6 @@
 
 _DEPLOY_CONTEXT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# shellcheck source=scripts/lib/env_helpers.sh
-source "${_DEPLOY_CONTEXT_DIR}/env_helpers.sh"
-
 # shellcheck source=scripts/lib/compose_plan.sh
 source "${_DEPLOY_CONTEXT_DIR}/compose_plan.sh"
 
@@ -154,27 +151,15 @@ build_deploy_context() {
     idx=$((idx + 1))
   done
 
-  local app_data_dir_was_set=0
-  local previous_app_data_dir=""
-  if [[ -v APP_DATA_DIR ]]; then
-    app_data_dir_was_set=1
-    previous_app_data_dir="$APP_DATA_DIR"
-  fi
-
-  local app_data_dir_mount_was_set=0
-  local previous_app_data_dir_mount=""
-  if [[ -v APP_DATA_DIR_MOUNT ]]; then
-    app_data_dir_mount_was_set=1
-    previous_app_data_dir_mount="$APP_DATA_DIR_MOUNT"
-  fi
-
   local -A loaded_env_values=()
   local -a requested_env_keys=(
-    APP_DATA_DIR
-    APP_DATA_DIR_MOUNT
     COMPOSE_EXTRA_FILES
     APP_DATA_UID
     APP_DATA_GID
+    REPO_ROOT
+    LOCAL_INSTANCE
+    APP_DATA_DIR
+    APP_DATA_DIR_MOUNT
   )
 
   local env_file_abs
@@ -200,39 +185,38 @@ build_deploy_context() {
       if [[ "$key" == "COMPOSE_EXTRA_FILES" && -n "${COMPOSE_EXTRA_FILES:-}" ]]; then
         continue
       fi
+      if [[ "$key" == "REPO_ROOT" || "$key" == "LOCAL_INSTANCE" || "$key" == "APP_DATA_DIR" || "$key" == "APP_DATA_DIR_MOUNT" ]]; then
+        continue
+      fi
       export "$key=${loaded_env_values[$key]}"
     fi
   done
 
-  local primary_app="$instance"
-  local app_names_string=""
-  local default_app_data_dir=""
-  if [[ -n "$primary_app" && -n "$instance" ]]; then
-    default_app_data_dir="data/${instance}/${primary_app}"
-  fi
-
-  local service_slug="$primary_app"
-
-  local app_data_dir_value_raw="${APP_DATA_DIR:-}"
-  local app_data_dir_mount_value_raw="${APP_DATA_DIR_MOUNT:-}"
-
-  local derived_app_data_dir=""
-  local derived_app_data_dir_mount=""
-  if ! env_helpers__derive_app_data_paths "$repo_root" "$service_slug" "$default_app_data_dir" "$app_data_dir_value_raw" "$app_data_dir_mount_value_raw" derived_app_data_dir derived_app_data_dir_mount; then
+  local env_repo_root="${loaded_env_values[REPO_ROOT]:-}"
+  if [[ -z "$env_repo_root" ]]; then
+    echo "[!] Missing REPO_ROOT in env file chain for instance '$instance'." >&2
+    echo "    Set REPO_ROOT in env/local/${instance}.env (see env/${instance}.example.env)." >&2
     return 1
   fi
 
-  if ((app_data_dir_was_set == 1)); then
-    APP_DATA_DIR="$previous_app_data_dir"
-  else
-    unset APP_DATA_DIR
+  if [[ -n "${loaded_env_values[LOCAL_INSTANCE]:-}" ]]; then
+    echo "[!] LOCAL_INSTANCE is derived by scripts and must not be set in env files." >&2
+    return 1
   fi
 
-  if ((app_data_dir_mount_was_set == 1)); then
-    APP_DATA_DIR_MOUNT="$previous_app_data_dir_mount"
-  else
-    unset APP_DATA_DIR_MOUNT
+  if [[ -n "${loaded_env_values[APP_DATA_DIR]:-}" || -n "${loaded_env_values[APP_DATA_DIR_MOUNT]:-}" ]]; then
+    echo "[!] APP_DATA_DIR and APP_DATA_DIR_MOUNT are no longer supported." >&2
+    return 1
   fi
+
+  local primary_app="$instance"
+  local app_names_string=""
+  local app_data_rel=""
+  if [[ -n "$primary_app" && -n "$instance" ]]; then
+    app_data_rel="data/${instance}/app"
+  fi
+
+  local app_data_path="$repo_root/$app_data_rel"
 
   local -a extra_compose_files=()
   local extra_compose_files_string=""
@@ -258,7 +242,7 @@ build_deploy_context() {
     env_files_string="${env_files_string%$'\n'}"
   fi
 
-  local -a persistent_dirs=("$derived_app_data_dir_mount" "$repo_root/backups")
+  local -a persistent_dirs=("$app_data_path" "$repo_root/backups")
   local persistent_dirs_string
   persistent_dirs_string="$(printf '%s\n' "${persistent_dirs[@]}")"
 
@@ -271,8 +255,8 @@ build_deploy_context() {
   printf '  [COMPOSE_ENV_FILES]=%q\n' "$env_files_string"
   printf '  [COMPOSE_EXTRA_FILES]=%q\n' "$extra_compose_files_string"
   printf '  [COMPOSE_FILES]=%q\n' "$compose_files_string"
-  printf '  [APP_DATA_DIR]=%q\n' "$derived_app_data_dir"
-  printf '  [APP_DATA_DIR_MOUNT]=%q\n' "$derived_app_data_dir_mount"
+  printf '  [APP_DATA_REL]=%q\n' "$app_data_rel"
+  printf '  [APP_DATA_PATH]=%q\n' "$app_data_path"
   printf '  [PERSISTENT_DIRS]=%q\n' "$persistent_dirs_string"
   printf '  [DATA_UID]=%q\n' "$data_uid"
   printf '  [DATA_GID]=%q\n' "$data_gid"
