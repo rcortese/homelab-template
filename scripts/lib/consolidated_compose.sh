@@ -53,9 +53,14 @@ compose_generate_consolidated() {
   fi
 
   local local_instance=""
+  local repo_root_env=""
   if [[ -n "$env_assoc_name" ]]; then
     local -n __env_assoc_ref=$env_assoc_name
     local_instance="${__env_assoc_ref[LOCAL_INSTANCE]:-}"
+    repo_root_env="${__env_assoc_ref[REPO_ROOT]:-}"
+  fi
+  if [[ -z "$repo_root_env" ]]; then
+    repo_root_env="$repo_root"
   fi
 
   local output_dir
@@ -69,7 +74,7 @@ compose_generate_consolidated() {
 
   local compose_status=0
 
-  LOCAL_INSTANCE="$local_instance" \
+  LOCAL_INSTANCE="$local_instance" REPO_ROOT="$repo_root_env" \
     "${__compose_cmd_ref[@]}" config >"$output_file" || compose_status=$?
 
   if ((compose_status != 0)); then

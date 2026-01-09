@@ -52,11 +52,12 @@ Create a table similar to the one below for each `env/<target>.example.env` file
 
 | Variable | Required? | Usage | Reference |
 | --- | --- | --- | --- |
-| `REPO_ROOT` | Yes | Absolute path to the repository root used by Compose volume mounts. | `docker-compose.<instance>.yml` and `scripts/build_compose_file.sh`. |
 | `APP_PUBLIC_URL` | Optional | Sets the public URL for links and cookies. | `docker-compose.<instance>.yml` (e.g., `docker-compose.core.yml`). |
 | `COMPOSE_EXTRA_FILES` | Optional | Lists additional compose files applied after the instance override (space- or comma-separated). | `scripts/deploy_instance.sh`, `scripts/validate_compose.sh`, `scripts/lib/compose_defaults.sh`. |
 
 > Replace the table with the real fields in your stack. Use the **Reference** column to point where the variable is consumed (manifests, scripts, external infrastructure, etc.).
+
+`REPO_ROOT` is derived by the scripts and written to the generated root `.env`, so it should not appear in `env/*.example.env` or `env/local/*.env`.
 
 The instance templates include illustrative placeholders that should be renamed according to each fork’s real service. Use the following list as a guide when reviewing `env/core.example.env` and `env/media.example.env`:
 
@@ -70,7 +71,7 @@ The instance templates include illustrative placeholders that should be renamed 
 
 Rename these identifiers to terms aligned with your domain (for example, `PORTAL_PUBLIC_URL`, `PORTAL_NETWORK_IPV4`, `ACME_PROXY_NETWORK_NAME`) and update the associated manifests to avoid leftover default values.
 
-> **Note:** the main persistent directory follows the `data/<instance>/app` convention relative to `REPO_ROOT`. Adjust `APP_DATA_UID` and `APP_DATA_GID` to align permissions.
+> **Note:** the main persistent directory follows the `data/<instance>/app` convention relative to the repository root. Scripts derive `REPO_ROOT` at runtime and write it to the generated root `.env` so Compose can resolve persistent mounts. Adjust `APP_DATA_UID` and `APP_DATA_GID` to align permissions.
 
 > **`LOCAL_INSTANCE` flow:** the wrappers (such as `scripts/deploy_instance.sh`) derive `LOCAL_INSTANCE` based on the selected instance (e.g., `core`, `media`) and write it into the generated `.env`. Use the scripts or the generated `.env` when running `docker compose` so the manifests receive the correct instance name.
 

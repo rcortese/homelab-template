@@ -29,7 +29,7 @@ When building the stack, choose the instance compose file and any extra compose 
 | Variable | Where to define | Purpose | Reference |
 | --- | --- | --- | --- |
 | `TZ` | `env/common.example.env` | Ensures a consistent timezone for logs and schedules. | [env/README.md](../env/README.md#envcommonexampleenv) |
-| `REPO_ROOT` | `env/<instance>.example.env` | Absolute path to the repository root for persistent mounts. | [env/README.md](../env/README.md#variable-mapping) |
+| `REPO_ROOT` | Generated `.env` | Derived by scripts so Compose resolves persistent mounts from the repository root. | [env/README.md](../env/README.md#variable-mapping) |
 | `APP_SHARED_DATA_VOLUME_NAME` | `env/common.example.env` | Standardizes the shared volume across multiple applications. | [env/README.md](../env/README.md#envcommonexampleenv) |
 | `COMPOSE_EXTRA_FILES` | `env/<instance>.example.env` | Lists additional compose files applied after the default manifests. | [env/README.md](../env/README.md#como-gerar-arquivos-locais) |
 
