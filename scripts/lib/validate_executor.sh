@@ -16,6 +16,37 @@ source "$VALIDATE_EXECUTOR_DIR/compose_file_utils.sh"
 # shellcheck source=scripts/lib/consolidated_compose.sh
 source "$VALIDATE_EXECUTOR_DIR/consolidated_compose.sh"
 
+validate_executor_print_root_cause() {
+  if [[ $# -lt 2 ]]; then
+    echo "validate_executor_print_root_cause: expected <compose_output> <files_ref>" >&2
+    return 64
+  fi
+
+  local compose_output="$1"
+  local files_name="$2"
+  local -n __files_ref=$files_name
+
+  local root_cause=""
+  local compose_line
+  while IFS= read -r compose_line; do
+    [[ -z "$compose_line" ]] && continue
+    root_cause="$compose_line"
+    break
+  done <<<"$compose_output"
+
+  if [[ -n "$root_cause" ]]; then
+    echo "   Root cause (from docker compose): $root_cause" >&2
+  fi
+
+  if ((${#__files_ref[@]} > 0)); then
+    echo "   compose plan order:" >&2
+    local idx
+    for idx in "${!__files_ref[@]}"; do
+      echo "     $((idx + 1)). ${__files_ref[$idx]}" >&2
+    done
+  fi
+}
+
 validate_executor_prepare_plan() {
   local instance="$1"
   local repo_root="$2"
@@ -289,7 +320,7 @@ validate_executor_run_instances() {
           compose_output=$(<"$compose_output_file")
           rm -f "$compose_output_file"
           echo "[x] instance=\"$instance\" (docker compose config exited with status $compose_status)" >&2
-          echo "   files: ${files[*]}" >&2
+          echo "   failing files: ${files[*]}" >&2
           if ((${#env_files_pretty[@]} > 0)); then
             echo "   env files: ${env_files_pretty[*]}" >&2
           else
@@ -297,29 +328,29 @@ validate_executor_run_instances() {
           fi
           echo "   derived env: LOCAL_INSTANCE=\"$local_instance_env\"" >&2
           if [[ -n "$compose_output" ]]; then
-            echo "   docker compose config output:" >&2
-            while IFS= read -r compose_line; do
-              echo "     $compose_line" >&2
-            done <<<"$compose_output"
+            validate_executor_print_root_cause "$compose_output" files
           fi
           status=1
         fi
       else
-        LOCAL_INSTANCE="$local_instance_env" \
-          "${compose_cmd[@]}" "${env_args[@]}" "${compose_args[@]}" config >/dev/null 2>&1
+        compose_output="$(LOCAL_INSTANCE="$local_instance_env" \
+          "${compose_cmd[@]}" "${env_args[@]}" "${compose_args[@]}" config 2>&1)"
         compose_status=$?
 
         if ((compose_status == 0)); then
           echo "[+] $instance"
         else
           echo "[x] instance=\"$instance\" (docker compose config exited with status $compose_status)" >&2
-          echo "   files: ${files[*]}" >&2
+          echo "   failing files: ${files[*]}" >&2
           if ((${#env_files_pretty[@]} > 0)); then
             echo "   env files: ${env_files_pretty[*]}" >&2
           else
             echo "   env files: (none)" >&2
           fi
           echo "   derived env: LOCAL_INSTANCE=\"$local_instance_env\"" >&2
+          if [[ -n "$compose_output" ]]; then
+            validate_executor_print_root_cause "$compose_output" files
+          fi
           status=1
         fi
       fi
@@ -340,29 +371,31 @@ validate_executor_run_instances() {
           rm -f "$compose_output_file"
         fi
       else
-        compose_generate_consolidated "$repo_root" consolidated_plan "$consolidated_file" derived_env >/dev/null 2>&1
+        compose_output="$(compose_generate_consolidated "$repo_root" consolidated_plan "$consolidated_file" derived_env 2>&1)"
         compose_status=$?
       fi
 
       if ((compose_status != 0)); then
         echo "[x] instance=\"$instance\" (failed to generate consolidated docker-compose.yml)" >&2
-        echo "   files: ${files[*]}" >&2
+        echo "   failing files: ${files[*]}" >&2
         if ((${#env_files_pretty[@]} > 0)); then
           echo "   env files: ${env_files_pretty[*]}" >&2
         else
           echo "   env files: (none)" >&2
         fi
         echo "   derived env: LOCAL_INSTANCE=\"$local_instance_env\"" >&2
+        echo "   compose plan order:" >&2
+        local idx
+        for idx in "${!files[@]}"; do
+          echo "     $((idx + 1)). ${files[$idx]}" >&2
+        done
         status=1
         if [[ -n "$compose_output_file" && -f "$compose_output_file" ]]; then
           compose_output=$(<"$compose_output_file")
           rm -f "$compose_output_file"
-          if [[ -n "$compose_output" ]]; then
-            echo "   docker compose config output:" >&2
-            while IFS= read -r compose_line; do
-              echo "     $compose_line" >&2
-            done <<<"$compose_output"
-          fi
+        fi
+        if [[ -n "$compose_output" ]]; then
+          validate_executor_print_root_cause "$compose_output" files
         fi
         continue
       fi
@@ -387,7 +420,7 @@ validate_executor_run_instances() {
           compose_output=$(<"$compose_output_file")
           rm -f "$compose_output_file"
           echo "[x] instance=\"$instance\" (docker compose config -q exited with status $compose_status)" >&2
-          echo "   files: ${files[*]}" >&2
+          echo "   failing files: ${files[*]}" >&2
           echo "   consolidated file: $consolidated_file" >&2
           if ((${#env_files_pretty[@]} > 0)); then
             echo "   env files: ${env_files_pretty[*]}" >&2
@@ -396,22 +429,19 @@ validate_executor_run_instances() {
           fi
           echo "   derived env: LOCAL_INSTANCE=\"$local_instance_env\"" >&2
           if [[ -n "$compose_output" ]]; then
-            echo "   docker compose config output:" >&2
-            while IFS= read -r compose_line; do
-              echo "     $compose_line" >&2
-            done <<<"$compose_output"
+            validate_executor_print_root_cause "$compose_output" files
           fi
           status=1
         fi
       else
-        LOCAL_INSTANCE="$local_instance_env" \
-          "${consolidated_cmd[@]}" config -q >/dev/null 2>&1
+        compose_output="$(LOCAL_INSTANCE="$local_instance_env" \
+          "${consolidated_cmd[@]}" config -q 2>&1)"
         compose_status=$?
         if ((compose_status == 0)); then
           echo "[+] $instance"
         else
           echo "[x] instance=\"$instance\" (docker compose config -q exited with status $compose_status)" >&2
-          echo "   files: ${files[*]}" >&2
+          echo "   failing files: ${files[*]}" >&2
           echo "   consolidated file: $consolidated_file" >&2
           if ((${#env_files_pretty[@]} > 0)); then
             echo "   env files: ${env_files_pretty[*]}" >&2
@@ -419,6 +449,9 @@ validate_executor_run_instances() {
             echo "   env files: (none)" >&2
           fi
           echo "   derived env: LOCAL_INSTANCE=\"$local_instance_env\"" >&2
+          if [[ -n "$compose_output" ]]; then
+            validate_executor_print_root_cause "$compose_output" files
+          fi
           status=1
         fi
       fi
