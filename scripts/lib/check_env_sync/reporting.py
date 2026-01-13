@@ -12,6 +12,7 @@ from scripts.lib.check_env_sync.env_templates import EnvTemplateData, load_env_v
 
 RUNTIME_PROVIDED_VARIABLES: Set[str] = {"LOCAL_INSTANCE", "REPO_ROOT"}
 DEFAULT_IMPLICIT_ENV_VARS: Set[str] = {"APP_DATA_UID", "APP_DATA_GID"}
+IMPLICIT_ENV_VARS: Set[str] = set()
 
 
 @dataclass
@@ -75,6 +76,7 @@ def build_sync_report(repo_root: Path, metadata: ComposeMetadata) -> SyncReport:
     common_env_vars = set(common_env_data.available)
     common_env_vars.update(local_common_data.available)
     implicit_env_vars = set(DEFAULT_IMPLICIT_ENV_VARS)
+    implicit_env_vars.update(IMPLICIT_ENV_VARS)
     common_env_vars.update(implicit_env_vars)
 
     missing_templates: List[str] = []
