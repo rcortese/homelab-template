@@ -24,6 +24,11 @@ python_runtime__resolve_requirements() {
   fi
 }
 
+python_runtime__has_pip() {
+  local python_bin="$1"
+  "$python_bin" -m pip --version >/dev/null 2>&1
+}
+
 python_runtime__build_docker_prefix() {
   local repo_root="$1"
   local env_vars_raw="$2"
@@ -75,6 +80,14 @@ python_runtime__run() {
   if [[ -n "$python_bin" ]]; then
     local requirements
     requirements="$(python_runtime__resolve_requirements "$repo_root")"
+    if [[ -n "$requirements" && -f "$requirements" && "$PYTHON_RUNTIME_SKIP_REQUIREMENTS" != "1" ]]; then
+      if ! python_runtime__has_pip "$python_bin"; then
+        python_bin=""
+      fi
+    fi
+  fi
+
+  if [[ -n "$python_bin" ]]; then
     python_runtime__install_local_requirements "$python_bin" "$requirements"
     "$python_bin" "${py_args[@]}"
     return $?
@@ -120,6 +133,14 @@ python_runtime__run_stdin() {
   if [[ -n "$python_bin" ]]; then
     local requirements
     requirements="$(python_runtime__resolve_requirements "$repo_root")"
+    if [[ -n "$requirements" && -f "$requirements" && "$PYTHON_RUNTIME_SKIP_REQUIREMENTS" != "1" ]]; then
+      if ! python_runtime__has_pip "$python_bin"; then
+        python_bin=""
+      fi
+    fi
+  fi
+
+  if [[ -n "$python_bin" ]]; then
     python_runtime__install_local_requirements "$python_bin" "$requirements"
     cat | "$python_bin" - "${py_args[@]}"
     return $?
