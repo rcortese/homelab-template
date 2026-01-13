@@ -15,6 +15,8 @@ source "$VALIDATE_EXECUTOR_DIR/compose_file_utils.sh"
 
 # shellcheck source=scripts/lib/consolidated_compose.sh
 source "$VALIDATE_EXECUTOR_DIR/consolidated_compose.sh"
+# shellcheck source=scripts/lib/compose_yaml_validation.sh
+source "$VALIDATE_EXECUTOR_DIR/compose_yaml_validation.sh"
 
 validate_executor_prepare_plan() {
   local instance="$1"
@@ -249,6 +251,12 @@ validate_executor_run_instances() {
       if [[ $prepare_status -eq 2 ]]; then
         return 2
       fi
+      status=1
+      continue
+    fi
+
+    if ! compose_yaml_validate_services_mapping "$repo_root" "${files[@]}"; then
+      echo "[x] instance=\"$instance\" (compose YAML validation failed)" >&2
       status=1
       continue
     fi
