@@ -26,6 +26,19 @@ compose_env_validation__check() {
       continue
     fi
     while IFS= read -r raw_var; do
+      local requires_value=1
+      if [[ "$raw_var" =~ ^\$\{[A-Za-z_][A-Za-z0-9_]*:\? ]]; then
+        requires_value=1
+      elif [[ "$raw_var" =~ ^\$\{[A-Za-z_][A-Za-z0-9_]*\? ]]; then
+        requires_value=1
+      elif [[ "$raw_var" =~ ^\$\{[A-Za-z_][A-Za-z0-9_]*[:-] ]]; then
+        requires_value=0
+      fi
+
+      if ((requires_value == 0)); then
+        continue
+      fi
+
       raw_var="${raw_var#\${}"
       raw_var="${raw_var%}}"
       raw_var="${raw_var%%:*}"
@@ -39,6 +52,9 @@ compose_env_validation__check() {
 
   local compose_var
   for compose_var in "${!compose_vars[@]}"; do
+    if [[ ! "$compose_var" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]]; then
+      continue
+    fi
     if [[ "$compose_var" == "REPO_ROOT" || "$compose_var" == "LOCAL_INSTANCE" ]]; then
       continue
     fi

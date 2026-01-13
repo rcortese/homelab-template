@@ -7,17 +7,16 @@ from typing import Sequence
 
 import pytest
 
-from scripts.check_env_sync import (
+from scripts.check_env_sync import main
+from scripts.lib.check_env_sync.compose_metadata import (
     ComposeMetadata,
-    SyncReport,
-    build_sync_report,
     decode_bash_string,
-    extract_compose_variables,
     load_compose_metadata,
-    main,
     parse_declare_array,
     parse_declare_mapping,
 )
+from scripts.lib.check_env_sync.compose_variables import extract_compose_variables
+from scripts.lib.check_env_sync.reporting import SyncReport, build_sync_report
 from tests.helpers.compose_instances import ComposeInstancesData
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -281,7 +280,9 @@ def test_build_sync_report_uses_runtime_provided_variables(
     }
     assert "LOCAL_INSTANCE" not in missing_vars
 
-    monkeypatch.setattr("scripts.check_env_sync.RUNTIME_PROVIDED_VARIABLES", set())
+    monkeypatch.setattr(
+        "scripts.lib.check_env_sync.reporting.RUNTIME_PROVIDED_VARIABLES", set()
+    )
 
     report_without_runtime = build_sync_report(repo_copy, metadata)
     missing_without_runtime = {
@@ -340,7 +341,8 @@ services:
     )
 
     monkeypatch.setattr(
-        "scripts.check_env_sync.IMPLICIT_ENV_VARS", {"IMPLICIT_FROM_MONKEYPATCH"}
+        "scripts.lib.check_env_sync.reporting.IMPLICIT_ENV_VARS",
+        {"IMPLICIT_FROM_MONKEYPATCH"},
     )
 
     report = build_sync_report(repo_root, metadata)
