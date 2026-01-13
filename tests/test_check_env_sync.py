@@ -9,7 +9,7 @@ yaml_stub = types.SimpleNamespace(
 )
 sys.modules.setdefault("yaml", yaml_stub)
 
-from scripts.check_env_sync import load_env_variables
+from scripts.lib.check_env_sync.env_templates import load_env_variables
 
 
 def test_load_env_variables_classifies_defined_and_documented_entries(tmp_path: Path) -> None:
