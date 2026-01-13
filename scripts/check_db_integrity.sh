@@ -14,6 +14,15 @@ source "$SCRIPT_DIR/lib/app_detection.sh"
 # shellcheck source=lib/compose_command.sh
 source "$SCRIPT_DIR/lib/compose_command.sh"
 
+# shellcheck source=lib/db_integrity_backend.sh
+source "$SCRIPT_DIR/lib/db_integrity_backend.sh"
+
+# shellcheck source=lib/db_integrity_recovery.sh
+source "$SCRIPT_DIR/lib/db_integrity_recovery.sh"
+
+# shellcheck source=lib/db_integrity_report.sh
+source "$SCRIPT_DIR/lib/db_integrity_report.sh"
+
 if [[ "$ORIGINAL_PWD" != "$REPO_ROOT" ]]; then
   cd "$REPO_ROOT"
   CHANGED_TO_REPO_ROOT=true
@@ -38,77 +47,8 @@ declare -ag PAUSED_SERVICES=() # Updated when services are paused and read in th
 PAUSED_STACK=0
 
 ALERTS=()
-RECOVERY_BACKUP_PATH=""
-RECOVERY_DETAILS=""
 FIELD_SEPARATOR=$'\x1f'
 declare -a DB_RESULTS=()
-
-record_result() {
-  local path="$1"
-  local status="$2"
-  local message="$3"
-  local action="$4"
-  DB_RESULTS+=("${path}${FIELD_SEPARATOR}${status}${FIELD_SEPARATOR}${message}${FIELD_SEPARATOR}${action}")
-}
-
-json_escape() {
-  local raw="$1"
-  raw="${raw//\\/\\\\}"
-  raw="${raw//\"/\\\"}"
-  raw="${raw//$'\n'/\\n}"
-  raw="${raw//$'\r'/\\r}"
-  raw="${raw//$'\t'/\\t}"
-  printf '%s' "$raw"
-}
-
-generate_json_report() {
-  local first=1
-  printf '{"format":"json","overall_status":%d,"databases":[' "$overall_status"
-  for entry in "${DB_RESULTS[@]}"; do
-    IFS="$FIELD_SEPARATOR" read -r path status message action <<<"$entry"
-    if ((first)); then
-      first=0
-    else
-      printf ','
-    fi
-    printf '{"path":"%s","status":"%s","message":"%s","action":"%s"}' \
-      "$(json_escape "$path")" \
-      "$(json_escape "$status")" \
-      "$(json_escape "$message")" \
-      "$(json_escape "$action")"
-  done
-  printf ']'
-  printf ',"alerts":['
-  first=1
-  for alert in "${ALERTS[@]}"; do
-    if ((first)); then
-      first=0
-    else
-      printf ','
-    fi
-    printf '"%s"' "$(json_escape "$alert")"
-  done
-  printf ']}'
-}
-
-generate_text_report() {
-  local lines=()
-  lines+=("SQLite database integrity summary:")
-  for entry in "${DB_RESULTS[@]}"; do
-    IFS="$FIELD_SEPARATOR" read -r path status message action <<<"$entry"
-    lines+=("Database: $path")
-    lines+=("  status: $status")
-    lines+=("  message: $message")
-    lines+=("  action: $action")
-  done
-  if ((${#ALERTS[@]} > 0)); then
-    lines+=("Alerts:")
-    for alert in "${ALERTS[@]}"; do
-      lines+=("- $alert")
-    done
-  fi
-  printf '%s\n' "${lines[@]}"
-}
 
 print_help() {
   cat <<'USAGE'
@@ -139,94 +79,6 @@ Examples:
   scripts/check_db_integrity.sh core
   DATA_DIR="/mnt/storage/data" scripts/check_db_integrity.sh media --no-resume
 USAGE
-}
-
-resolve_sqlite_backend() {
-  local resolved_bin=""
-
-  case "$SQLITE3_MODE" in
-  binary)
-    if resolved_bin="$(command -v "$SQLITE3_BIN" 2>/dev/null)"; then
-      SQLITE3_BACKEND="binary"
-      SQLITE3_BIN_PATH="$resolved_bin"
-      return 0
-    fi
-    echo "Error: sqlite3 not found (binary: $SQLITE3_BIN)." >&2
-    exit 127
-    ;;
-  container)
-    if command -v "$SQLITE3_CONTAINER_RUNTIME" >/dev/null 2>&1; then
-      SQLITE3_BACKEND="container"
-      SQLITE3_BIN_PATH=""
-      return 0
-    fi
-    if resolved_bin="$(command -v "$SQLITE3_BIN" 2>/dev/null)"; then
-      echo "[!] Runtime '$SQLITE3_CONTAINER_RUNTIME' unavailable; using binary '$resolved_bin'." >&2
-      SQLITE3_BACKEND="binary"
-      SQLITE3_BIN_PATH="$resolved_bin"
-      return 0
-    fi
-    echo "Error: runtime '$SQLITE3_CONTAINER_RUNTIME' unavailable and sqlite3 (binary: $SQLITE3_BIN) missing." >&2
-    exit 127
-    ;;
-  auto | *)
-    if command -v "$SQLITE3_CONTAINER_RUNTIME" >/dev/null 2>&1; then
-      SQLITE3_BACKEND="container"
-      SQLITE3_BIN_PATH=""
-      return 0
-    fi
-    if resolved_bin="$(command -v "$SQLITE3_BIN" 2>/dev/null)"; then
-      SQLITE3_BACKEND="binary"
-      SQLITE3_BIN_PATH="$resolved_bin"
-      return 0
-    fi
-    echo "Error: sqlite3 not found and runtime '$SQLITE3_CONTAINER_RUNTIME' unavailable." >&2
-    exit 127
-    ;;
-  esac
-}
-
-sqlite3_exec() {
-  if [[ "$SQLITE3_BACKEND" == "binary" ]]; then
-    "$SQLITE3_BIN_PATH" "$@"
-    return $?
-  fi
-
-  declare -a volume_args=()
-  declare -A mounted_paths=()
-  local arg path dir
-
-  for arg in "$@"; do
-    if [[ "$arg" == /* ]]; then
-      path="$arg"
-      if [[ -d "$path" ]]; then
-        dir="$path"
-      else
-        dir="$(dirname "$path")"
-      fi
-
-      if [[ -n "$dir" && -d "$dir" && -z "${mounted_paths[$dir]:-}" ]]; then
-        volume_args+=("--volume" "$dir:$dir:rw")
-        mounted_paths[$dir]=1
-      fi
-    fi
-  done
-
-  if [[ -d "$REPO_ROOT" && -z "${mounted_paths[$REPO_ROOT]:-}" ]]; then
-    volume_args+=("--volume" "$REPO_ROOT:$REPO_ROOT:rw")
-    mounted_paths[$REPO_ROOT]=1
-  fi
-
-  local workdir="$REPO_ROOT"
-  if [[ ! -d "$workdir" ]]; then
-    workdir="$PWD"
-  fi
-
-  "$SQLITE3_CONTAINER_RUNTIME" run --rm -i \
-    "${volume_args[@]}" \
-    --workdir "$workdir" \
-    "$SQLITE3_CONTAINER_IMAGE" \
-    sqlite3 "$@"
 }
 
 trap '
@@ -327,62 +179,6 @@ parse_args() {
     print_help >&2
     exit 1
   fi
-}
-
-attempt_recovery() {
-  local db_file="$1"
-  local tmp_dir
-
-  RECOVERY_BACKUP_PATH=""
-  RECOVERY_DETAILS=""
-
-  if ! tmp_dir="$(mktemp -d "${TMPDIR:-/tmp}/db-recovery.XXXXXX")"; then
-    RECOVERY_DETAILS="failed to create temporary directory"
-    return 1
-  fi
-
-  local dump_file="$tmp_dir/recover.sql"
-  local log_file="$tmp_dir/recover.log"
-  local new_db="$tmp_dir/recovered.db"
-  local timestamp backup_file
-
-  if ! sqlite3_exec "$db_file" ".recover" >"$dump_file" 2>"$log_file"; then
-    RECOVERY_DETAILS="sqlite3 .recover failed: $(tr '\n' ' ' <"$log_file")"
-    rm -rf "$tmp_dir"
-    return 1
-  fi
-
-  if ! sqlite3_exec "$new_db" <"$dump_file" 2>>"$log_file"; then
-    RECOVERY_DETAILS="failed to recreate database: $(tr '\n' ' ' <"$log_file")"
-    rm -rf "$tmp_dir"
-    return 1
-  fi
-
-  timestamp="$(date +%Y%m%d%H%M%S)"
-  backup_file="${db_file}.${timestamp}.bak"
-
-  if ! cp -p "$db_file" "$backup_file"; then
-    RECOVERY_DETAILS="failed to save original backup to $backup_file"
-    rm -rf "$tmp_dir"
-    return 1
-  fi
-
-  if ! cp "$new_db" "$db_file"; then
-    RECOVERY_DETAILS="failed to replace corrupted database"
-    cp -p "$backup_file" "$db_file" >/dev/null 2>&1 || true
-    rm -rf "$tmp_dir"
-    return 1
-  fi
-
-  RECOVERY_BACKUP_PATH="$backup_file"
-  if [[ -s "$log_file" ]]; then
-    RECOVERY_DETAILS="recovery completed with notes: $(tr '\n' ' ' <"$log_file")"
-  else
-    RECOVERY_DETAILS="recovery completed via sqlite3 .recover"
-  fi
-
-  rm -rf "$tmp_dir"
-  return 0
 }
 
 parse_args "$@"
