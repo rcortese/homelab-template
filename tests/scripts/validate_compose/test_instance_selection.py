@@ -139,7 +139,7 @@ def test_reports_failure_when_compose_command_fails_with_docker_stub(
 
     assert result.returncode != 0
     assert (
-        f"[x] instance=\"{target_instance}\" (docker compose config -q exited with status 1)"
+        f"[x] instance=\"{target_instance}\" (failed to generate consolidated docker-compose.yml)"
         in result.stderr
     )
 
@@ -149,7 +149,7 @@ def test_reports_failure_when_compose_command_fails_with_docker_stub(
         assert str(file) in result.stderr
 
     calls = docker_stub.read_calls()
-    assert len(calls) == 2
+    assert len(calls) == 1
 
 
 def test_compose_failure_reports_diagnostics(
@@ -187,7 +187,7 @@ def test_compose_failure_reports_diagnostics(
     stderr_lines = result.stderr.splitlines()
     assert any(
         line
-        == f"[x] instance=\"{target_instance}\" (docker compose config -q exited with status 23)"
+        == f"[x] instance=\"{target_instance}\" (failed to generate consolidated docker-compose.yml)"
         for line in stderr_lines
     ), result.stderr
 
@@ -196,10 +196,10 @@ def test_compose_failure_reports_diagnostics(
 
     expected_files = " ".join(str(path) for path in metadata.compose_files(repo_copy))
     files_line = next(
-        (line.strip() for line in stderr_lines if line.strip().startswith("files:")),
+        (line.strip() for line in stderr_lines if line.strip().startswith("failing files:")),
         "",
     )
-    assert files_line == f"files: {expected_files}"
+    assert files_line == f"failing files: {expected_files}"
 
     env_line = next(
         (line.strip() for line in stderr_lines if line.strip().startswith("env files:")),
@@ -219,6 +219,7 @@ def test_compose_failure_reports_diagnostics(
     )
     assert derived_line.startswith("derived env: LOCAL_INSTANCE=")
 
-    assert "docker compose config output:" in result.stderr
-    assert "     line-from-compose stdout" in result.stderr
-    assert "     line-from-compose stderr" in result.stderr
+    assert (
+        "Root cause (from docker compose): line-from-compose stderr" in result.stderr
+    )
+    assert "compose plan order:" in result.stderr

@@ -364,11 +364,11 @@ validate_executor_run_instances() {
       local consolidated_file="$repo_root/docker-compose.yml"
 
       if compose_output_file=$(mktemp -t validate-compose-consolidated.XXXXXX 2>/dev/null); then
-        if ! compose_generate_consolidated "$repo_root" consolidated_plan "$consolidated_file" derived_env \
+        if compose_generate_consolidated "$repo_root" consolidated_plan "$consolidated_file" derived_env \
           2>"$compose_output_file"; then
-          compose_status=$?
-        else
           rm -f "$compose_output_file"
+        else
+          compose_status=$?
         fi
       else
         compose_output="$(compose_generate_consolidated "$repo_root" consolidated_plan "$consolidated_file" derived_env 2>&1)"
@@ -384,18 +384,26 @@ validate_executor_run_instances() {
           echo "   env files: (none)" >&2
         fi
         echo "   derived env: LOCAL_INSTANCE=\"$local_instance_env\"" >&2
-        echo "   compose plan order:" >&2
-        local idx
-        for idx in "${!files[@]}"; do
-          echo "     $((idx + 1)). ${files[$idx]}" >&2
-        done
         status=1
         if [[ -n "$compose_output_file" && -f "$compose_output_file" ]]; then
           compose_output=$(<"$compose_output_file")
           rm -f "$compose_output_file"
         fi
         if [[ -n "$compose_output" ]]; then
-          validate_executor_print_root_cause "$compose_output" files
+          while IFS= read -r compose_line; do
+            [[ -z "$compose_line" ]] && continue
+            if [[ "$compose_line" == " "* ]]; then
+              echo "$compose_line" >&2
+            else
+              echo "   $compose_line" >&2
+            fi
+          done <<<"$compose_output"
+        else
+          echo "   compose plan order:" >&2
+          local idx
+          for idx in "${!files[@]}"; do
+            echo "     $((idx + 1)). ${files[$idx]}" >&2
+          done
         fi
         continue
       fi

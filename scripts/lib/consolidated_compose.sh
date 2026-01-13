@@ -31,7 +31,6 @@ compose_print_root_cause() {
 
   local compose_output="$1"
   local compose_cmd_name="$2"
-  local -n __compose_cmd_ref=$compose_cmd_name
 
   local root_cause=""
   local compose_line
@@ -46,7 +45,7 @@ compose_print_root_cause() {
   fi
 
   local -a plan_files=()
-  compose_extract_file_plan __compose_cmd_ref plan_files
+  compose_extract_file_plan "$compose_cmd_name" plan_files
   if ((${#plan_files[@]} > 0)); then
     echo "   compose plan order:" >&2
     local idx
@@ -130,8 +129,8 @@ compose_generate_consolidated() {
 
   local stdout_file=""
   local stderr_file=""
-  if stdout_file=$(mktemp -t compose-config-stdout.XXXXXX 2>/dev/null) \
-    && stderr_file=$(mktemp -t compose-config-stderr.XXXXXX 2>/dev/null); then
+  if stdout_file=$(mktemp -t compose-config-stdout.XXXXXX 2>/dev/null) &&
+    stderr_file=$(mktemp -t compose-config-stderr.XXXXXX 2>/dev/null); then
     LOCAL_INSTANCE="$local_instance" REPO_ROOT="$repo_root_env" \
       "${__compose_cmd_ref[@]}" config >"$stdout_file" 2>"$stderr_file" || compose_status=$?
   else
@@ -142,7 +141,7 @@ compose_generate_consolidated() {
       printf '%s\n' "$combined_output" >"$output_file"
       return 0
     fi
-    compose_print_root_cause "$combined_output" __compose_cmd_ref
+    compose_print_root_cause "$combined_output" "$compose_cmd_name"
     rm -f "$output_file"
     return $compose_status
   fi
@@ -156,7 +155,7 @@ compose_generate_consolidated() {
       compose_output=$(<"$stdout_file")
     fi
     if [[ -n "$compose_output" ]]; then
-      compose_print_root_cause "$compose_output" __compose_cmd_ref
+      compose_print_root_cause "$compose_output" "$compose_cmd_name"
     fi
     rm -f "$stdout_file" "$stderr_file"
     rm -f "$output_file"
@@ -182,19 +181,20 @@ compose_prepare_consolidated() {
   local output_var_name="$3"
   local env_assoc_name="${4:-}"
 
-  local -n __output_ref=$output_var_name
-  if [[ -z "$__output_ref" ]]; then
-    __output_ref="$repo_root/docker-compose.yml"
+  local output_value="${!output_var_name-}"
+  if [[ -z "$output_value" ]]; then
+    output_value="$repo_root/docker-compose.yml"
+    printf -v "$output_var_name" '%s' "$output_value"
   fi
 
-  if ! compose_generate_consolidated "$repo_root" "$compose_cmd_name" "$__output_ref" "$env_assoc_name"; then
+  if ! compose_generate_consolidated "$repo_root" "$compose_cmd_name" "$output_value" "$env_assoc_name"; then
     return 1
   fi
 
   local -n __compose_cmd_ref=$compose_cmd_name
   local -a __normalized=()
   compose_strip_file_flags __compose_cmd_ref __normalized
-  __normalized+=(-f "$__output_ref")
+  __normalized+=(-f "$output_value")
   __compose_cmd_ref=("${__normalized[@]}")
 
   return 0

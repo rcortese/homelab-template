@@ -103,6 +103,13 @@ if \"config\" in args and \"--services\" in args:
     services_output = os.environ.get(\"DOCKER_STUB_SERVICES_OUTPUT\", \"app\")
     if services_output:
         print(services_output)
+elif \"config\" in args:
+    config_stdout = os.environ.get(\"DOCKER_STUB_CONFIG_STDOUT\", \"\")
+    config_stderr = os.environ.get(\"DOCKER_STUB_CONFIG_STDERR\", \"\")
+    if config_stdout:
+        print(config_stdout)
+    if config_stderr:
+        print(config_stderr, file=sys.stderr)
 
 exit_code_file = os.environ.get(\"DOCKER_STUB_EXIT_CODE_FILE\")
 base_exit_code = 0
