@@ -9,6 +9,17 @@ GENERATED_HEADER = (
     "# GENERATED FILE. DO NOT EDIT. RE-RUN SCRIPTS/BUILD_COMPOSE_FILE.SH OR "
     "SCRIPTS/DEPLOY_INSTANCE.SH."
 )
+REQUIRED_ENV = {
+    "APP_NETWORK_SUBNET": "172.20.0.0/24",
+    "APP_NETWORK_GATEWAY": "172.20.0.1",
+    "APP_NETWORK_IPV4": "172.20.0.10",
+    "MONITORING_NETWORK_IPV4": "172.20.0.20",
+    "WORKER_CORE_NETWORK_IPV4": "172.20.0.30",
+    "CORE_PROXY_IPV4": "172.21.0.10",
+    "WORKER_QUEUE_URL": "redis://queue:6379/0",
+    "TZ": "UTC",
+    "APP_SECRET": "test-secret-1234567890123456",
+}
 
 
 def _extract_args(command: list[str], flag: str) -> list[str]:
@@ -40,7 +51,7 @@ def test_generates_compose_from_instance_plan(
 
     result = run_build_compose_file(
         args=["--output", str(output_path), "core"],
-        env={"DOCKER_COMPOSE_BIN": str(stub.path), **stub.base_env},
+        env={"DOCKER_COMPOSE_BIN": str(stub.path), **stub.base_env, **REQUIRED_ENV},
         cwd=repo_copy,
         script_path=repo_copy / "scripts" / "build_compose_file.sh",
     )
@@ -67,6 +78,9 @@ def test_generates_compose_from_instance_plan(
         for entry in compose_instances_data.compose_plan("core")
     ]
     assert compose_files == expected_plan
+    assert "Resolved env chain (order):" in result.stdout
+    assert str((repo_copy / "env" / "local" / "common.env").resolve()) in result.stdout
+    assert str((repo_copy / "env" / "local" / "core.env").resolve()) in result.stdout
 
     second_call = calls[1]
     assert str(output_path.resolve()) in _extract_args(second_call, "-f")
@@ -110,7 +124,12 @@ def test_applies_extras_and_explicit_env_chain(
             str(output_path),
             "core",
         ],
-        env={"DOCKER_COMPOSE_BIN": str(stub.path), **stub.base_env, **env_overrides},
+        env={
+            "DOCKER_COMPOSE_BIN": str(stub.path),
+            **stub.base_env,
+            **env_overrides,
+            **REQUIRED_ENV,
+        },
         cwd=repo_copy,
         script_path=repo_copy / "scripts" / "build_compose_file.sh",
     )
@@ -178,6 +197,7 @@ def test_writes_consolidated_env_output_with_order(
             "DOCKER_COMPOSE_BIN": str(stub.path),
             **stub.base_env,
             "COMPOSE_ENV_FILES": str(base_env_file.relative_to(repo_copy)),
+            **REQUIRED_ENV,
         },
         cwd=repo_copy,
         script_path=repo_copy / "scripts" / "build_compose_file.sh",
@@ -211,7 +231,7 @@ def test_refreshes_default_env_output(repo_copy: Path, tmp_path: Path) -> None:
 
     result = run_build_compose_file(
         args=["core"],
-        env={"DOCKER_COMPOSE_BIN": str(stub.path), **stub.base_env},
+        env={"DOCKER_COMPOSE_BIN": str(stub.path), **stub.base_env, **REQUIRED_ENV},
         cwd=repo_copy,
         script_path=repo_copy / "scripts" / "build_compose_file.sh",
     )
@@ -229,3 +249,31 @@ def test_refreshes_default_env_output(repo_copy: Path, tmp_path: Path) -> None:
         f"REPO_ROOT={repo_copy}",
         "LOCAL_INSTANCE=core",
     ]
+
+
+def test_fails_when_compose_vars_missing(repo_copy: Path, tmp_path: Path) -> None:
+    stub = create_compose_config_stub(tmp_path)
+
+    extras_dir = repo_copy / "compose" / "extras"
+    extras_dir.mkdir(parents=True, exist_ok=True)
+    missing_var_file = extras_dir / "missing-var.yml"
+    missing_var_file.write_text(
+        "services:\n"
+        "  missing:\n"
+        "    image: alpine:3.18\n"
+        "    environment:\n"
+        "      - MISSING_FROM_TEST_ENV=${MISSING_FROM_TEST_ENV}\n",
+        encoding="utf-8",
+    )
+
+    result = run_build_compose_file(
+        args=["--file", str(missing_var_file.relative_to(repo_copy)), "core"],
+        env={"DOCKER_COMPOSE_BIN": str(stub.path), **stub.base_env, **REQUIRED_ENV},
+        cwd=repo_copy,
+        script_path=repo_copy / "scripts" / "build_compose_file.sh",
+    )
+
+    assert result.returncode == 1
+    assert "missing compose variables detected" in result.stderr
+    assert "MISSING_FROM_TEST_ENV" in result.stderr
+    assert "Update one of the env files in the chain" in result.stderr

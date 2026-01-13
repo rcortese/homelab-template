@@ -185,6 +185,13 @@ if ((${#COMPOSE_ENV_FILES_LIST[@]} > 0)); then
   )
 fi
 
+printf 'Resolved env chain (order):\n'
+if ((${#COMPOSE_ENV_FILES_RESOLVED[@]} > 0)); then
+  printf '  - %s\n' "${COMPOSE_ENV_FILES_RESOLVED[@]}"
+else
+  printf '  (none)\n'
+fi
+
 declare -A env_loaded=()
 if ((${#COMPOSE_ENV_FILES_RESOLVED[@]} > 0)); then
   for env_file in "${COMPOSE_ENV_FILES_RESOLVED[@]}"; do
@@ -201,6 +208,77 @@ if ((${#COMPOSE_ENV_FILES_RESOLVED[@]} > 0)); then
       fi
     fi
   done
+fi
+
+declare -A missing_vars=()
+declare -A required_vars=()
+for compose_file in "${compose_files_list[@]}"; do
+  resolved_file="$compose_file"
+  if [[ "$resolved_file" != /* ]]; then
+    resolved_file="$REPO_ROOT/$resolved_file"
+  fi
+  if [[ ! -f "$resolved_file" ]]; then
+    continue
+  fi
+  while IFS= read -r raw_var; do
+    raw_var="${raw_var#\$\{}"
+    raw_var="${raw_var%\}}"
+    if [[ "$raw_var" =~ ^([A-Za-z_][A-Za-z0-9_]*)([:?\-].*)?$ ]]; then
+      var_name="${BASH_REMATCH[1]}"
+      modifier="${BASH_REMATCH[2]:-}"
+      if [[ -n "$var_name" ]]; then
+        case "$modifier" in
+          ":-"*|"-"*)
+            ;;
+          *)
+            required_vars["$var_name"]=1
+            ;;
+        esac
+      fi
+    fi
+  done < <(rg -o -P '\$\{[A-Za-z_][A-Za-z0-9_]*([:-?][^}]*)?\}' "$resolved_file" || true)
+done
+
+declare -A env_defined=()
+if ((${#required_vars[@]} > 0 && ${#COMPOSE_ENV_FILES_RESOLVED[@]} > 0)); then
+  required_vars_list=("${!required_vars[@]}")
+  for env_file in "${COMPOSE_ENV_FILES_RESOLVED[@]}"; do
+    if [[ -f "$env_file" ]]; then
+      if env_output="$("$SCRIPT_DIR/lib/env_loader.sh" "$env_file" "${required_vars_list[@]}" 2>/dev/null)"; then
+        while IFS= read -r line; do
+          [[ -z "$line" ]] && continue
+          if [[ "$line" == *=* ]]; then
+            key="${line%%=*}"
+            value="${line#*=}"
+            env_defined[$key]="$value"
+          fi
+        done <<<"$env_output"
+      fi
+    fi
+  done
+fi
+
+for compose_var in "${!required_vars[@]}"; do
+  if [[ "$compose_var" == "REPO_ROOT" || "$compose_var" == "LOCAL_INSTANCE" ]]; then
+    continue
+  fi
+  if [[ -z ${env_defined[$compose_var]+x} && -z ${!compose_var+x} ]]; then
+    missing_vars["$compose_var"]=1
+  fi
+done
+
+if ((${#missing_vars[@]} > 0)); then
+  printf 'Error: missing compose variables detected:\n' >&2
+  for missing_var in "${!missing_vars[@]}"; do
+    printf '  - %s\n' "$missing_var" >&2
+  done
+  if ((${#COMPOSE_ENV_FILES_LIST[@]} > 0)); then
+    printf 'Update one of the env files in the chain to define these keys:\n' >&2
+    printf '  - %s\n' "${COMPOSE_ENV_FILES_LIST[@]}" >&2
+  else
+    printf 'Provide values via --env-file/COMPOSE_ENV_FILES to resolve these keys.\n' >&2
+  fi
+  exit 1
 fi
 
 if [[ -n "${env_loaded[REPO_ROOT]:-}" ]]; then
