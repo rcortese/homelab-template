@@ -181,21 +181,6 @@ def test_check_env_sync_accepts_local_common_variables(repo_copy: Path) -> None:
     assert "APP_SECRET" not in result.stdout
 
 
-def test_check_env_sync_accepts_local_implicit_variables(
-    repo_copy: Path, compose_instances_data: ComposeInstancesData
-) -> None:
-    instance_name = _select_instance(compose_instances_data)
-    compose_file = _resolve_compose_manifest(repo_copy, compose_instances_data, instance_name)
-    content = compose_file.read_text(encoding="utf-8")
-    content += "\n      LOCAL_IMPLICIT_FROM_OVERRIDE: ${FOO_FROM_LOCAL}"
-    compose_file.write_text(content, encoding="utf-8")
-
-    result = run_check(repo_copy)
-
-    assert result.returncode == 0, result.stdout
-    assert "FOO_FROM_LOCAL" not in result.stdout
-
-
 def test_check_env_sync_detects_obsolete_variables(
     repo_copy: Path, compose_instances_data: ComposeInstancesData
 ) -> None:
