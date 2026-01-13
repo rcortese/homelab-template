@@ -39,6 +39,10 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 source "$SCRIPT_DIR/lib/compose_command.sh"
 # shellcheck source=lib/compose_plan.sh
 source "$SCRIPT_DIR/lib/compose_plan.sh"
+# shellcheck source=lib/compose_env_chain.sh
+source "$SCRIPT_DIR/lib/compose_env_chain.sh"
+# shellcheck source=lib/compose_env_validation.sh
+source "$SCRIPT_DIR/lib/compose_env_validation.sh"
 # shellcheck source=lib/env_file_chain.sh
 source "$SCRIPT_DIR/lib/env_file_chain.sh"
 
@@ -157,32 +161,16 @@ if ((${#compose_files_list[@]} == 0)); then
   exit 1
 fi
 
-explicit_env_input="${COMPOSE_ENV_FILES:-}"
-
-if ((${#EXPLICIT_ENV_FILES[@]} > 0)); then
-  cli_env_join="$(env_file_chain__join ' ' "${EXPLICIT_ENV_FILES[@]}")"
-  if [[ -n "$explicit_env_input" ]]; then
-    explicit_env_input+=" $cli_env_join"
-  else
-    explicit_env_input="$cli_env_join"
-  fi
-fi
-
-env_chain_output=""
-if ! env_chain_output="$(env_file_chain__resolve_explicit "$explicit_env_input" "$REPO_ROOT" "$INSTANCE_NAME")"; then
-  exit 1
-fi
-if [[ -n "$env_chain_output" ]]; then
-  mapfile -t COMPOSE_ENV_FILES_LIST <<<"$env_chain_output"
-else
-  COMPOSE_ENV_FILES_LIST=()
-fi
-
+declare -a COMPOSE_ENV_FILES_LIST=()
 declare -a COMPOSE_ENV_FILES_RESOLVED=()
-if ((${#COMPOSE_ENV_FILES_LIST[@]} > 0)); then
-  mapfile -t COMPOSE_ENV_FILES_RESOLVED < <(
-    env_file_chain__to_absolute "$REPO_ROOT" "${COMPOSE_ENV_FILES_LIST[@]}"
-  )
+if ! compose_env_chain__resolve \
+  "$REPO_ROOT" \
+  "$INSTANCE_NAME" \
+  "${COMPOSE_ENV_FILES:-}" \
+  COMPOSE_ENV_FILES_LIST \
+  COMPOSE_ENV_FILES_RESOLVED \
+  "${EXPLICIT_ENV_FILES[@]}"; then
+  exit 1
 fi
 
 printf 'Resolved env chain (order):\n'
@@ -193,65 +181,11 @@ else
 fi
 
 declare -A env_loaded=()
-if ((${#COMPOSE_ENV_FILES_RESOLVED[@]} > 0)); then
-  for env_file in "${COMPOSE_ENV_FILES_RESOLVED[@]}"; do
-    if [[ -f "$env_file" ]]; then
-      if env_output="$("$SCRIPT_DIR/lib/env_loader.sh" "$env_file" REPO_ROOT LOCAL_INSTANCE APP_DATA_DIR APP_DATA_DIR_MOUNT 2>/dev/null)"; then
-        while IFS= read -r line; do
-          [[ -z "$line" ]] && continue
-          if [[ "$line" == *=* ]]; then
-            key="${line%%=*}"
-            value="${line#*=}"
-            env_loaded[$key]="$value"
-          fi
-        done <<<"$env_output"
-      fi
-    fi
-  done
+if ! compose_env_chain__load_env_files "$SCRIPT_DIR" env_loaded "${COMPOSE_ENV_FILES_RESOLVED[@]}"; then
+  exit 1
 fi
 
-declare -A missing_vars=()
-declare -A compose_vars=()
-for compose_file in "${compose_files_list[@]}"; do
-  resolved_file="$compose_file"
-  if [[ "$resolved_file" != /* ]]; then
-    resolved_file="$REPO_ROOT/$resolved_file"
-  fi
-  if [[ ! -f "$resolved_file" ]]; then
-    continue
-  fi
-  while IFS= read -r raw_var; do
-    raw_var="${raw_var#\${}"
-    raw_var="${raw_var%}}"
-    raw_var="${raw_var%%:*}"
-    raw_var="${raw_var%%\?*}"
-    raw_var="${raw_var%%-*}"
-    if [[ -n "$raw_var" ]]; then
-      compose_vars["$raw_var"]=1
-    fi
-  done < <(rg -o -P '\$\{[A-Za-z_][A-Za-z0-9_]*([:-?][^}]*)?\}' "$resolved_file" || true)
-done
-
-for compose_var in "${!compose_vars[@]}"; do
-  if [[ "$compose_var" == "REPO_ROOT" || "$compose_var" == "LOCAL_INSTANCE" ]]; then
-    continue
-  fi
-  if [[ -z ${env_loaded[$compose_var]+x} && -z ${!compose_var+x} ]]; then
-    missing_vars["$compose_var"]=1
-  fi
-done
-
-if ((${#missing_vars[@]} > 0)); then
-  printf 'Error: missing compose variables detected:\n' >&2
-  for missing_var in "${!missing_vars[@]}"; do
-    printf '  - %s\n' "$missing_var" >&2
-  done
-  if ((${#COMPOSE_ENV_FILES_LIST[@]} > 0)); then
-    printf 'Update one of the env files in the chain to define these keys:\n' >&2
-    printf '  - %s\n' "${COMPOSE_ENV_FILES_LIST[@]}" >&2
-  else
-    printf 'Provide values via --env-file/COMPOSE_ENV_FILES to resolve these keys.\n' >&2
-  fi
+if ! compose_env_validation__check "$REPO_ROOT" compose_files_list env_loaded COMPOSE_ENV_FILES_LIST; then
   exit 1
 fi
 
