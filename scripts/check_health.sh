@@ -27,6 +27,9 @@ source "$SCRIPT_DIR/lib/env_helpers.sh"
 # shellcheck source=./lib/env_file_chain.sh
 source "$SCRIPT_DIR/lib/env_file_chain.sh"
 
+# shellcheck source=./lib/health_logs.sh
+source "$SCRIPT_DIR/lib/health_logs.sh"
+
 print_help() {
   cat <<'EOF'
 Usage: scripts/check_health.sh [options] [instance]
@@ -162,55 +165,12 @@ if [[ ${#LOG_TARGETS[@]} -eq 0 ]]; then
   :
 fi
 
-primary_targets=("${LOG_TARGETS[@]}")
-
-append_real_service_targets() {
-  declare -A __log_targets_seen=()
-  local __service
-  for __service in "${LOG_TARGETS[@]}"; do
-    __log_targets_seen["$__service"]=1
-  done
-
-  local compose_services_output
-  if compose_services_output="$("${COMPOSE_CMD[@]}" config --services 2>/dev/null)"; then
-    local compose_service
-    while IFS= read -r compose_service; do
-      if [[ -z "$compose_service" ]]; then
-        continue
-      fi
-      if [[ -n "${__log_targets_seen["$compose_service"]:-}" ]]; then
-        continue
-      fi
-      LOG_TARGETS+=("$compose_service")
-      __log_targets_seen["$compose_service"]=1
-    done <<<"$compose_services_output"
-  fi
-
-  unset __log_targets_seen
-  unset __service
-}
-
-append_real_service_targets
-unset -f append_real_service_targets
-
+primary_targets=()
 auto_targets=()
-if ((${#LOG_TARGETS[@]} > ${#primary_targets[@]})); then
-  auto_targets=("${LOG_TARGETS[@]:${#primary_targets[@]}}")
-fi
-ALL_LOG_TARGETS=("${primary_targets[@]}" "${auto_targets[@]}")
-LOG_TARGETS=("${primary_targets[@]}")
+ALL_LOG_TARGETS=()
 
-if [[ ${#LOG_TARGETS[@]} -eq 0 ]]; then
-  if [[ ${#auto_targets[@]} -gt 0 ]]; then
-    LOG_TARGETS=("${auto_targets[@]}")
-    primary_targets=("${LOG_TARGETS[@]}")
-    ALL_LOG_TARGETS=("${LOG_TARGETS[@]}")
-    auto_targets=()
-  else
-    echo "Error: no services were found for log collection." >&2
-    echo "       Configure HEALTH_SERVICES or ensure the Compose manifests declare valid services." >&2
-    exit 1
-  fi
+if ! health_logs__select_targets; then
+  exit 1
 fi
 
 compose_ps_output="$("${COMPOSE_CMD[@]}" ps)"
@@ -233,44 +193,10 @@ failed_services=()
 declare -A SERVICE_LOGS=()
 declare -A SERVICE_STATUSES=()
 
-for service in "${LOG_TARGETS[@]}"; do
-  if [[ -z "$service" ]]; then
-    continue
-  fi
-  if service_output="$("${COMPOSE_CMD[@]}" logs --tail=50 "$service" 2>&1)"; then
-    SERVICE_LOGS["$service"]="$service_output"
-    SERVICE_STATUSES["$service"]="ok"
-    log_success=true
-    if [[ "$OUTPUT_FORMAT" == "text" ]]; then
-      printf '%s\n' "$service_output"
-    fi
-  else
-    SERVICE_LOGS["$service"]="$service_output"
-    SERVICE_STATUSES["$service"]="error"
-    printf '%s\n' "$service_output" >&2
-    failed_services+=("$service")
-  fi
-done
+health_logs__collect_logs "${LOG_TARGETS[@]}"
 
 if [[ ${#auto_targets[@]} -gt 0 ]]; then
-  for service in "${auto_targets[@]}"; do
-    if [[ -z "$service" ]]; then
-      continue
-    fi
-    if service_output="$("${COMPOSE_CMD[@]}" logs --tail=50 "$service" 2>&1)"; then
-      SERVICE_LOGS["$service"]="$service_output"
-      SERVICE_STATUSES["$service"]="ok"
-      log_success=true
-      if [[ "$OUTPUT_FORMAT" == "text" ]]; then
-        printf '%s\n' "$service_output"
-      fi
-    else
-      SERVICE_LOGS["$service"]="$service_output"
-      SERVICE_STATUSES["$service"]="error"
-      printf '%s\n' "$service_output" >&2
-      failed_services+=("$service")
-    fi
-  done
+  health_logs__collect_logs "${auto_targets[@]}"
 fi
 
 if [[ "$log_success" == false ]]; then
@@ -307,78 +233,10 @@ if [[ "$OUTPUT_FORMAT" == "json" ]]; then
     LOG_SUCCESS_FLAG SERVICE_PAYLOAD INSTANCE_NAME
 
   json_payload="$(
-    python_runtime__run_stdin \
+    python_runtime__run \
       "$REPO_ROOT" \
       "COMPOSE_PS_TEXT COMPOSE_PS_JSON PRIMARY_LOG_SERVICES AUTO_LOG_SERVICES ALL_LOG_SERVICES FAILED_SERVICES_STR LOG_SUCCESS_FLAG SERVICE_PAYLOAD INSTANCE_NAME" \
-      -- <<'PYTHON'
-import base64
-import json
-import os
-
-compose_ps_text = os.environ.get("COMPOSE_PS_TEXT", "")
-compose_ps_json_raw = os.environ.get("COMPOSE_PS_JSON", "")
-primary_targets = [x for x in os.environ.get("PRIMARY_LOG_SERVICES", "").split() if x]
-auto_targets = [x for x in os.environ.get("AUTO_LOG_SERVICES", "").split() if x]
-all_targets = [x for x in os.environ.get("ALL_LOG_SERVICES", "").split() if x]
-failed_services = [x for x in os.environ.get("FAILED_SERVICES_STR", "").split() if x]
-log_success = os.environ.get("LOG_SUCCESS_FLAG", "false").lower() == "true"
-instance = os.environ.get("INSTANCE_NAME", "") or None
-
-services_entries = []
-for line in os.environ.get("SERVICE_PAYLOAD", "").splitlines():
-    if not line:
-        continue
-    parts = line.split("::", 2)
-    if len(parts) != 3:
-        continue
-    name, status, encoded = parts
-    log_text = ""
-    log_b64 = encoded if encoded else None
-    if encoded:
-        try:
-            log_text = base64.b64decode(encoded.encode()).decode("utf-8", errors="replace")
-        except Exception:
-            log_text = ""
-    entry = {
-        "service": name,
-        "status": status,
-        "log": log_text,
-    }
-    if log_b64 is not None:
-        entry["log_b64"] = log_b64
-    services_entries.append(entry)
-
-compose_section = {"raw": compose_ps_text}
-if compose_ps_json_raw:
-    try:
-        compose_section["parsed"] = json.loads(compose_ps_json_raw)
-    except json.JSONDecodeError:
-        compose_section["parsed_error"] = "invalid_json"
-        compose_section["parsed_raw"] = compose_ps_json_raw
-
-summary_status = "ok" if not failed_services else "degraded"
-
-result = {
-    "format": "json",
-    "status": summary_status,
-    "instance": instance,
-    "compose": compose_section,
-    "targets": {
-        "requested": primary_targets,
-        "automatic": auto_targets,
-        "all": all_targets,
-    },
-    "logs": {
-        "entries": services_entries,
-        "failed": failed_services,
-        "has_success": log_success,
-        "total": len(services_entries),
-        "successful": sum(1 for entry in services_entries if entry.get("status") == "ok"),
-    },
-}
-
-print(json.dumps(result, ensure_ascii=False, indent=2))
-PYTHON
+      -- "$SCRIPT_DIR/lib/health_report.py"
   )"
 
   if [[ -n "$OUTPUT_FILE" ]]; then
