@@ -39,7 +39,13 @@ class SyncReport:
         )
 
 
-def build_sync_report(repo_root: Path, metadata: ComposeMetadata) -> SyncReport:
+def build_sync_report(
+    repo_root: Path,
+    metadata: ComposeMetadata,
+    *,
+    runtime_provided_vars: Set[str] | None = None,
+    implicit_env_vars: Set[str] | None = None,
+) -> SyncReport:
     variable_cache: Dict[Path, Set[str]] = {}
 
     def cached_compose_variables(path: Path) -> Set[str]:
@@ -78,9 +84,12 @@ def build_sync_report(repo_root: Path, metadata: ComposeMetadata) -> SyncReport:
     )
     common_env_vars = set(common_env_data.available)
     common_env_vars.update(local_common_data.available)
-    implicit_env_vars = set(DEFAULT_IMPLICIT_ENV_VARS)
-    implicit_env_vars.update(_load_implicit_env_vars())
-    common_env_vars.update(implicit_env_vars)
+    implicit_vars = set(DEFAULT_IMPLICIT_ENV_VARS)
+    if implicit_env_vars is None:
+        implicit_vars.update(_load_implicit_env_vars())
+    else:
+        implicit_vars.update(implicit_env_vars)
+    common_env_vars.update(implicit_vars)
 
     missing_templates: List[str] = []
     for instance in metadata.instances:
@@ -96,7 +105,12 @@ def build_sync_report(repo_root: Path, metadata: ComposeMetadata) -> SyncReport:
         data = instance_env_files.get(template_path) if template_path else None
         instance_env_vars = data.available if data else set()
         available = set(common_env_vars)
-        available.update(RUNTIME_PROVIDED_VARIABLES)
+        runtime_vars = (
+            RUNTIME_PROVIDED_VARIABLES
+            if runtime_provided_vars is None
+            else runtime_provided_vars
+        )
+        available.update(runtime_vars)
         available.update(instance_env_vars)
         missing_by_instance[instance] = compose_vars - available
 
@@ -107,7 +121,12 @@ def build_sync_report(repo_root: Path, metadata: ComposeMetadata) -> SyncReport:
             None,
         )
         relevant_compose = compose_vars_by_instance.get(instance, set())
-        unused = data.defined - relevant_compose - implicit_env_vars - RUNTIME_PROVIDED_VARIABLES
+        runtime_vars = (
+            RUNTIME_PROVIDED_VARIABLES
+            if runtime_provided_vars is None
+            else runtime_provided_vars
+        )
+        unused = data.defined - relevant_compose - implicit_vars - runtime_vars
         if unused:
             unused_by_file[path] = unused
 

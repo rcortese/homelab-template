@@ -11,13 +11,56 @@ from typing import List, Sequence, Set
 from scripts.lib.check_env_sync.compose_metadata import (
     ComposeMetadata,
     ComposeMetadataError,
+    decode_bash_string,
     load_compose_metadata,
+    parse_declare_array,
+    parse_declare_mapping,
 )
+from scripts.lib.check_env_sync.compose_variables import extract_compose_variables
+from scripts.lib.check_env_sync.env_templates import EnvTemplateData, load_env_variables
 from scripts.lib.check_env_sync.reporting import (
-    build_sync_report,
+    SyncReport,
+    build_sync_report as _build_sync_report,
     determine_exit_code,
     format_report,
 )
+
+RUNTIME_PROVIDED_VARIABLES: Set[str] = {"LOCAL_INSTANCE", "REPO_ROOT"}
+DEFAULT_IMPLICIT_ENV_VARS: Set[str] = {"APP_DATA_UID", "APP_DATA_GID"}
+try:  # pragma: no cover - optional local overrides
+    from scripts.local.check_env_sync import IMPLICIT_ENV_VARS  # type: ignore[attr-defined]
+except ModuleNotFoundError:  # pragma: no cover - default fallback
+    IMPLICIT_ENV_VARS: Set[str] = set()
+
+
+def build_sync_report(repo_root: Path, metadata: ComposeMetadata) -> SyncReport:
+    implicit_vars = set(DEFAULT_IMPLICIT_ENV_VARS)
+    implicit_vars.update(IMPLICIT_ENV_VARS)
+    return _build_sync_report(
+        repo_root,
+        metadata,
+        runtime_provided_vars=RUNTIME_PROVIDED_VARIABLES,
+        implicit_env_vars=implicit_vars,
+    )
+
+__all__ = [
+    "ComposeMetadata",
+    "ComposeMetadataError",
+    "DEFAULT_IMPLICIT_ENV_VARS",
+    "EnvTemplateData",
+    "IMPLICIT_ENV_VARS",
+    "RUNTIME_PROVIDED_VARIABLES",
+    "SyncReport",
+    "build_sync_report",
+    "decode_bash_string",
+    "determine_exit_code",
+    "extract_compose_variables",
+    "format_report",
+    "load_compose_metadata",
+    "load_env_variables",
+    "parse_declare_array",
+    "parse_declare_mapping",
+]
 
 
 def parse_args(argv: Sequence[str]) -> argparse.Namespace:

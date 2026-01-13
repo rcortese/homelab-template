@@ -193,21 +193,63 @@ else
 fi
 
 declare -A env_loaded=()
+load_env_keys() {
+  local env_file="$1"
+  if [[ ! -f "$env_file" ]]; then
+    return
+  fi
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    line="${line%$'\r'}"
+    [[ -z "$line" ]] && continue
+    trimmed="${line#"${line%%[![:space:]]*}"}"
+    if [[ "$trimmed" == \#* ]]; then
+      candidate="${trimmed#\#}"
+      candidate="${candidate#"${candidate%%[![:space:]]*}"}"
+      if [[ "$candidate" == export\ * ]]; then
+        candidate="${candidate#export }"
+      fi
+      if [[ "$candidate" == *"="* ]]; then
+        key="${candidate%%=*}"
+        key="${key#"${key%%[![:space:]]*}"}"
+        key="${key%"${key##*[![:space:]]}"}"
+        if [[ -n "$key" ]]; then
+          env_loaded["$key"]=1
+        fi
+      fi
+      continue
+    fi
+    if [[ "$trimmed" == export\ * ]]; then
+      trimmed="${trimmed#export }"
+    fi
+    if [[ "$trimmed" != *"="* ]]; then
+      continue
+    fi
+    key="${trimmed%%=*}"
+    key="${key#"${key%%[![:space:]]*}"}"
+    key="${key%"${key##*[![:space:]]}"}"
+    if [[ -n "$key" ]]; then
+      env_loaded["$key"]=1
+    fi
+  done <"$env_file"
+}
+
 if ((${#COMPOSE_ENV_FILES_RESOLVED[@]} > 0)); then
   for env_file in "${COMPOSE_ENV_FILES_RESOLVED[@]}"; do
-    if [[ -f "$env_file" ]]; then
-      if env_output="$("$SCRIPT_DIR/lib/env_loader.sh" "$env_file" REPO_ROOT LOCAL_INSTANCE APP_DATA_DIR APP_DATA_DIR_MOUNT 2>/dev/null)"; then
-        while IFS= read -r line; do
-          [[ -z "$line" ]] && continue
-          if [[ "$line" == *=* ]]; then
-            key="${line%%=*}"
-            value="${line#*=}"
-            env_loaded[$key]="$value"
-          fi
-        done <<<"$env_output"
-      fi
-    fi
+    load_env_keys "$env_file"
   done
+fi
+
+template_common="$REPO_ROOT/env/common.example.env"
+if [[ -f "$template_common" ]]; then
+  load_env_keys "$template_common"
+fi
+
+template_instance="${COMPOSE_INSTANCE_ENV_TEMPLATES[$INSTANCE_NAME]:-}"
+if [[ -n "$template_instance" ]]; then
+  if [[ "$template_instance" != /* ]]; then
+    template_instance="$REPO_ROOT/$template_instance"
+  fi
+  load_env_keys "$template_instance"
 fi
 
 declare -A missing_vars=()
@@ -222,7 +264,7 @@ for compose_file in "${compose_files_list[@]}"; do
   fi
   while IFS= read -r raw_var; do
     raw_var="${raw_var#\${}"
-    raw_var="${raw_var%}}"
+    raw_var="${raw_var%\}}"
     raw_var="${raw_var%%:*}"
     raw_var="${raw_var%%\?*}"
     raw_var="${raw_var%%-*}"
