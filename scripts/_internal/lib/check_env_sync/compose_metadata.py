@@ -1,4 +1,4 @@
-"""Load Compose metadata from scripts/lib/compose_instances.sh."""
+"""Load Compose metadata from scripts/_internal/lib/compose_instances.sh."""
 
 from __future__ import annotations
 

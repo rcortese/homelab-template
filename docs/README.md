@@ -24,7 +24,7 @@ The documents below remain generic to ease merges from the template. To record s
 
 ## Application documentation
 
-- Generate app docs with [`scripts/bootstrap_instance.sh`](../scripts/bootstrap_instance.sh) `--with-docs`, which builds `docs/apps/<application>.md` from [`doc-app.md.tpl`](../scripts/templates/bootstrap/doc-app.md.tpl) and inserts the link under `## Applications`.
+- Generate app docs with [`scripts/bootstrap_instance.sh`](../scripts/bootstrap_instance.sh) `--with-docs`, which builds `docs/apps/<application>.md` from [`doc-app.md.tpl`](../scripts/_internal/templates/bootstrap/doc-app.md.tpl) and inserts the link under `## Applications`.
 - File each application as `docs/apps/<application>.md`, keep the entries under `## Applications` in the right order (e.g., alphabetical), and update them whenever the app is added or changes meaningfully.
 
 ## CI/CD automation

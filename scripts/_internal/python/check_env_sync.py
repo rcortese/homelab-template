@@ -8,12 +8,16 @@ import sys
 from pathlib import Path
 from typing import List, Sequence, Set
 
-from scripts.lib.check_env_sync.compose_metadata import (
+REPO_ROOT = Path(__file__).resolve().parents[3]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+from scripts._internal.lib.check_env_sync.compose_metadata import (  # noqa: E402
     ComposeMetadata,
     ComposeMetadataError,
     load_compose_metadata,
 )
-from scripts.lib.check_env_sync.reporting import (
+from scripts._internal.lib.check_env_sync.reporting import (  # noqa: E402
     build_sync_report,
     determine_exit_code,
     format_report,
@@ -44,7 +48,7 @@ def parse_args(argv: Sequence[str]) -> argparse.Namespace:
 
 def main(argv: Sequence[str] | None = None) -> int:
     args = parse_args(argv or sys.argv[1:])
-    repo_root = Path(args.repo_root).resolve() if args.repo_root else Path(__file__).resolve().parents[1]
+    repo_root = Path(args.repo_root).resolve() if args.repo_root else REPO_ROOT
 
     try:
         metadata = load_compose_metadata(repo_root)

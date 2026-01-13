@@ -18,10 +18,11 @@ def create_consumer_repo(tmp_path):
     consumer = tmp_path / "consumer"
     scripts_dir = consumer / "scripts"
     scripts_dir.mkdir(parents=True)
+    (scripts_dir / "_internal").mkdir(parents=True)
     shutil.copy2(SCRIPT_PATH, scripts_dir / "update_from_template.sh")
     shutil.copytree(
-        REPO_ROOT / "scripts" / "lib",
-        scripts_dir / "lib",
+        REPO_ROOT / "scripts" / "_internal" / "lib",
+        scripts_dir / "_internal" / "lib",
         dirs_exist_ok=True,
     )
 
@@ -31,7 +32,7 @@ def create_consumer_repo(tmp_path):
 
     (consumer / "base.txt").write_text("template base\n", encoding="utf-8")
     run(
-        ["git", "add", "base.txt", "scripts/update_from_template.sh", "scripts/lib"],
+        ["git", "add", "base.txt", "scripts/update_from_template.sh", "scripts/_internal/lib"],
         cwd=consumer,
     )
     run(["git", "commit", "-m", "Template base"], cwd=consumer)
@@ -64,7 +65,7 @@ def test_require_interactive_input_fallback_without_error_helper(tmp_path):
 source \"{lib_path}\"
 require_interactive_input \"interactive input is required but unavailable\"
 exit $?
-""".format(lib_path=REPO_ROOT / "scripts" / "lib" / "template_prompts.sh"),
+""".format(lib_path=REPO_ROOT / "scripts" / "_internal" / "lib" / "template_prompts.sh"),
         encoding="utf-8",
     )
     os.chmod(script, 0o755)
@@ -85,7 +86,7 @@ error() {{
   echo "[error] $1" >&2
   return 0
 }}
-source "{REPO_ROOT / "scripts" / "lib" / "template_prompts.sh"}"
+source "{REPO_ROOT / "scripts" / "_internal" / "lib" / "template_prompts.sh"}"
 require_interactive_input "interactive input is required"
 exit $?
 """,

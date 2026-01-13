@@ -64,7 +64,7 @@ compose_env_chain__load_env_files() {
   local env_file env_output line key value
   for env_file in "${env_files[@]}"; do
     if [[ -f "$env_file" ]]; then
-      if env_output="$("$script_dir/lib/env_loader.sh" "$env_file" REPO_ROOT LOCAL_INSTANCE APP_DATA_DIR APP_DATA_DIR_MOUNT 2>/dev/null)"; then
+      if env_output="$("$script_dir/_internal/lib/env_loader.sh" "$env_file" REPO_ROOT LOCAL_INSTANCE APP_DATA_DIR APP_DATA_DIR_MOUNT 2>/dev/null)"; then
         while IFS= read -r line; do
           [[ -z "$line" ]] && continue
           if [[ "$line" == *=* ]]; then

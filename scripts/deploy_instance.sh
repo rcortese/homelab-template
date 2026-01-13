@@ -11,17 +11,17 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-# shellcheck source=lib/deploy_args.sh
-source "$SCRIPT_DIR/lib/deploy_args.sh"
+# shellcheck source=_internal/lib/deploy_args.sh
+source "$SCRIPT_DIR/_internal/lib/deploy_args.sh"
 
-# shellcheck source=lib/deploy_context.sh
-source "$SCRIPT_DIR/lib/deploy_context.sh"
+# shellcheck source=_internal/lib/deploy_context.sh
+source "$SCRIPT_DIR/_internal/lib/deploy_context.sh"
 
-# shellcheck source=lib/compose_command.sh
-source "$SCRIPT_DIR/lib/compose_command.sh"
+# shellcheck source=_internal/lib/compose_command.sh
+source "$SCRIPT_DIR/_internal/lib/compose_command.sh"
 
-# shellcheck source=lib/step_runner.sh
-source "$SCRIPT_DIR/lib/step_runner.sh"
+# shellcheck source=_internal/lib/step_runner.sh
+source "$SCRIPT_DIR/_internal/lib/step_runner.sh"
 
 if ! eval "$(parse_deploy_args "$@")"; then
   exit 1

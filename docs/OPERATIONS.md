@@ -84,7 +84,7 @@ See the summary in the table above. Include `scripts/check_env_sync.sh` in local
 
 ## scripts/check_env_sync.sh
 
-- **Purpose:** compare the manifests (`compose/docker-compose.common.yml`, when present, plus detected overrides) with the corresponding `env/*.example.env` files and flag divergences. The shell wrapper (`scripts/check_env_sync.sh`) first tries a local Python runtime via `scripts/lib/python_runtime.sh` and falls back to Docker (`python:3.11-slim`) only when a local runtime is unavailable, using `scripts/check_env_sync.py` as the main module.
+- **Purpose:** compare the manifests (`compose/docker-compose.common.yml`, when present, plus detected overrides) with the corresponding `env/*.example.env` files and flag divergences. The shell wrapper (`scripts/check_env_sync.sh`) first tries a local Python runtime via `scripts/_internal/lib/python_runtime.sh` and falls back to Docker (`python:3.11-slim`) only when a local runtime is unavailable, using `scripts/_internal/python/check_env_sync.py` as the main module.
 - **Typical usage:**
   ```bash
   scripts/check_env_sync.sh
@@ -170,12 +170,12 @@ Beyond the main flags (`--force`, `--skip-structure`, `--skip-validate`, `--skip
 
 ## scripts/fix_permission_issues.sh
 
-The script relies on `scripts/lib/deploy_context.sh` to calculate the persistent path under `${REPO_ROOT}/data/<instance>/app`, plus `APP_DATA_UID` and `APP_DATA_GID`. In shared environments, combine execution with `--dry-run` to review changes before applying `chown`.
+The script relies on `scripts/_internal/lib/deploy_context.sh` to calculate the persistent path under `${REPO_ROOT}/data/<instance>/app`, plus `APP_DATA_UID` and `APP_DATA_GID`. In shared environments, combine execution with `--dry-run` to review changes before applying `chown`.
 
 ## scripts/backup.sh
 
 - **Dependencies:**
-  - The instance `env/local/<instance>.env` must be up to date so that `scripts/lib/deploy_context.sh` can identify variables used to assemble the stack and compose plan;
+  - The instance `env/local/<instance>.env` must be up to date so that `scripts/_internal/lib/deploy_context.sh` can identify variables used to assemble the stack and compose plan;
   - The `backups/` directory must be writable (the script creates subfolders automatically but respects host permissions);
   - It is recommended to ensure the instance env file is sourced (`source env/local/<instance>.env`) when there are extra exports required by services.
 - The default command (`scripts/backup.sh core`) generates a full snapshot of the instance and reports the artifact location at the end. See [`docs/BACKUP_RESTORE.md`](./BACKUP_RESTORE.md) for retention and restore practices.

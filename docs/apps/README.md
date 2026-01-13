@@ -4,7 +4,7 @@ This folder centralizes documentation for each application managed by the stack.
 
 ## How to structure `<app>.md` files
 
-Each application must have a dedicated file named with the app’s short identifier (for example, `docs/apps/minio.md`). The content can follow the suggested format below, equivalent to the template `scripts/templates/bootstrap/doc-app.md.tpl`:
+Each application must have a dedicated file named with the app’s short identifier (for example, `docs/apps/minio.md`). The content can follow the suggested format below, equivalent to the template `scripts/_internal/templates/bootstrap/doc-app.md.tpl`:
 
 ```markdown
 # <Application title> (<slug>)

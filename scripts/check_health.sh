@@ -6,8 +6,8 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 ORIGINAL_PWD="${PWD:-}"
-# shellcheck source=./lib/python_runtime.sh
-source "${SCRIPT_DIR}/lib/python_runtime.sh"
+# shellcheck source=./_internal/lib/python_runtime.sh
+source "${SCRIPT_DIR}/_internal/lib/python_runtime.sh"
 
 OUTPUT_FORMAT="text"
 OUTPUT_FILE=""
@@ -18,17 +18,17 @@ fi
 
 REPO_ROOT="$(pwd)"
 
-# shellcheck source=./lib/compose_command.sh
-source "$SCRIPT_DIR/lib/compose_command.sh"
+# shellcheck source=./_internal/lib/compose_command.sh
+source "$SCRIPT_DIR/_internal/lib/compose_command.sh"
 
-# shellcheck source=./lib/env_helpers.sh
-source "$SCRIPT_DIR/lib/env_helpers.sh"
+# shellcheck source=./_internal/lib/env_helpers.sh
+source "$SCRIPT_DIR/_internal/lib/env_helpers.sh"
 
-# shellcheck source=./lib/env_file_chain.sh
-source "$SCRIPT_DIR/lib/env_file_chain.sh"
+# shellcheck source=./_internal/lib/env_file_chain.sh
+source "$SCRIPT_DIR/_internal/lib/env_file_chain.sh"
 
-# shellcheck source=./lib/health_logs.sh
-source "$SCRIPT_DIR/lib/health_logs.sh"
+# shellcheck source=./_internal/lib/health_logs.sh
+source "$SCRIPT_DIR/_internal/lib/health_logs.sh"
 
 print_help() {
   cat <<'EOF'
@@ -236,7 +236,7 @@ if [[ "$OUTPUT_FORMAT" == "json" ]]; then
     python_runtime__run \
       "$REPO_ROOT" \
       "COMPOSE_PS_TEXT COMPOSE_PS_JSON PRIMARY_LOG_SERVICES AUTO_LOG_SERVICES ALL_LOG_SERVICES FAILED_SERVICES_STR LOG_SUCCESS_FLAG SERVICE_PAYLOAD INSTANCE_NAME" \
-      -- "$SCRIPT_DIR/lib/health_report.py"
+      -- "$SCRIPT_DIR/_internal/lib/health_report.py"
   )"
 
   if [[ -n "$OUTPUT_FILE" ]]; then

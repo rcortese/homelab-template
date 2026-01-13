@@ -22,11 +22,11 @@ USAGE
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-# shellcheck source=lib/python_runtime.sh
-source "${SCRIPT_DIR}/lib/python_runtime.sh"
+# shellcheck source=_internal/lib/python_runtime.sh
+source "${SCRIPT_DIR}/_internal/lib/python_runtime.sh"
 
-# shellcheck source=lib/compose_command.sh
-source "$SCRIPT_DIR/lib/compose_command.sh"
+# shellcheck source=_internal/lib/compose_command.sh
+source "$SCRIPT_DIR/_internal/lib/compose_command.sh"
 
 FORMAT="table"
 INSTANCE_NAME=""
@@ -77,8 +77,8 @@ if [[ "$LIST_ONLY" == true && -n "$INSTANCE_NAME" ]]; then
 fi
 
 if [[ "$LIST_ONLY" == true ]]; then
-  # shellcheck source=lib/compose_instances.sh
-  source "$SCRIPT_DIR/lib/compose_instances.sh"
+  # shellcheck source=_internal/lib/compose_instances.sh
+  source "$SCRIPT_DIR/_internal/lib/compose_instances.sh"
 
   if ! load_compose_instances "$REPO_ROOT"; then
     echo "Error: failed to load available instances." >&2
@@ -157,4 +157,4 @@ export DESCRIBE_INSTANCE_REPO_ROOT="$REPO_ROOT"
 printf '%s' "$config_stdout" | python_runtime__run \
   "$REPO_ROOT" \
   "DESCRIBE_INSTANCE_FORMAT DESCRIBE_INSTANCE_NAME DESCRIBE_INSTANCE_COMPOSE_FILES DESCRIBE_INSTANCE_EXTRA_FILES DESCRIBE_INSTANCE_REPO_ROOT" \
-  -- "$SCRIPT_DIR/lib/describe_instance_report.py"
+  -- "$SCRIPT_DIR/_internal/lib/describe_instance_report.py"

@@ -4,9 +4,9 @@ This directory concentrates the entrypoints used day to day to validate, deploy,
 
 ## Root entrypoints vs `lib/` utilities
 
-Files in `scripts/*.sh` and `scripts/*.py` are entrypoints ready for direct CLI execution (`scripts/<name>.sh`). They load helper functions from `scripts/lib/` using `source "$SCRIPT_DIR/lib/<file>.sh"` (for shell) or the equivalent Python modules when needed. The pattern `SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"` ensures each entrypoint finds repository-relative utilities, keeping behavior consistent even when run outside the project root.
+Files in `scripts/*.sh` are entrypoints ready for direct CLI execution (`scripts/<name>.sh`). They load helper functions from `scripts/_internal/lib/` using `source "$SCRIPT_DIR/_internal/lib/<file>.sh"` (for shell) or the equivalent Python modules under `scripts/_internal/python/` when needed. The pattern `SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"` ensures each entrypoint finds repository-relative utilities, keeping behavior consistent even when run outside the project root.
 
-Utilities under `scripts/lib/` are never executed alone: they expose reusable functions (for example, manifest composition, `.env` loading, step execution) that entrypoints import. When creating new scripts, reuse these libraries to avoid duplication and preserve already documented flows.
+Utilities under `scripts/_internal/lib/` are never executed alone: they expose reusable functions (for example, manifest composition, `.env` loading, step execution) that entrypoints import. When creating new scripts, reuse these libraries to avoid duplication and preserve already documented flows.
 
 ## Usage conventions
 
@@ -51,4 +51,4 @@ Utilities under `scripts/lib/` are never executed alone: they expose reusable fu
 | `check_health.sh` | Runs post-deploy checks to confirm the status of active services. | [`docs/OPERATIONS.md#scriptscheck_healthsh`](../docs/OPERATIONS.md#scriptscheck_healthsh) |
 | `check_db_integrity.sh` | Performs inspections on SQLite databases with controlled application pauses. | [`docs/OPERATIONS.md#scriptscheck_db_integritysh`](../docs/OPERATIONS.md#scriptscheck_db_integritysh) |
 
-> For additional scripts (for example, wrappers in `scripts/local/` or templates in `scripts/templates/`), replicate these conventions when documenting fork-specific extensions.
+> For additional scripts (for example, wrappers in `scripts/local/` or templates in `scripts/_internal/templates/`), replicate these conventions when documenting fork-specific extensions.

@@ -11,7 +11,7 @@ from typing import Iterable, List, Set
 
 import yaml
 
-from scripts.lib.check_env_sync.compose_metadata import ComposeMetadataError
+from scripts._internal.lib.check_env_sync.compose_metadata import ComposeMetadataError
 
 
 def _collect_substitution_variables(text: str) -> Set[str]:
