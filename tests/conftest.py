@@ -249,19 +249,6 @@ def repo_copy(
         encoding="utf-8",
     )
 
-    local_override_path = copy_root / "scripts" / "local" / "check_env_sync.py"
-    local_override_path.parent.mkdir(parents=True, exist_ok=True)
-    local_override_path.write_text(
-        "IMPLICIT_ENV_VARS = {\"FOO_FROM_LOCAL\"}\n",
-        encoding="utf-8",
-    )
-
-    def _cleanup() -> None:
-        if local_override_path.exists():
-            local_override_path.unlink()
-
-    request.addfinalizer(_cleanup)
-
     return copy_root
 
 
