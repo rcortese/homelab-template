@@ -26,8 +26,8 @@ USAGE
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-# shellcheck source=lib/env_file_chain.sh
-source "$SCRIPT_DIR/lib/env_file_chain.sh"
+# shellcheck source=_internal/lib/env_file_chain.sh
+source "$SCRIPT_DIR/_internal/lib/env_file_chain.sh"
 
 ENV_OUTPUT_FILE="$REPO_ROOT/.env"
 GENERATED_HEADER="# GENERATED FILE. DO NOT EDIT. RE-RUN SCRIPTS/BUILD_COMPOSE_FILE.SH OR SCRIPTS/DEPLOY_INSTANCE.SH."
@@ -76,7 +76,7 @@ if [[ "$ENV_OUTPUT_FILE" != /* ]]; then
   ENV_OUTPUT_FILE="$REPO_ROOT/$ENV_OUTPUT_FILE"
 fi
 
-if ! compose_metadata="$("$SCRIPT_DIR/lib/compose_instances.sh" "$REPO_ROOT")"; then
+if ! compose_metadata="$("$SCRIPT_DIR/_internal/lib/compose_instances.sh" "$REPO_ROOT")"; then
   echo "Error: could not load instance metadata." >&2
   exit 1
 fi

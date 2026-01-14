@@ -4,12 +4,12 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 
-# shellcheck source=scripts/lib/python_runtime.sh
+# shellcheck source=scripts/_internal/lib/python_runtime.sh
 source "${SCRIPT_DIR}/python_runtime.sh"
 
 print_usage() {
   cat <<'EOF'
-Usage: scripts/lib/env_loader.sh <file.env> <VARIABLE> [VARIABLE...]
+Usage: scripts/_internal/lib/env_loader.sh <file.env> <VARIABLE> [VARIABLE...]
 
 Reads a simple .env file and prints key=value pairs for the requested
 variables. The script does not alter the current environment; the caller is

@@ -7,16 +7,16 @@ from typing import Sequence
 
 import pytest
 
-from scripts.check_env_sync import main
-from scripts.lib.check_env_sync.compose_metadata import (
+from scripts._internal.python.check_env_sync import main
+from scripts._internal.lib.check_env_sync.compose_metadata import (
     ComposeMetadata,
     decode_bash_string,
     load_compose_metadata,
     parse_declare_array,
     parse_declare_mapping,
 )
-from scripts.lib.check_env_sync.compose_variables import extract_compose_variables
-from scripts.lib.check_env_sync.reporting import SyncReport, build_sync_report
+from scripts._internal.lib.check_env_sync.compose_variables import extract_compose_variables
+from scripts._internal.lib.check_env_sync.reporting import SyncReport, build_sync_report
 from tests.helpers.compose_instances import ComposeInstancesData
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -266,7 +266,7 @@ def test_build_sync_report_uses_runtime_provided_variables(
     assert "LOCAL_INSTANCE" not in missing_vars
 
     monkeypatch.setattr(
-        "scripts.lib.check_env_sync.reporting.RUNTIME_PROVIDED_VARIABLES", set()
+        "scripts._internal.lib.check_env_sync.reporting.RUNTIME_PROVIDED_VARIABLES", set()
     )
 
     report_without_runtime = build_sync_report(repo_copy, metadata)
@@ -326,7 +326,7 @@ services:
     )
 
     monkeypatch.setattr(
-        "scripts.lib.check_env_sync.reporting.IMPLICIT_ENV_VARS",
+        "scripts._internal.lib.check_env_sync.reporting.IMPLICIT_ENV_VARS",
         {"IMPLICIT_FROM_MONKEYPATCH"},
     )
 
@@ -379,7 +379,7 @@ def test_check_env_sync_allows_missing_base_file(repo_copy: Path) -> None:
 
 
 def test_check_env_sync_reports_missing_compose_override(repo_copy: Path) -> None:
-    script_path = repo_copy / "scripts" / "lib" / "compose_instances.sh"
+    script_path = repo_copy / "scripts" / "_internal" / "lib" / "compose_instances.sh"
     script_path.write_text(
         """#!/usr/bin/env bash
 cat <<'EOF'
@@ -405,7 +405,7 @@ EOF
 
 
 def test_check_env_sync_reports_metadata_error_from_compose_script(repo_copy: Path) -> None:
-    script_path = repo_copy / "scripts" / "lib" / "compose_instances.sh"
+    script_path = repo_copy / "scripts" / "_internal" / "lib" / "compose_instances.sh"
     stub_error = "Simulated error while loading instances."
     script_path.write_text(
         f"""#!/usr/bin/env bash
@@ -424,7 +424,7 @@ exit 1
 
 
 def test_check_env_sync_errors_when_declared_base_missing(repo_copy: Path) -> None:
-    script_path = repo_copy / "scripts" / "lib" / "compose_instances.sh"
+    script_path = repo_copy / "scripts" / "_internal" / "lib" / "compose_instances.sh"
     script_path.write_text(
         """#!/usr/bin/env bash
 cat <<'EOF'
@@ -477,8 +477,8 @@ def test_main_filters_instances_before_build(monkeypatch, tmp_path: Path) -> Non
             missing_templates=[],
         )
 
-    monkeypatch.setattr("scripts.check_env_sync.load_compose_metadata", fake_load)
-    monkeypatch.setattr("scripts.check_env_sync.build_sync_report", fake_build)
+    monkeypatch.setattr("scripts._internal.python.check_env_sync.load_compose_metadata", fake_load)
+    monkeypatch.setattr("scripts._internal.python.check_env_sync.build_sync_report", fake_build)
 
     exit_code = main(["--repo-root", str(tmp_path), "--instance", "beta"])
 

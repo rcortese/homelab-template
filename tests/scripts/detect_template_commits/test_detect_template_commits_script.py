@@ -44,8 +44,8 @@ def bootstrap_consumer_repository(tmp_path):
     scripts_dir.mkdir()
     shutil.copy2(SCRIPT_PATH, scripts_dir / "detect_template_commits.sh")
     shutil.copytree(
-        REPO_ROOT / "scripts" / "lib",
-        scripts_dir / "lib",
+        REPO_ROOT / "scripts" / "_internal" / "lib",
+        scripts_dir / "_internal" / "lib",
         dirs_exist_ok=True,
     )
 
@@ -97,8 +97,8 @@ def prepare_script_tree(tmp_path):
     scripts_dir.mkdir(parents=True)
     shutil.copy2(SCRIPT_PATH, scripts_dir / "detect_template_commits.sh")
     shutil.copytree(
-        REPO_ROOT / "scripts" / "lib",
-        scripts_dir / "lib",
+        REPO_ROOT / "scripts" / "_internal" / "lib",
+        scripts_dir / "_internal" / "lib",
         dirs_exist_ok=True,
     )
     script_path = scripts_dir / "detect_template_commits.sh"

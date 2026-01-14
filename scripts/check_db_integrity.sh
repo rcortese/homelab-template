@@ -8,20 +8,20 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 ORIGINAL_PWD="${PWD:-}"
 CHANGED_TO_REPO_ROOT=false
 
-# shellcheck source=lib/app_detection.sh
-source "$SCRIPT_DIR/lib/app_detection.sh"
+# shellcheck source=_internal/lib/app_detection.sh
+source "$SCRIPT_DIR/_internal/lib/app_detection.sh"
 
-# shellcheck source=lib/compose_command.sh
-source "$SCRIPT_DIR/lib/compose_command.sh"
+# shellcheck source=_internal/lib/compose_command.sh
+source "$SCRIPT_DIR/_internal/lib/compose_command.sh"
 
-# shellcheck source=lib/db_integrity_backend.sh
-source "$SCRIPT_DIR/lib/db_integrity_backend.sh"
+# shellcheck source=_internal/lib/db_integrity_backend.sh
+source "$SCRIPT_DIR/_internal/lib/db_integrity_backend.sh"
 
-# shellcheck source=lib/db_integrity_recovery.sh
-source "$SCRIPT_DIR/lib/db_integrity_recovery.sh"
+# shellcheck source=_internal/lib/db_integrity_recovery.sh
+source "$SCRIPT_DIR/_internal/lib/db_integrity_recovery.sh"
 
-# shellcheck source=lib/db_integrity_report.sh
-source "$SCRIPT_DIR/lib/db_integrity_report.sh"
+# shellcheck source=_internal/lib/db_integrity_report.sh
+source "$SCRIPT_DIR/_internal/lib/db_integrity_report.sh"
 
 if [[ "$ORIGINAL_PWD" != "$REPO_ROOT" ]]; then
   cd "$REPO_ROOT"

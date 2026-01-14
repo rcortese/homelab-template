@@ -2,10 +2,10 @@
 
 _DEPLOY_CONTEXT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# shellcheck source=scripts/lib/compose_plan.sh
+# shellcheck source=scripts/_internal/lib/compose_plan.sh
 source "${_DEPLOY_CONTEXT_DIR}/compose_plan.sh"
 
-# shellcheck source=scripts/lib/env_file_chain.sh
+# shellcheck source=scripts/_internal/lib/env_file_chain.sh
 source "${_DEPLOY_CONTEXT_DIR}/env_file_chain.sh"
 
 load_deploy_metadata() {

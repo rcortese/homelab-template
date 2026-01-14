@@ -55,14 +55,14 @@ error() {
   exit 1
 }
 
-# shellcheck source=lib/template_prompts.sh
-source "$SCRIPT_DIR/lib/template_prompts.sh"
-# shellcheck source=lib/template_validate.sh
-source "$SCRIPT_DIR/lib/template_validate.sh"
-# shellcheck source=lib/template_sync.sh
-source "$SCRIPT_DIR/lib/template_sync.sh"
-# shellcheck source=lib/template_remote.sh
-source "$SCRIPT_DIR/lib/template_remote.sh"
+# shellcheck source=_internal/lib/template_prompts.sh
+source "$SCRIPT_DIR/_internal/lib/template_prompts.sh"
+# shellcheck source=_internal/lib/template_validate.sh
+source "$SCRIPT_DIR/_internal/lib/template_validate.sh"
+# shellcheck source=_internal/lib/template_sync.sh
+source "$SCRIPT_DIR/_internal/lib/template_sync.sh"
+# shellcheck source=_internal/lib/template_remote.sh
+source "$SCRIPT_DIR/_internal/lib/template_remote.sh"
 
 template_remote="${TEMPLATE_REMOTE:-}"
 original_commit="${ORIGINAL_COMMIT_ID:-}"

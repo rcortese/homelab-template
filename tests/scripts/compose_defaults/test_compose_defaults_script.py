@@ -7,7 +7,7 @@ from pathlib import Path
 
 from tests.helpers.compose_instances import ComposeInstancesData
 
-SCRIPT_RELATIVE = Path("scripts") / "lib" / "compose_defaults.sh"
+SCRIPT_RELATIVE = Path("scripts") / "_internal" / "lib" / "compose_defaults.sh"
 
 
 def _run_script(

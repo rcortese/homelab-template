@@ -51,10 +51,10 @@ CHECKBASHISMS_BIN="${CHECKBASHISMS_BIN:-checkbashisms}"
 SHELLCHECK_OPTS="${SHELLCHECK_OPTS:--x -P scripts}"
 export SHELLCHECK_OPTS
 
-PYTHON_HELPERS_PATH="${SCRIPT_DIR}/lib/python_runtime.sh"
+PYTHON_HELPERS_PATH="${SCRIPT_DIR}/_internal/lib/python_runtime.sh"
 
 if [[ -f "$PYTHON_HELPERS_PATH" ]]; then
-  # shellcheck source=lib/python_runtime.sh
+  # shellcheck source=_internal/lib/python_runtime.sh
   source "$PYTHON_HELPERS_PATH"
 
   run_pytest() {

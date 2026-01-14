@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# shellcheck source=scripts/lib/compose_paths.sh
+# shellcheck source=scripts/_internal/lib/compose_paths.sh
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/compose_paths.sh"
 
 compose_env_map__append_missing_env() {

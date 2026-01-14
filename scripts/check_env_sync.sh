@@ -5,7 +5,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
-# shellcheck source=lib/python_runtime.sh
-source "${SCRIPT_DIR}/lib/python_runtime.sh"
+# shellcheck source=_internal/lib/python_runtime.sh
+source "${SCRIPT_DIR}/_internal/lib/python_runtime.sh"
 
-python_runtime__run "$REPO_ROOT" "" -- "${SCRIPT_DIR}/check_env_sync.py" "$@"
+python_runtime__run "$REPO_ROOT" "" -- "${SCRIPT_DIR}/_internal/python/check_env_sync.py" "$@"

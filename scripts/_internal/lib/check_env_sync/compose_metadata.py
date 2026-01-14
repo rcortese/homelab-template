@@ -1,4 +1,4 @@
-"""Load Compose metadata from scripts/lib/compose_instances.sh."""
+"""Load Compose metadata from scripts/_internal/lib/compose_instances.sh."""
 
 from __future__ import annotations
 
@@ -65,9 +65,9 @@ def parse_declare_mapping(line: str) -> Dict[str, str]:
 
 
 def load_compose_metadata(repo_root: Path) -> ComposeMetadata:
-    script_path = repo_root / "scripts" / "lib" / "compose_instances.sh"
+    script_path = repo_root / "scripts" / "_internal" / "lib" / "compose_instances.sh"
     result = subprocess.run(
-        [str(script_path)],
+        [str(script_path), str(repo_root)],
         cwd=repo_root,
         capture_output=True,
         text=True,

@@ -4,13 +4,13 @@
 
 VALIDATE_PLAN_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# shellcheck source=scripts/lib/env_file_chain.sh
+# shellcheck source=scripts/_internal/lib/env_file_chain.sh
 source "$VALIDATE_PLAN_DIR/env_file_chain.sh"
 
-# shellcheck source=scripts/lib/compose_plan.sh
+# shellcheck source=scripts/_internal/lib/compose_plan.sh
 source "$VALIDATE_PLAN_DIR/compose_plan.sh"
 
-# shellcheck source=scripts/lib/compose_file_utils.sh
+# shellcheck source=scripts/_internal/lib/compose_file_utils.sh
 source "$VALIDATE_PLAN_DIR/compose_file_utils.sh"
 
 validate_executor_prepare_plan() {

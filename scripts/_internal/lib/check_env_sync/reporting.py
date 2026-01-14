@@ -6,9 +6,9 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List, Mapping, Sequence, Set
 
-from scripts.lib.check_env_sync.compose_metadata import ComposeMetadata
-from scripts.lib.check_env_sync.compose_variables import extract_compose_variables
-from scripts.lib.check_env_sync.env_templates import EnvTemplateData, load_env_variables
+from scripts._internal.lib.check_env_sync.compose_metadata import ComposeMetadata
+from scripts._internal.lib.check_env_sync.compose_variables import extract_compose_variables
+from scripts._internal.lib.check_env_sync.env_templates import EnvTemplateData, load_env_variables
 
 RUNTIME_PROVIDED_VARIABLES: Set[str] = {"LOCAL_INSTANCE", "REPO_ROOT"}
 DEFAULT_IMPLICIT_ENV_VARS: Set[str] = {"APP_DATA_UID", "APP_DATA_GID"}

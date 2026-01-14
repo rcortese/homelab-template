@@ -28,10 +28,10 @@ error() {
   exit 1
 }
 
-# shellcheck source=lib/template_validate.sh
-source "$SCRIPT_DIR/lib/template_validate.sh"
-# shellcheck source=lib/template_remote.sh
-source "$SCRIPT_DIR/lib/template_remote.sh"
+# shellcheck source=_internal/lib/template_validate.sh
+source "$SCRIPT_DIR/_internal/lib/template_validate.sh"
+# shellcheck source=_internal/lib/template_remote.sh
+source "$SCRIPT_DIR/_internal/lib/template_remote.sh"
 
 remote="${TEMPLATE_REMOTE:-}"
 target_branch="${TARGET_BRANCH:-}"

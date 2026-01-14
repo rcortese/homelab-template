@@ -21,14 +21,14 @@ fi
 
 INSTANCE="$1"
 
-# shellcheck source=lib/deploy_context.sh
-source "$SCRIPT_DIR/lib/deploy_context.sh"
+# shellcheck source=_internal/lib/deploy_context.sh
+source "$SCRIPT_DIR/_internal/lib/deploy_context.sh"
 
-# shellcheck source=lib/app_detection.sh
-source "$SCRIPT_DIR/lib/app_detection.sh"
+# shellcheck source=_internal/lib/app_detection.sh
+source "$SCRIPT_DIR/_internal/lib/app_detection.sh"
 
-# shellcheck source=lib/compose_command.sh
-source "$SCRIPT_DIR/lib/compose_command.sh"
+# shellcheck source=_internal/lib/compose_command.sh
+source "$SCRIPT_DIR/_internal/lib/compose_command.sh"
 
 deploy_context_eval=""
 if ! deploy_context_eval="$(build_deploy_context "$REPO_ROOT" "$INSTANCE")"; then
