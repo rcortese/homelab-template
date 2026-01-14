@@ -35,16 +35,16 @@ USAGE
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-# shellcheck source=lib/compose_command.sh
-source "$SCRIPT_DIR/lib/compose_command.sh"
-# shellcheck source=lib/compose_plan.sh
-source "$SCRIPT_DIR/lib/compose_plan.sh"
-# shellcheck source=lib/compose_env_chain.sh
-source "$SCRIPT_DIR/lib/compose_env_chain.sh"
-# shellcheck source=lib/compose_env_validation.sh
-source "$SCRIPT_DIR/lib/compose_env_validation.sh"
-# shellcheck source=lib/env_file_chain.sh
-source "$SCRIPT_DIR/lib/env_file_chain.sh"
+# shellcheck source=_internal/lib/compose_command.sh
+source "$SCRIPT_DIR/_internal/lib/compose_command.sh"
+# shellcheck source=_internal/lib/compose_plan.sh
+source "$SCRIPT_DIR/_internal/lib/compose_plan.sh"
+# shellcheck source=_internal/lib/compose_env_chain.sh
+source "$SCRIPT_DIR/_internal/lib/compose_env_chain.sh"
+# shellcheck source=_internal/lib/compose_env_validation.sh
+source "$SCRIPT_DIR/_internal/lib/compose_env_validation.sh"
+# shellcheck source=_internal/lib/env_file_chain.sh
+source "$SCRIPT_DIR/_internal/lib/env_file_chain.sh"
 
 INSTANCE_NAME=""
 OUTPUT_FILE="$REPO_ROOT/docker-compose.yml"
@@ -135,7 +135,7 @@ fi
 
 declare -a compose_files_list=()
 
-if ! compose_metadata="$("$SCRIPT_DIR/lib/compose_instances.sh" "$REPO_ROOT")"; then
+if ! compose_metadata="$("$SCRIPT_DIR/_internal/lib/compose_instances.sh" "$REPO_ROOT")"; then
   echo "Error: could not load instance metadata." >&2
   exit 1
 fi

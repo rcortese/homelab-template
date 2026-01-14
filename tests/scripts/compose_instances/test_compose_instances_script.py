@@ -94,7 +94,7 @@ def _collect_compose_metadata(repo_root: Path) -> tuple[
 
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
-SCRIPT_PATH = REPO_ROOT / "scripts" / "lib" / "compose_instances.sh"
+SCRIPT_PATH = REPO_ROOT / "scripts" / "_internal" / "lib" / "compose_instances.sh"
 
 
 def run_compose_instances(repo_root: Path) -> subprocess.CompletedProcess[str]:

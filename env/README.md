@@ -53,7 +53,7 @@ Create a table similar to the one below for each `env/<target>.example.env` file
 | Variable | Required? | Usage | Reference |
 | --- | --- | --- | --- |
 | `APP_PUBLIC_URL` | Optional | Sets the public URL for links and cookies. | `docker-compose.<instance>.yml` (e.g., `docker-compose.core.yml`). |
-| `COMPOSE_EXTRA_FILES` | Optional | Lists additional compose files applied after the instance override (space- or comma-separated). | `scripts/deploy_instance.sh`, `scripts/validate_compose.sh`, `scripts/lib/compose_defaults.sh`. |
+| `COMPOSE_EXTRA_FILES` | Optional | Lists additional compose files applied after the instance override (space- or comma-separated). | `scripts/deploy_instance.sh`, `scripts/validate_compose.sh`, `scripts/_internal/lib/compose_defaults.sh`. |
 
 > Replace the table with the real fields in your stack. Use the **Reference** column to point where the variable is consumed (manifests, scripts, external infrastructure, etc.).
 

@@ -22,8 +22,8 @@ def run_compose_plan(
     extras_assignment = f"extras=({extras_literal})" if extras_literal else "extras=()"
     capture_flag = "1" if capture_metadata else "0"
 
-    compose_instances_path = repo_root / "scripts" / "lib" / "compose_instances.sh"
-    compose_plan_path = repo_root / "scripts" / "lib" / "compose_plan.sh"
+    compose_instances_path = repo_root / "scripts" / "_internal" / "lib" / "compose_instances.sh"
+    compose_plan_path = repo_root / "scripts" / "_internal" / "lib" / "compose_plan.sh"
 
     script = f"""
 set -euo pipefail

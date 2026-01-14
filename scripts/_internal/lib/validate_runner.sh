@@ -4,16 +4,16 @@
 
 VALIDATE_RUNNER_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# shellcheck source=scripts/lib/validate_plan.sh
+# shellcheck source=scripts/_internal/lib/validate_plan.sh
 source "$VALIDATE_RUNNER_DIR/validate_plan.sh"
 
-# shellcheck source=scripts/lib/validate_output.sh
+# shellcheck source=scripts/_internal/lib/validate_output.sh
 source "$VALIDATE_RUNNER_DIR/validate_output.sh"
 
-# shellcheck source=scripts/lib/consolidated_compose.sh
+# shellcheck source=scripts/_internal/lib/consolidated_compose.sh
 source "$VALIDATE_RUNNER_DIR/consolidated_compose.sh"
 
-# shellcheck source=scripts/lib/compose_yaml_validation.sh
+# shellcheck source=scripts/_internal/lib/compose_yaml_validation.sh
 source "$VALIDATE_RUNNER_DIR/compose_yaml_validation.sh"
 
 validate_executor_run_instances() {

@@ -6,7 +6,7 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
-SCRIPT_PATH = REPO_ROOT / "scripts" / "lib" / "env_loader.sh"
+SCRIPT_PATH = REPO_ROOT / "scripts" / "_internal" / "lib" / "env_loader.sh"
 
 
 def run_env_loader(

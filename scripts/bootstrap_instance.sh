@@ -166,7 +166,7 @@ if [[ $WITH_DOCS -eq 1 ]]; then
   mkdir -p "$docs_apps_dir"
 fi
 
-templates_root="$SCRIPT_DIR/templates/bootstrap"
+templates_root="$SCRIPT_DIR/_internal/templates/bootstrap"
 
 render_template() {
   local template_name="$1"

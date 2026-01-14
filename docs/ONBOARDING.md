@@ -51,7 +51,7 @@ scripts/check_all.sh
 The `scripts/check_all.sh` aggregator runs the template’s essential structural validations in the order below and stops immediately when any of them fails:
 
 - `scripts/check_structure.sh` – confirms required directories and files are still present.
-- `scripts/check_env_sync.sh` – verifies that Compose manifests and `env/*.example.env` files remain in sync (tries local Python via `scripts/lib/python_runtime.sh`, then falls back to Docker for `scripts/check_env_sync.py`).
+- `scripts/check_env_sync.sh` – verifies that Compose manifests and `env/*.example.env` files remain in sync (tries local Python via `scripts/_internal/lib/python_runtime.sh`, then falls back to Docker for `scripts/_internal/python/check_env_sync.py`).
   - Use `--instance <name>` (repeatable) when you want to validate only a subset of instances during local adjustments.
 - `scripts/validate_env_output.sh` – confirms generated environment output matches the expected templates before Compose validation.
 - `scripts/validate_compose.sh` – validates the default manifest combinations for the active profiles.

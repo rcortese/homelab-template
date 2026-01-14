@@ -76,7 +76,7 @@ def _parse_mapping(line: str) -> dict[str, str]:
 
 
 def load_compose_instances_data(repo_root: Path) -> ComposeInstancesData:
-    script_path = repo_root / "scripts" / "lib" / "compose_instances.sh"
+    script_path = repo_root / "scripts/_internal/lib" / "compose_instances.sh"
     result = subprocess.run(
         [str(script_path), str(repo_root)],
         capture_output=True,

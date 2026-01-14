@@ -15,17 +15,17 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-ENV_LOADER="$SCRIPT_DIR/lib/env_loader.sh"
+ENV_LOADER="$SCRIPT_DIR/_internal/lib/env_loader.sh"
 
-# shellcheck source=lib/compose_command.sh
-source "$SCRIPT_DIR/lib/compose_command.sh"
+# shellcheck source=_internal/lib/compose_command.sh
+source "$SCRIPT_DIR/_internal/lib/compose_command.sh"
 
-# shellcheck source=lib/compose_file_utils.sh
-source "$SCRIPT_DIR/lib/compose_file_utils.sh"
-# shellcheck source=lib/validate_cli.sh
-source "$SCRIPT_DIR/lib/validate_cli.sh"
-# shellcheck source=lib/validate_executor.sh
-source "$SCRIPT_DIR/lib/validate_executor.sh"
+# shellcheck source=_internal/lib/compose_file_utils.sh
+source "$SCRIPT_DIR/_internal/lib/compose_file_utils.sh"
+# shellcheck source=_internal/lib/validate_cli.sh
+source "$SCRIPT_DIR/_internal/lib/validate_cli.sh"
+# shellcheck source=_internal/lib/validate_executor.sh
+source "$SCRIPT_DIR/_internal/lib/validate_executor.sh"
 
 POSITIONAL_ARGS=()
 while [[ $# -gt 0 ]]; do
@@ -47,7 +47,7 @@ else
   set --
 fi
 
-if ! compose_metadata="$("$SCRIPT_DIR/lib/compose_instances.sh" "$REPO_ROOT")"; then
+if ! compose_metadata="$("$SCRIPT_DIR/_internal/lib/compose_instances.sh" "$REPO_ROOT")"; then
   echo "Error: unable to load instance metadata." >&2
   exit 1
 fi

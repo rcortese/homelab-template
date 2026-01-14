@@ -68,10 +68,10 @@ def _prepare_repo(
 
     repo_dir = tmp_path / "repo"
     scripts_dir = repo_dir / "scripts"
-    lib_dir = scripts_dir / "lib"
+    lib_dir = scripts_dir / "_internal" / "lib"
     repo_dir.mkdir()
     scripts_dir.mkdir()
-    lib_dir.mkdir()
+    lib_dir.mkdir(parents=True)
 
     log_file = repo_dir / "invocations.log"
 
@@ -175,7 +175,7 @@ def test_run_quality_checks_uses_python_runtime_wrapper(tmp_path: Path) -> None:
     """The wrapper should defer to python_runtime__run when available."""
 
     script, log_file, repo_dir = _prepare_repo(tmp_path)
-    python_runtime = repo_dir / "scripts" / "lib" / "python_runtime.sh"
+    python_runtime = repo_dir / "scripts" / "_internal" / "lib" / "python_runtime.sh"
     log_target = str(log_file)
     python_runtime.write_text(
         "\n".join(

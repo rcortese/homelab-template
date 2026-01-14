@@ -8,12 +8,12 @@ import sys
 from pathlib import Path
 from typing import List, Sequence, Set
 
-from scripts.lib.check_env_sync.compose_metadata import (
+from scripts._internal.lib.check_env_sync.compose_metadata import (
     ComposeMetadata,
     ComposeMetadataError,
     load_compose_metadata,
 )
-from scripts.lib.check_env_sync.reporting import (
+from scripts._internal.lib.check_env_sync.reporting import (
     build_sync_report,
     determine_exit_code,
     format_report,
@@ -44,7 +44,11 @@ def parse_args(argv: Sequence[str]) -> argparse.Namespace:
 
 def main(argv: Sequence[str] | None = None) -> int:
     args = parse_args(argv or sys.argv[1:])
-    repo_root = Path(args.repo_root).resolve() if args.repo_root else Path(__file__).resolve().parents[1]
+    repo_root = (
+        Path(args.repo_root).resolve()
+        if args.repo_root
+        else Path(__file__).resolve().parents[3]
+    )
 
     try:
         metadata = load_compose_metadata(repo_root)
