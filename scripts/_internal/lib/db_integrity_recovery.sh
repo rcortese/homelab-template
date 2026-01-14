@@ -54,6 +54,7 @@ attempt_recovery() {
   else
     RECOVERY_DETAILS="recovery completed via sqlite3 .recover"
   fi
+  : "$RECOVERY_BACKUP_PATH" "$RECOVERY_DETAILS"
 
   rm -rf "$tmp_dir"
   return 0

@@ -45,6 +45,7 @@ compose_env_chain__resolve() {
   local -n output_resolved="$output_resolved_var"
   output_list=("${resolved_list[@]}")
   output_resolved=("${resolved_paths[@]}")
+  : "${output_list[@]}" "${output_resolved[@]}"
 }
 
 compose_env_chain__load_env_files() {
@@ -70,10 +71,11 @@ compose_env_chain__load_env_files() {
           if [[ "$line" == *=* ]]; then
             key="${line%%=*}"
             value="${line#*=}"
-            env_loaded[$key]="$value"
+            env_loaded["$key"]="$value"
           fi
         done <<<"$env_output"
       fi
     fi
   done
+  : "${!env_loaded[@]}"
 }

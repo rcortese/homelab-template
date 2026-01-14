@@ -108,6 +108,14 @@ if ((RUN_LINT)); then
       exit 1
     fi
     "${SHELLCHECK_BIN}" "${shellcheck_targets[@]}"
-    "${CHECKBASHISMS_BIN}" "${shellcheck_targets[@]}"
+    checkbashisms_targets=()
+    for script in "${shellcheck_targets[@]}"; do
+      if head -n 1 "$script" | grep -Eq '^#!\s*/bin/sh|^#!\s*/usr/bin/env sh'; then
+        checkbashisms_targets+=("$script")
+      fi
+    done
+    if ((${#checkbashisms_targets[@]} > 0)); then
+      "${CHECKBASHISMS_BIN}" "${checkbashisms_targets[@]}"
+    fi
   fi
 fi
