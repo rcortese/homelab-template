@@ -19,6 +19,7 @@ json_escape() {
 }
 
 generate_json_report() {
+  local overall_status="$1"
   local first=1
   printf '{"format":"json","overall_status":%d,"databases":[' "$overall_status"
   for entry in "${DB_RESULTS[@]}"; do

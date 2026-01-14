@@ -318,7 +318,7 @@ if ((${#ALERTS[@]} > 0)); then
 fi
 
 if [[ "$OUTPUT_FORMAT" == "json" ]]; then
-  json_report="$(generate_json_report)"
+  json_report="$(generate_json_report "$overall_status")"
   if ((JSON_STDOUT_REDIRECTED == 1)); then
     exec 1>&3
     exec 3>&-

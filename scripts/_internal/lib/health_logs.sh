@@ -40,6 +40,7 @@ health_logs__select_targets() {
 
   ALL_LOG_TARGETS=("${primary_targets[@]}" "${auto_targets[@]}")
   LOG_TARGETS=("${primary_targets[@]}")
+  : "${ALL_LOG_TARGETS[@]}" "${LOG_TARGETS[@]}"
 
   if [[ ${#LOG_TARGETS[@]} -eq 0 ]]; then
     if [[ ${#auto_targets[@]} -gt 0 ]]; then
@@ -47,6 +48,7 @@ health_logs__select_targets() {
       primary_targets=("${LOG_TARGETS[@]}")
       ALL_LOG_TARGETS=("${LOG_TARGETS[@]}")
       auto_targets=()
+      : "${ALL_LOG_TARGETS[@]}"
     else
       echo "Error: no services were found for log collection." >&2
       echo "       Configure HEALTH_SERVICES or ensure the Compose manifests declare valid services." >&2
@@ -67,12 +69,14 @@ health_logs__collect_logs() {
       SERVICE_LOGS["$service"]="$service_output"
       SERVICE_STATUSES["$service"]="ok"
       log_success=true
+      : "${SERVICE_LOGS[$service]}" "${SERVICE_STATUSES[$service]}" "$log_success"
       if [[ "$OUTPUT_FORMAT" == "text" ]]; then
         printf '%s\n' "$service_output"
       fi
     else
       SERVICE_LOGS["$service"]="$service_output"
       SERVICE_STATUSES["$service"]="error"
+      : "${SERVICE_LOGS[$service]}" "${SERVICE_STATUSES[$service]}"
       printf '%s\n' "$service_output" >&2
       failed_services+=("$service")
     fi
