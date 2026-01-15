@@ -54,9 +54,9 @@ compose_env_chain__load_env_files() {
   shift 2
 
   local -a env_files=("$@")
-  local -n env_loaded="$output_env_var"
+  local -n env_loaded_ref="$output_env_var"
 
-  env_loaded=()
+  env_loaded_ref=()
 
   if ((${#env_files[@]} == 0)); then
     return 0
@@ -71,11 +71,11 @@ compose_env_chain__load_env_files() {
           if [[ "$line" == *=* ]]; then
             key="${line%%=*}"
             value="${line#*=}"
-            env_loaded["$key"]="$value"
+            env_loaded_ref["$key"]="$value"
           fi
         done <<<"$env_output"
       fi
     fi
   done
-  : "${!env_loaded[@]}"
+  : "${!env_loaded_ref[@]}"
 }
