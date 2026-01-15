@@ -191,12 +191,27 @@ if ((${#EXPLICIT_ENV_CHAIN[@]} > 0)); then
     explicit_env_chain_input="$explicit_env_chain_from_cli"
   fi
 fi
-if ! compose_env_chain__resolve \
+declare -a env_requested_keys=(
+  REPO_ROOT
+  LOCAL_INSTANCE
+  APP_DATA_DIR
+  APP_DATA_DIR_MOUNT
+)
+: "${env_requested_keys[@]}"
+declare -A env_loaded=()
+: "${env_loaded[@]}"
+if ! compose_env_chain__prepare \
+  "$SCRIPT_DIR" \
   "$REPO_ROOT" \
   "$INSTANCE_NAME" \
   "$explicit_env_chain_input" \
   COMPOSE_ENV_FILES_LIST \
   COMPOSE_ENV_FILES_RESOLVED \
+  env_loaded \
+  env_requested_keys \
+  "Error: REPO_ROOT must not be set in env files; it is derived by scripts." \
+  "Error: LOCAL_INSTANCE must not be set in env files; it is derived by scripts." \
+  "Error: APP_DATA_DIR and APP_DATA_DIR_MOUNT are no longer supported." \
   "${COMPOSE_ENV_FILES:-}" \
   "${EXPLICIT_ENV_FILES[@]}"; then
   exit 1
@@ -209,27 +224,7 @@ else
   printf '  (none)\n'
 fi
 
-declare -A env_loaded=()
-if ! compose_env_chain__load_env_files "$SCRIPT_DIR" env_loaded "${COMPOSE_ENV_FILES_RESOLVED[@]}"; then
-  exit 1
-fi
-
 if ! compose_env_validation__check "$REPO_ROOT" compose_files_list env_loaded COMPOSE_ENV_FILES_LIST; then
-  exit 1
-fi
-
-if [[ -n "${env_loaded[REPO_ROOT]:-}" ]]; then
-  echo "Error: REPO_ROOT must not be set in env files; it is derived by scripts." >&2
-  exit 1
-fi
-
-if [[ -n "${env_loaded[LOCAL_INSTANCE]:-}" ]]; then
-  echo "Error: LOCAL_INSTANCE must not be set in env files; it is derived by scripts." >&2
-  exit 1
-fi
-
-if [[ -n "${env_loaded[APP_DATA_DIR]:-}" || -n "${env_loaded[APP_DATA_DIR_MOUNT]:-}" ]]; then
-  echo "Error: APP_DATA_DIR and APP_DATA_DIR_MOUNT are no longer supported." >&2
   exit 1
 fi
 

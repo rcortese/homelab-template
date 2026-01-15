@@ -5,6 +5,9 @@ _DEPLOY_CONTEXT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=scripts/_internal/lib/compose_plan.sh
 source "${_DEPLOY_CONTEXT_DIR}/compose_plan.sh"
 
+# shellcheck source=scripts/_internal/lib/compose_env_chain.sh
+source "${_DEPLOY_CONTEXT_DIR}/compose_env_chain.sh"
+
 # shellcheck source=scripts/_internal/lib/env_file_chain.sh
 source "${_DEPLOY_CONTEXT_DIR}/env_file_chain.sh"
 
@@ -101,34 +104,32 @@ build_deploy_context() {
   fi
 
   declare -a env_files_rel=()
-  if [[ -n "$env_files_blob" ]]; then
-    local env_chain_output=""
-    if ! env_chain_output="$(env_file_chain__resolve_explicit "$env_files_blob" "")"; then
-      return 1
-    fi
-    if [[ -n "$env_chain_output" ]]; then
-      mapfile -t env_files_rel <<<"$env_chain_output"
-    fi
-  fi
-
-  if ((${#env_files_rel[@]} == 0)); then
-    local defaults_output=""
-    if ! defaults_output="$(env_file_chain__defaults "$repo_root" "$instance")"; then
-      return 1
-    fi
-    if [[ -n "$defaults_output" ]]; then
-      mapfile -t env_files_rel <<<"$defaults_output"
-    fi
-  fi
-
-  if ((${#env_files_rel[@]} == 0)); then
-    env_files_rel=("$local_env_file")
-  fi
-
   declare -a env_files_abs=()
-  mapfile -t env_files_abs < <(
-    env_file_chain__to_absolute "$repo_root" "${env_files_rel[@]}"
+  local -a requested_env_keys=(
+    COMPOSE_EXTRA_FILES
+    APP_DATA_UID
+    APP_DATA_GID
+    REPO_ROOT
+    LOCAL_INSTANCE
+    APP_DATA_DIR
+    APP_DATA_DIR_MOUNT
   )
+  local -A loaded_env_values=()
+  if ! compose_env_chain__prepare \
+    "$_DEPLOY_CONTEXT_DIR" \
+    "$repo_root" \
+    "$instance" \
+    "$env_files_blob" \
+    env_files_rel \
+    env_files_abs \
+    loaded_env_values \
+    requested_env_keys \
+    "[!] REPO_ROOT must not be set in env files; it is derived by scripts." \
+    "[!] LOCAL_INSTANCE is derived by scripts and must not be set in env files." \
+    "[!] APP_DATA_DIR and APP_DATA_DIR_MOUNT are no longer supported." \
+    ""; then
+    return 1
+  fi
 
   local idx=0
   while ((idx < ${#env_files_rel[@]})); do
@@ -151,34 +152,6 @@ build_deploy_context() {
     idx=$((idx + 1))
   done
 
-  local -A loaded_env_values=()
-  local -a requested_env_keys=(
-    COMPOSE_EXTRA_FILES
-    APP_DATA_UID
-    APP_DATA_GID
-    REPO_ROOT
-    LOCAL_INSTANCE
-    APP_DATA_DIR
-    APP_DATA_DIR_MOUNT
-  )
-
-  local env_file_abs
-  for env_file_abs in "${env_files_abs[@]}"; do
-    local env_output=""
-    if env_output="$("${_DEPLOY_CONTEXT_DIR}/env_loader.sh" "$env_file_abs" "${requested_env_keys[@]}" 2>/dev/null)"; then
-      local line key value
-      while IFS= read -r line; do
-        [[ -z "$line" ]] && continue
-        if [[ "$line" != *=* ]]; then
-          continue
-        fi
-        key="${line%%=*}"
-        value="${line#*=}"
-        loaded_env_values[$key]="$value"
-      done <<<"$env_output"
-    fi
-  done
-
   local key
   for key in "${requested_env_keys[@]}"; do
     if [[ -n "${loaded_env_values[$key]+x}" ]]; then
@@ -191,21 +164,6 @@ build_deploy_context() {
       export "$key=${loaded_env_values[$key]}"
     fi
   done
-
-  if [[ -n "${loaded_env_values[REPO_ROOT]:-}" ]]; then
-    echo "[!] REPO_ROOT must not be set in env files; it is derived by scripts." >&2
-    return 1
-  fi
-
-  if [[ -n "${loaded_env_values[LOCAL_INSTANCE]:-}" ]]; then
-    echo "[!] LOCAL_INSTANCE is derived by scripts and must not be set in env files." >&2
-    return 1
-  fi
-
-  if [[ -n "${loaded_env_values[APP_DATA_DIR]:-}" || -n "${loaded_env_values[APP_DATA_DIR_MOUNT]:-}" ]]; then
-    echo "[!] APP_DATA_DIR and APP_DATA_DIR_MOUNT are no longer supported." >&2
-    return 1
-  fi
 
   local primary_app="$instance"
   local app_names_string=""
