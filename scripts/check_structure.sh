@@ -29,7 +29,14 @@ EOF
   ;;
 esac
 
-ROOT_DIR_DEFAULT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# shellcheck source=_internal/lib/compose_paths.sh
+source "$SCRIPT_DIR/_internal/lib/compose_paths.sh"
+
+if ! ROOT_DIR_DEFAULT="$(compose_common__resolve_repo_root)"; then
+  exit 1
+fi
 ROOT_DIR="${ROOT_DIR_OVERRIDE:-$ROOT_DIR_DEFAULT}"
 cd "$ROOT_DIR"
 

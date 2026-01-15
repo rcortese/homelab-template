@@ -35,11 +35,18 @@ done
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-"${SCRIPT_DIR}/check_structure.sh"
-"${SCRIPT_DIR}/check_env_sync.sh"
-"${SCRIPT_DIR}/validate_env_output.sh"
-"${SCRIPT_DIR}/validate_compose.sh"
+# shellcheck source=_internal/lib/compose_paths.sh
+source "$SCRIPT_DIR/_internal/lib/compose_paths.sh"
+
+if ! REPO_ROOT="$(compose_common__resolve_repo_root)"; then
+  exit 1
+fi
+
+"${REPO_ROOT}/scripts/check_structure.sh"
+"${REPO_ROOT}/scripts/check_env_sync.sh"
+"${REPO_ROOT}/scripts/validate_env_output.sh"
+"${REPO_ROOT}/scripts/validate_compose.sh"
 
 if ((RUN_QUALITY_CHECKS)); then
-  "${SCRIPT_DIR}/run_quality_checks.sh"
+  "${REPO_ROOT}/scripts/run_quality_checks.sh"
 fi
