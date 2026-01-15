@@ -17,10 +17,10 @@ compose_common__resolve_repo_root() {
     return 0
   fi
 
-  if ! (cd "$COMPOSE_PATHS_LIB_DIR/../.." 2>/dev/null); then
+  if ! (cd "$COMPOSE_PATHS_LIB_DIR/../../.." 2>/dev/null); then
     echo "[!] Unable to resolve repository root from: $COMPOSE_PATHS_LIB_DIR" >&2
     return 1
   fi
 
-  (cd "$COMPOSE_PATHS_LIB_DIR/../.." && pwd)
+  (cd "$COMPOSE_PATHS_LIB_DIR/../../.." && pwd)
 }
