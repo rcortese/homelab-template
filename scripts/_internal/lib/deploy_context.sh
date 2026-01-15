@@ -11,6 +11,9 @@ source "${_DEPLOY_CONTEXT_DIR}/compose_env_chain.sh"
 # shellcheck source=scripts/_internal/lib/env_file_chain.sh
 source "${_DEPLOY_CONTEXT_DIR}/env_file_chain.sh"
 
+# shellcheck source=scripts/_internal/lib/compose_mounts.sh
+source "${_DEPLOY_CONTEXT_DIR}/compose_mounts.sh"
+
 load_deploy_metadata() {
   local repo_root="$1"
   local instance_filter="${2:-}"
@@ -190,6 +193,16 @@ build_deploy_context() {
     return 1
   fi
 
+  local -a compose_files_abs=()
+  local compose_file
+  for compose_file in "${compose_files_list[@]}"; do
+    if [[ "$compose_file" == /* ]]; then
+      compose_files_abs+=("$compose_file")
+    else
+      compose_files_abs+=("$repo_root/${compose_file#./}")
+    fi
+  done
+
   local compose_files_string="${compose_files_list[*]}"
 
   local env_files_string=""
@@ -197,7 +210,21 @@ build_deploy_context() {
     env_files_string="$(env_file_chain__join "," "${env_files_rel[@]}")"
   fi
 
+  local -a bind_mount_dirs=()
+  local bind_mounts_raw=""
+  if bind_mounts_raw="$(compose_mounts__collect_bind_paths "$repo_root" "${compose_files_abs[@]}")"; then
+    if [[ -n "$bind_mounts_raw" ]]; then
+      mapfile -t bind_mount_dirs <<<"$bind_mounts_raw"
+    fi
+  else
+    echo "[!] Warning: failed to parse bind mounts from the compose plan." >&2
+  fi
+
   local -a persistent_dirs=("$app_data_path" "$repo_root/backups")
+  local bind_dir
+  for bind_dir in "${bind_mount_dirs[@]}"; do
+    append_unique_file persistent_dirs "$bind_dir"
+  done
   local persistent_dirs_string
   persistent_dirs_string="$(printf '%s\n' "${persistent_dirs[@]}")"
 
