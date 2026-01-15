@@ -95,7 +95,7 @@ cat <<SUMMARY
 [*] Configured data directory: $app_data_dir
 [*] Data directory (absolute): $app_data_dir_mount
 [*] Desired owner: ${target_owner}
-[*] Persistent directories:
+[*] Persistent directories (including bind mounts):
 SUMMARY
 for dir in "${persistent_dirs[@]}"; do
   printf '    - %s\n' "$dir"
