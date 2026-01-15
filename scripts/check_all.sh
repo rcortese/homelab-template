@@ -36,11 +36,16 @@ done
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# shellcheck source=_internal/lib/compose_paths.sh
-source "$SCRIPT_DIR/_internal/lib/compose_paths.sh"
+REPO_ROOT=""
+if [[ -f "$SCRIPT_DIR/_internal/lib/compose_paths.sh" ]]; then
+  # shellcheck source=_internal/lib/compose_paths.sh
+  source "$SCRIPT_DIR/_internal/lib/compose_paths.sh"
 
-if ! REPO_ROOT="$(compose_common__resolve_repo_root "")"; then
-  exit 1
+  if ! REPO_ROOT="$(compose_common__resolve_repo_root "")"; then
+    exit 1
+  fi
+else
+  REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 fi
 
 "${REPO_ROOT}/scripts/check_structure.sh"
