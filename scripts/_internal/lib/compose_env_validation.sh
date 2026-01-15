@@ -21,15 +21,17 @@ compose_env_validation__load_python_runtime() {
 compose_env_validation__extract_vars() {
   local repo_root="$1"
   local target_file="$2"
-  local pattern='\$\{[A-Za-z_][A-Za-z0-9_]*([:-?][^}]*)?\}'
+  local pattern_core='\$\{[A-Za-z_][A-Za-z0-9_]*([:-?][^}]*)?\}'
+  local pattern_pcre="(?<!\\$)${pattern_core}"
+  local pattern_ere="(^|[^$])${pattern_core}"
 
   if command -v rg >/dev/null 2>&1; then
-    rg -o -P "$pattern" "$target_file" || true
+    rg -o -P "$pattern_pcre" "$target_file" || true
     return 0
   fi
 
   if command -v grep >/dev/null 2>&1; then
-    grep -oE "$pattern" "$target_file" || true
+    grep -oE "$pattern_ere" "$target_file" | sed 's/^[^$]//' || true
     return 0
   fi
 
@@ -39,7 +41,7 @@ import re
 import sys
 from pathlib import Path
 
-pattern = re.compile(r"\$\{[A-Za-z_][A-Za-z0-9_]*(?:[:-?][^}]*)?\}")
+pattern = re.compile(r"(?<!\$)\$\{[A-Za-z_][A-Za-z0-9_]*(?:[:-?][^}]*)?\}")
 content = Path(sys.argv[1]).read_text(encoding="utf-8", errors="ignore")
 for match in pattern.findall(content):
     print(match)
