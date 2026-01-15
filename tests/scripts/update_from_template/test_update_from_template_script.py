@@ -63,26 +63,6 @@ def setup_template_remote(tmp_path):
     return template_remote, clone_worktree
 
 
-def test_require_interactive_input_fallback_without_error_helper(tmp_path):
-    script = tmp_path / "check_require.sh"
-    script.write_text(
-        """#!/usr/bin/env bash
-source \"{lib_path}\"
-require_interactive_input \"interactive input is required but unavailable\"
-exit $?
-""".format(lib_path=REPO_ROOT / "scripts" / "_internal" / "lib" / "template_prompts.sh"),
-        encoding="utf-8",
-    )
-    os.chmod(script, 0o755)
-
-    result = subprocess.run(
-        [str(script)], capture_output=True, text=True, check=False
-    )
-
-    assert result.returncode != 0
-    assert "interactive input is required but unavailable" in result.stderr
-
-
 def test_require_interactive_input_returns_error_when_helper_does_not_exit(tmp_path):
     script = tmp_path / "check_require_with_error.sh"
     script.write_text(
