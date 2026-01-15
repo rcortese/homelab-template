@@ -33,7 +33,7 @@ declare -a compose_files=("{compose_file}")
 declare -A env_loaded=()
 env_loaded[IMAGE]=1
 declare -a env_chain=()
-compose_env_validation__check "{tmp_path}" compose_files env_loaded env_chain
+compose_env_validation__check "{tmp_path}" compose_files env_loaded env_chain ""
 """
 
     result = subprocess.run(

@@ -19,7 +19,7 @@ source "{REPO_ROOT}/scripts/_internal/lib/compose_env_validation.sh"
 declare -a compose_files=("{compose_file}")
 declare -A env_loaded=()
 declare -a env_chain=()
-compose_env_validation__check "{tmp_path}" compose_files env_loaded env_chain
+compose_env_validation__check "{tmp_path}" compose_files env_loaded env_chain ""
 """
 
     result = subprocess.run(
