@@ -30,14 +30,13 @@ This is the canonical reference for dependencies required by the template. Ensur
 
 ## 3. Set up the Python environment
 
-Prefer a local Python interpreter when running the helper scripts. If `requirements-dev.txt` is present, install the local depend
-encies first:
+Prefer a local Python interpreter when running the helper scripts. If `requirements-dev.txt` is present, install the local dependencies first:
 
 ```bash
 pip install -r requirements-dev.txt
 ```
 
-Only fall back to Docker-based wrappers when a local interpreter is unavailable or when the repository is explicitly configured
+Only fallback to Docker-based wrappers when a local Python interpreter is unavailable or when the repository is explicitly configured
 to enforce containerized execution (for example, to isolate dependencies from host toolchains).
 
 ## 4. Run the consolidated validations

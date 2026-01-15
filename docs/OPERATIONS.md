@@ -31,7 +31,7 @@ This document offers a starting point for describing operational processes and h
 - Run `scripts/check_all.sh` to validate structure, variable synchronization, and Compose manifests before opening PRs or publishing local changes.
 - Run `scripts/check_env_sync.sh` whenever you edit manifests or `.env` templates to ensure variables stay synchronized.
 - Document extra dependencies (CLIs, credentials, registry access) in additional sections.
-- Prefer running the Python helpers locally (install `requirements-dev.txt` when present) and only fall back to Docker when a local interpreter is unavailable or when isolating dependencies from the host is a requirement.
+- Prefer the local Python interpreter for helper scripts (install `requirements-dev.txt` when present) and only fallback to Docker when a local Python interpreter is unavailable or when isolating dependencies from the host is a requirement.
 
 <a id="generic-deploy-and-post-deploy-checklist"></a>
 ## Generic deploy and post-deploy checklist

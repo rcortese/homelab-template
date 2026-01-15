@@ -18,7 +18,7 @@ Base template capabilities:
 ## Prerequisites and validation snapshot
 
 - Docker Engine **>= 24.x** with Compose v2.20+ (only hard requirements for running the stack)
-- Optional contributor tooling: Python **>= 3.11** plus `shellcheck` **>= 0.9.0**, `shfmt` **>= 3.6.0**, and `checkbashisms` for local lint/format
+- Optional contributor tooling: Python **>= 3.11** with a local Python interpreter for helper scripts/tests plus `shellcheck` **>= 0.9.0**, `shfmt` **>= 3.6.0**, and `checkbashisms` for local lint/format (fallback to Docker for Python helpers when a local Python interpreter is unavailable)
 - Validate setup: `scripts/check_all.sh` (structure/env/compose checks using Docker and Compose)
 
 Operational procedures and runbooks live in [`docs/OPERATIONS.md`](docs/OPERATIONS.md). For template update instructions, see [`docs/updating-from-template.md`](docs/updating-from-template.md).
