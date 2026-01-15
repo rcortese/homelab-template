@@ -72,7 +72,37 @@ def test_generates_compose_from_instance_plan(
     assert str(output_path.resolve()) in _extract_args(second_call, "-f")
 
 
-def test_applies_extras_and_explicit_env_chain(
+def test_appends_env_files_to_default_chain(
+    repo_copy: Path, tmp_path: Path
+) -> None:
+    stub = create_compose_config_stub(tmp_path)
+
+    extra_env = repo_copy / "env" / "custom-extra.env"
+    extra_env.write_text("EXTRA=1\n", encoding="utf-8")
+
+    result = run_build_compose_file(
+        args=[
+            "--env-file",
+            str(extra_env.relative_to(repo_copy)),
+            "core",
+        ],
+        env={"DOCKER_COMPOSE_BIN": str(stub.path), **stub.base_env},
+        cwd=repo_copy,
+        script_path=repo_copy / "scripts" / "build_compose_file.sh",
+    )
+
+    assert result.returncode == 0, result.stderr
+
+    calls = stub.read_calls()
+    env_files = _extract_args(calls[0], "--env-file")
+    assert env_files == [
+        str((repo_copy / "env" / "local" / "common.env").resolve()),
+        str((repo_copy / "env" / "local" / "core.env").resolve()),
+        str(extra_env.resolve()),
+    ]
+
+
+def test_applies_extras_and_appends_env_chain(
     repo_copy: Path, compose_instances_data: ComposeInstancesData, tmp_path: Path
 ) -> None:
     stub = create_compose_config_stub(tmp_path)
@@ -124,6 +154,8 @@ def test_applies_extras_and_explicit_env_chain(
     first_call = calls[0]
     env_files = _extract_args(first_call, "--env-file")
     expected_env_chain = [
+        str((repo_copy / "env" / "local" / "common.env").resolve()),
+        str((repo_copy / "env" / "local" / "core.env").resolve()),
         str(extra_env1.resolve()),
         str(extra_env2.resolve()),
         str(extra_env3.resolve()),
@@ -168,6 +200,8 @@ def test_writes_consolidated_env_output_with_order(
 
     result = run_build_compose_file(
         args=[
+            "--env-chain",
+            str(base_env_file.relative_to(repo_copy)),
             "--env-file",
             str(override_env_file.relative_to(repo_copy)),
             "--env-output",
@@ -177,7 +211,6 @@ def test_writes_consolidated_env_output_with_order(
         env={
             "DOCKER_COMPOSE_BIN": str(stub.path),
             **stub.base_env,
-            "COMPOSE_ENV_FILES": str(base_env_file.relative_to(repo_copy)),
         },
         cwd=repo_copy,
         script_path=repo_copy / "scripts" / "build_compose_file.sh",

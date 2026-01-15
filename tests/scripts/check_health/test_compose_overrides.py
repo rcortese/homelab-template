@@ -88,9 +88,14 @@ def test_ignores_compose_extra_files_from_env_file(
         str((repo_root / path).resolve())
         for path in expected_plan_for_instance("core", repo_root=repo_copy)
     ]
+    expected_env_files = [
+        str((repo_root / path).resolve())
+        for path in expected_env_for_instance("core", repo_root=repo_copy)
+    ]
+    expected_env_files.append(str(env_file))
     calls = docker_stub.read_calls()
     assert calls == expected_consolidated_plan_calls(
-        str(env_file), expected_files, consolidated_file
+        expected_env_files, expected_files, consolidated_file
     ) + [
         _expected_compose_call(None, [consolidated_file], "config", "--services"),
         _expected_compose_call(None, [consolidated_file], "ps"),

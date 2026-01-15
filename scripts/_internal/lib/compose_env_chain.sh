@@ -6,33 +6,52 @@
 compose_env_chain__resolve() {
   local repo_root="$1"
   local instance="$2"
-  local explicit_env_raw="${3:-}"
+  local explicit_chain_raw="${3:-}"
   local output_list_var="$4"
   local output_resolved_var="$5"
-  shift 5
+  local extra_chain_raw="${6:-}"
+  shift 6
 
   local -a extra_env_files=("$@")
-  local explicit_env_input="$explicit_env_raw"
 
-  if ((${#extra_env_files[@]} > 0)); then
-    local cli_env_join
-    cli_env_join="$(env_file_chain__join ' ' "${extra_env_files[@]}")"
-    if [[ -n "$explicit_env_input" ]]; then
-      explicit_env_input+=" $cli_env_join"
-    else
-      explicit_env_input="$cli_env_join"
+  local explicit_chain_requested=0
+  local -a explicit_chain=()
+  if [[ -n "$explicit_chain_raw" ]]; then
+    explicit_chain_requested=1
+    mapfile -t explicit_chain < <(env_file_chain__parse_list "$explicit_chain_raw")
+    if ((${#explicit_chain[@]} == 0)); then
+      echo "Error: explicit env chain requested but no env files were provided." >&2
+      return 1
     fi
   fi
 
-  local env_chain_output=""
-  if ! env_chain_output="$(env_file_chain__resolve_explicit "$explicit_env_input" "$repo_root" "$instance")"; then
-    return 1
+  local -a extra_chain=()
+  if [[ -n "$extra_chain_raw" ]]; then
+    mapfile -t extra_chain < <(env_file_chain__parse_list "$extra_chain_raw")
+  fi
+  if ((${#extra_env_files[@]} > 0)); then
+    extra_chain+=("${extra_env_files[@]}")
+  fi
+
+  local -a base_chain=()
+  if ((explicit_chain_requested == 1)); then
+    base_chain=("${explicit_chain[@]}")
+  else
+    local defaults_output=""
+    if ! defaults_output="$(env_file_chain__defaults "$repo_root" "$instance")"; then
+      return 1
+    fi
+    if [[ -n "$defaults_output" ]]; then
+      mapfile -t base_chain <<<"$defaults_output"
+    fi
   fi
 
   local -a resolved_list=()
   local -a resolved_paths=()
-  if [[ -n "$env_chain_output" ]]; then
-    mapfile -t resolved_list <<<"$env_chain_output"
+  if ((${#base_chain[@]} > 0 || ${#extra_chain[@]} > 0)); then
+    mapfile -t resolved_list < <(
+      env_file_chain__dedupe_preserve_order "${base_chain[@]}" "${extra_chain[@]}"
+    )
   fi
 
   if ((${#resolved_list[@]} > 0)); then

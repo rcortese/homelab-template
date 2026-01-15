@@ -84,7 +84,7 @@ Rename these identifiers to terms aligned with your domain (for example, `PORTAL
 
 ## Integration with scripts
 
-Template scripts honor `COMPOSE_ENV_FILES` (and repeated `--env-file` flags) to select which `.env` files will be used, layering them on top of the default `env/local/common.env` → `env/local/<instance>.env` chain. Document in the relevant runbook how to combine variables and manifests for each environment. When you need to enable specific compose files without changing scripts, set `COMPOSE_EXTRA_FILES` in `env/local/common.env` or `env/local/<instance>.env` (not the generated root `.env`):
+Template scripts honor `COMPOSE_ENV_FILES` (and repeated `--env-file` flags) to append extra `.env` files after the default `env/local/common.env` → `env/local/<instance>.env` chain. To fully replace the defaults, set `COMPOSE_ENV_CHAIN` (or use `--env-chain` with `scripts/build_compose_file.sh`) and list the explicit chain. Document in the relevant runbook how to combine variables and manifests for each environment. When you need to enable specific compose files without changing scripts, set `COMPOSE_EXTRA_FILES` in `env/local/common.env` or `env/local/<instance>.env` (not the generated root `.env`):
 
 ```env
 COMPOSE_EXTRA_FILES=compose/extra/observability.yml compose/extra/metrics.yml

@@ -191,8 +191,9 @@ The script relies on `scripts/_internal/lib/deploy_context.sh` to calculate the 
 - **Inputs and overrides:**
   - Requires the instance argument to reuse the standard discovery chain (base manifests, app compose files, and per-instance overrides).
   - Use `COMPOSE_EXTRA_FILES` in `env/local/common.env` or `env/local/<instance>.env` when optional compose files should be merged into the plan.
-  - Adjust `COMPOSE_ENV_FILES` (or the default `env/local/common.env` → `env/local/<instance>.env` chain) to control the consolidated `.env` content.
-  - `--env-output` changes where the consolidated `.env` is written (defaults to the repository root). The helper rebuilds the file on every run, honoring the same precedence applied to `COMPOSE_ENV_FILES`.
+  - Adjust `COMPOSE_ENV_FILES` (or repeat `--env-file`) to append extra `.env` files after the default `env/local/common.env` → `env/local/<instance>.env` chain.
+  - Set `COMPOSE_ENV_CHAIN` (or pass `--env-chain`) to explicitly replace the default chain when a full override is needed.
+  - `--env-output` changes where the consolidated `.env` is written (defaults to the repository root). The helper rebuilds the file on every run, honoring the same precedence applied to the env chain inputs.
 - **Output validation:** after writing the merged files, the script runs `docker compose config -q` (reusing the same env chain) and fails when inconsistencies are detected. The helper also injects `REPO_ROOT` and `LOCAL_INSTANCE` into the generated `.env`. Re-run the generator whenever manifests or variables are modified to keep the root file and generated `.env` in sync.
 - **Examples:**
   ```bash
@@ -216,7 +217,7 @@ The script relies on `scripts/_internal/lib/deploy_context.sh` to calculate the 
 
 - **Supported arguments and variables:**
   - `HEALTH_SERVICES` — list of services to inspect (space- or comma-separated). When set, execution is limited to the desired services only.
-  - `COMPOSE_ENV_FILES` — optional list of `.env` files applied before querying `docker compose`, overriding the default `env/local/common.env` → `env/local/<instance>.env` chain when provided.
+  - `COMPOSE_ENV_FILES` — optional list of `.env` files appended after the default `env/local/common.env` → `env/local/<instance>.env` chain when provided.
 - Collection generates (or requires) a consolidated `docker-compose.yml` via `scripts/build_compose_file.sh` before running `docker compose ps/logs`.
 - `COMPOSE_EXTRA_FILES` overrides are ignored here; customize the compose plan through `scripts/build_compose_file.sh` instead.
 - The script automatically supplements the service list by running `docker compose config --services`. If no services are found, execution aborts with an error to avoid silently suppressing logs.
