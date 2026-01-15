@@ -38,8 +38,10 @@ def decode_bash_string(token: str) -> str:
         return bytes(inner, "utf-8").decode("unicode_escape")
     try:
         return ast.literal_eval(token)
-    except Exception:  # pragma: no cover - fallback for unexpected formats
-        return token
+    except (ValueError, SyntaxError) as exc:
+        raise ComposeMetadataError(
+            f"Failed to decode bash string token: {token}"
+        ) from exc
 
 
 def parse_declare_array(line: str) -> List[str]:
