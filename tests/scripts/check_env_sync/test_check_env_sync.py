@@ -581,9 +581,7 @@ def test_parse_declare_mapping_with_multiple_entries_and_escapes() -> None:
     assert result["baz"] == "tab\tvalue"
 
 
-def test_extract_compose_variables_fallback_on_yaml_error(
-    tmp_path: Path, capfd: pytest.CaptureFixture[str]
-) -> None:
+def test_extract_compose_variables_fallback_on_yaml_error(tmp_path: Path) -> None:
     compose_file = tmp_path / "broken.yml"
     compose_file.write_text(
         """
@@ -595,8 +593,5 @@ services:
         encoding="utf-8",
     )
 
-    variables = extract_compose_variables([compose_file])
-    stderr = capfd.readouterr().err
-
-    assert "Failed to parse YAML" in stderr
-    assert "MALFORMED_VAR" in variables
+    with pytest.raises(ComposeMetadataError, match="Failed to parse YAML"):
+        extract_compose_variables([compose_file])
