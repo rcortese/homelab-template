@@ -3,6 +3,54 @@
 
 # Validate compose variable usage against loaded env vars.
 
+COMPOSE_ENV_VALIDATION_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+compose_env_validation__load_python_runtime() {
+  if [[ -n "${COMPOSE_ENV_VALIDATION_PYTHON_LOADED:-}" ]]; then
+    return 0
+  fi
+  COMPOSE_ENV_VALIDATION_PYTHON_LOADED=1
+
+  local shell_options
+  shell_options="$(set +o)"
+  # shellcheck source=scripts/_internal/lib/python_runtime.sh
+  source "${COMPOSE_ENV_VALIDATION_DIR}/python_runtime.sh"
+  eval "$shell_options"
+}
+
+compose_env_validation__extract_vars() {
+  local repo_root="$1"
+  local target_file="$2"
+  local pattern='\$\{[A-Za-z_][A-Za-z0-9_]*([:-?][^}]*)?\}'
+
+  if command -v rg >/dev/null 2>&1; then
+    rg -o -P "$pattern" "$target_file" || true
+    return 0
+  fi
+
+  if command -v grep >/dev/null 2>&1; then
+    grep -oE "$pattern" "$target_file" || true
+    return 0
+  fi
+
+  compose_env_validation__load_python_runtime
+  if python_runtime__run_stdin "$repo_root" "" -- "$target_file" <<'PY'; then
+import re
+import sys
+from pathlib import Path
+
+pattern = re.compile(r"\$\{[A-Za-z_][A-Za-z0-9_]*(?:[:-?][^}]*)?\}")
+content = Path(sys.argv[1]).read_text(encoding="utf-8", errors="ignore")
+for match in pattern.findall(content):
+    print(match)
+PY
+    return 0
+  fi
+
+  echo "Error: unable to parse compose variables; rg, grep, and python are unavailable." >&2
+  return 1
+}
+
 compose_env_validation__check() {
   local repo_root="$1"
   local compose_files_var="$2"
@@ -24,6 +72,10 @@ compose_env_validation__check() {
     fi
     if [[ ! -f "$resolved_file" ]]; then
       continue
+    fi
+    local extracted_vars=""
+    if ! extracted_vars="$(compose_env_validation__extract_vars "$repo_root" "$resolved_file")"; then
+      return 1
     fi
     while IFS= read -r raw_var; do
       local requires_value=1
@@ -47,7 +99,7 @@ compose_env_validation__check() {
       if [[ -n "$raw_var" ]]; then
         compose_vars["$raw_var"]=1
       fi
-    done < <(rg -o -P '\$\{[A-Za-z_][A-Za-z0-9_]*([:-?][^}]*)?\}' "$resolved_file" || true)
+    done <<<"$extracted_vars"
   done
 
   local compose_var
