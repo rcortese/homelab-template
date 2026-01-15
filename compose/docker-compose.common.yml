@@ -6,44 +6,8 @@ services:
     restart: unless-stopped
     environment:
       TZ: ${TZ}
-      APP_SECRET: ${APP_SECRET}
-      APP_RETENTION_HOURS: ${APP_RETENTION_HOURS:-168}
+      PUID: ${APP_DATA_UID}
+      PGID: ${APP_DATA_GID}
+      APP_EXAMPLE_MESSAGE: ${APP_EXAMPLE_MESSAGE:-hello}
     volumes:
-      - ${REPO_ROOT:-.}/data/${LOCAL_INSTANCE}/app:/var/lib/app
-      - ${REPO_ROOT:-.}/backups:/var/backups
-    networks:
-      homelab_internal: {}
-
-  worker:
-    image: example/worker:latest
-    restart: unless-stopped
-    depends_on:
-      app:
-        condition: service_started
-    environment:
-      WORKER_QUEUE_URL: ${WORKER_QUEUE_URL}
-    networks:
-      homelab_internal: {}
-
-  monitoring:
-    image: example/monitoring:latest
-    restart: unless-stopped
-    networks:
-      homelab_internal: {}
-
-  baseonly:
-    image: example/base-only:latest
-    restart: unless-stopped
-
-networks:
-  homelab_internal:
-    name: ${APP_NETWORK_NAME:-homelab_internal}
-    driver: ${APP_NETWORK_DRIVER:-bridge}
-    ipam:
-      config:
-        - subnet: ${APP_NETWORK_SUBNET}
-          gateway: ${APP_NETWORK_GATEWAY}
-
-volumes:
-  homelab_shared_data:
-    name: ${APP_SHARED_DATA_VOLUME_NAME:-homelab_shared_data}
+      - ${REPO_ROOT:-.}/data/${LOCAL_INSTANCE:-default}/app:/var/lib/app

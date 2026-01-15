@@ -3,36 +3,4 @@
 services:
   app:
     ports:
-      - "${APP_MEDIA_PORT:-8081}:8080"
-    environment:
-      MEDIA_ROOT: /srv/media
-    volumes:
-      - type: bind
-        source: ${MEDIA_HOST_PATH}
-        target: /mnt/media
-      - media_cache:/var/cache/transcoder
-      - ${MEDIA_HOST_PATH:-/mnt/data}:/srv/media:rw
-    networks:
-      homelab_internal:
-        ipv4_address: ${APP_NETWORK_IPV4}
-    labels:
-      homelab.backup: skip
-
-  worker:
-    environment:
-      WORKER_CONCURRENCY: ${WORKER_MEDIA_CONCURRENCY:-1}
-    networks:
-      homelab_internal:
-        ipv4_address: ${WORKER_MEDIA_NETWORK_IPV4}
-    volumes:
-      - media_cache:/var/cache/transcoder
-
-  monitoring:
-    networks:
-      homelab_internal:
-        ipv4_address: ${MONITORING_NETWORK_IPV4}
-
-volumes:
-  media_cache:
-    name: ${MEDIA_CACHE_VOLUME_NAME:-media_cache}
-    driver: local
+      - "${APP_PORT:-8081}:8080"
