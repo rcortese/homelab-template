@@ -565,6 +565,13 @@ def test_decode_bash_string_handles_dollar_single_quotes() -> None:
     assert result == "multi\nline\tvalue"
 
 
+def test_decode_bash_string_raises_on_invalid_token() -> None:
+    token = "\"unterminated"
+
+    with pytest.raises(ComposeMetadataError, match="Failed to decode bash string token"):
+        decode_bash_string(token)
+
+
 def test_parse_declare_array_with_mixed_quotes_preserves_order() -> None:
     line = "declare -a COMPOSE_INSTANCE_NAMES=([0]=\"core\" [2]=$'media\\n' [1]='edge')"
 
