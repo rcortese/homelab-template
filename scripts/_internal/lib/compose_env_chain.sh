@@ -67,13 +67,15 @@ compose_env_chain__resolve() {
   : "${output_list[@]}" "${output_resolved[@]}"
 }
 
-compose_env_chain__load_env_files() {
+compose_env_chain__load_env_values() {
   local script_dir="$1"
   local output_env_var="$2"
-  shift 2
+  local requested_keys_var="$3"
+  shift 3
 
   local -a env_files=("$@")
   local -n env_loaded_ref="$output_env_var"
+  local -n requested_keys_ref="$requested_keys_var"
 
   env_loaded_ref=()
 
@@ -84,7 +86,7 @@ compose_env_chain__load_env_files() {
   local env_file env_output line key value
   for env_file in "${env_files[@]}"; do
     if [[ -f "$env_file" ]]; then
-      if env_output="$("$script_dir/_internal/lib/env_loader.sh" "$env_file" REPO_ROOT LOCAL_INSTANCE APP_DATA_DIR APP_DATA_DIR_MOUNT 2>/dev/null)"; then
+      if env_output="$("$script_dir/_internal/lib/env_loader.sh" "$env_file" "${requested_keys_ref[@]}" 2>/dev/null)"; then
         while IFS= read -r line; do
           [[ -z "$line" ]] && continue
           if [[ "$line" == *=* ]]; then
@@ -97,4 +99,73 @@ compose_env_chain__load_env_files() {
     fi
   done
   : "${!env_loaded_ref[@]}"
+}
+
+compose_env_chain__enforce_disallowed_vars() {
+  local output_env_var="$1"
+  local repo_root_message="$2"
+  local local_instance_message="$3"
+  local app_data_message="$4"
+
+  local -n env_loaded_ref="$output_env_var"
+
+  if [[ -n "${env_loaded_ref[REPO_ROOT]:-}" ]]; then
+    echo "$repo_root_message" >&2
+    return 1
+  fi
+
+  if [[ -n "${env_loaded_ref[LOCAL_INSTANCE]:-}" ]]; then
+    echo "$local_instance_message" >&2
+    return 1
+  fi
+
+  if [[ -n "${env_loaded_ref[APP_DATA_DIR]:-}" || -n "${env_loaded_ref[APP_DATA_DIR_MOUNT]:-}" ]]; then
+    echo "$app_data_message" >&2
+    return 1
+  fi
+
+  return 0
+}
+
+compose_env_chain__prepare() {
+  local script_dir="$1"
+  local repo_root="$2"
+  local instance="$3"
+  local explicit_chain_raw="${4:-}"
+  local output_list_var="$5"
+  local output_resolved_var="$6"
+  local output_env_var="$7"
+  local requested_keys_var="$8"
+  local repo_root_message="$9"
+  local local_instance_message="${10}"
+  local app_data_message="${11}"
+  local extra_chain_raw="${12:-}"
+  shift 12
+
+  if ! compose_env_chain__resolve \
+    "$repo_root" \
+    "$instance" \
+    "$explicit_chain_raw" \
+    "$output_list_var" \
+    "$output_resolved_var" \
+    "$extra_chain_raw" \
+    "$@"; then
+    return 1
+  fi
+
+  local -n resolved_paths_ref="$output_resolved_var"
+
+  if ! compose_env_chain__load_env_values \
+    "$script_dir" \
+    "$output_env_var" \
+    "$requested_keys_var" \
+    "${resolved_paths_ref[@]}"; then
+    return 1
+  fi
+
+  compose_env_chain__enforce_disallowed_vars \
+    "$output_env_var" \
+    "$repo_root_message" \
+    "$local_instance_message" \
+    "$app_data_message"
 }
