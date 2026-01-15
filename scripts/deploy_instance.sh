@@ -9,7 +9,13 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+# shellcheck source=_internal/lib/compose_paths.sh
+source "$SCRIPT_DIR/_internal/lib/compose_paths.sh"
+
+if ! REPO_ROOT="$(compose_common__resolve_repo_root "")"; then
+  exit 1
+fi
 
 # shellcheck source=_internal/lib/deploy_args.sh
 source "$SCRIPT_DIR/_internal/lib/deploy_args.sh"
