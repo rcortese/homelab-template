@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Helper to execute Python code preferring Docker over local runtimes.
+# Helper to execute Python code preferring local runtimes and falling back to Docker when local Python is unavailable or disabled.
 # shellcheck shell=bash
 set -euo pipefail
 
