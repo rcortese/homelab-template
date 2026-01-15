@@ -10,6 +10,7 @@ import pytest
 from scripts._internal.python.check_env_sync import main
 from scripts._internal.lib.check_env_sync.compose_metadata import (
     ComposeMetadata,
+    ComposeMetadataError,
     decode_bash_string,
     load_compose_metadata,
     parse_declare_array,
@@ -100,7 +101,7 @@ def test_check_env_sync_detects_missing_variables(
     instance_name = _select_instance(compose_instances_data)
     compose_file = _resolve_compose_manifest(repo_copy, compose_instances_data, instance_name)
     content = compose_file.read_text(encoding="utf-8")
-    content += "\n      CORE_MISSING_VAR: ${CORE_MISSING_VAR}"
+    content += "\n    environment:\n      CORE_MISSING_VAR: ${CORE_MISSING_VAR}"
     compose_file.write_text(content, encoding="utf-8")
 
     result = run_check(repo_copy)
@@ -116,8 +117,9 @@ def test_check_env_sync_detects_plain_and_nested_variables(
     instance_name = _select_instance(compose_instances_data)
     compose_file = _resolve_compose_manifest(repo_copy, compose_instances_data, instance_name)
     content = compose_file.read_text(encoding="utf-8")
-    content += "\n      PLAIN_REFERENCE: $PLAIN_MISSING_VAR"
-    content += "\n      COMPLEX_PATH: ${OUTER_VAR:-./${INNER_VAR:-fallback}}"
+    content += "\n    environment:\n"
+    content += "      PLAIN_REFERENCE: \"$PLAIN_MISSING_VAR\"\n"
+    content += "      COMPLEX_PATH: \"${OUTER_VAR:-./${INNER_VAR:-fallback}}\""
     compose_file.write_text(content, encoding="utf-8")
 
     result = run_check(repo_copy)
@@ -134,8 +136,9 @@ def test_check_env_sync_ignores_escaped_dollar_variables(
     instance_name = _select_instance(compose_instances_data)
     compose_file = _resolve_compose_manifest(repo_copy, compose_instances_data, instance_name)
     content = compose_file.read_text(encoding="utf-8")
-    content += "\n      ESCAPED_LITERAL: \"$$SHOULD_NOT_APPEAR\""
-    content += "\n      ESCAPED_TEMPLATE_LITERAL: \"$$${SHOULD_NOT_APPEAR_NESTED}\""
+    content += "\n    environment:\n"
+    content += "      ESCAPED_LITERAL: \"$$SHOULD_NOT_APPEAR\"\n"
+    content += "      ESCAPED_TEMPLATE_LITERAL: \"$$${SHOULD_NOT_APPEAR_NESTED}\""
     compose_file.write_text(content, encoding="utf-8")
 
     result = run_check(repo_copy)
@@ -208,7 +211,7 @@ def test_check_env_sync_instance_option_limits_validation(
     compose_file = _resolve_compose_manifest(repo_copy, compose_instances_data, other_instance)
     missing_variable = "ONLY_FOR_OTHER_INSTANCE"
     content = compose_file.read_text(encoding="utf-8")
-    content += f"\n      FILTER_TEST_VAR: ${{{missing_variable}}}"
+    content += f"\n    environment:\n      FILTER_TEST_VAR: ${{{missing_variable}}}"
     compose_file.write_text(content, encoding="utf-8")
 
     result_target = run_check(repo_copy, ["--instance", target_instance])
@@ -233,7 +236,7 @@ def test_check_env_sync_deduplicates_instance_arguments(
     compose_file = _resolve_compose_manifest(repo_copy, compose_instances_data, error_instance)
     missing_variable = "ONLY_FOR_DEDUP_TEST"
     content = compose_file.read_text(encoding="utf-8")
-    content += f"\n      DEDUP_TEST_VAR: ${{{missing_variable}}}"
+    content += f"\n    environment:\n      DEDUP_TEST_VAR: ${{{missing_variable}}}"
     compose_file.write_text(content, encoding="utf-8")
 
     result = run_check(
