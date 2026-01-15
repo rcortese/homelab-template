@@ -197,7 +197,9 @@ declare -a env_requested_keys=(
   APP_DATA_DIR
   APP_DATA_DIR_MOUNT
 )
+: "${env_requested_keys[@]}"
 declare -A env_loaded=()
+: "${env_loaded[@]}"
 if ! compose_env_chain__prepare \
   "$SCRIPT_DIR" \
   "$REPO_ROOT" \

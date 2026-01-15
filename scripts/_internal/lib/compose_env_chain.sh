@@ -69,12 +69,12 @@ compose_env_chain__resolve() {
 
 compose_env_chain__load_env_values() {
   local script_dir="$1"
-  local output_env_var="$2"
+  local output_env_name="$2"
   local requested_keys_var="$3"
   shift 3
 
   local -a env_files=("$@")
-  local -n env_loaded_ref="$output_env_var"
+  local -n env_loaded_ref="$output_env_name"
   local -n requested_keys_ref="$requested_keys_var"
 
   env_loaded_ref=()
@@ -83,10 +83,15 @@ compose_env_chain__load_env_values() {
     return 0
   fi
 
+  local env_loader_path="$script_dir/_internal/lib/env_loader.sh"
+  if [[ ! -f "$env_loader_path" ]]; then
+    env_loader_path="$script_dir/env_loader.sh"
+  fi
+
   local env_file env_output line key value
   for env_file in "${env_files[@]}"; do
     if [[ -f "$env_file" ]]; then
-      if env_output="$("$script_dir/_internal/lib/env_loader.sh" "$env_file" "${requested_keys_ref[@]}" 2>/dev/null)"; then
+      if env_output="$("$env_loader_path" "$env_file" "${requested_keys_ref[@]}" 2>/dev/null)"; then
         while IFS= read -r line; do
           [[ -z "$line" ]] && continue
           if [[ "$line" == *=* ]]; then
@@ -102,12 +107,13 @@ compose_env_chain__load_env_values() {
 }
 
 compose_env_chain__enforce_disallowed_vars() {
-  local output_env_var="$1"
+  local output_env_name="$1"
   local repo_root_message="$2"
   local local_instance_message="$3"
   local app_data_message="$4"
 
-  local -n env_loaded_ref="$output_env_var"
+  # shellcheck disable=SC2178
+  local -n env_loaded_ref="$output_env_name"
 
   if [[ -n "${env_loaded_ref[REPO_ROOT]:-}" ]]; then
     echo "$repo_root_message" >&2
