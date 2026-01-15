@@ -3,42 +3,4 @@
 services:
   app:
     ports:
-      - "${APP_CORE_PORT:-8080}:8080"
-    environment:
-      APP_PUBLIC_URL: ${APP_PUBLIC_URL:-}
-      APP_WEBHOOK_URL: ${APP_WEBHOOK_URL:-}
-    volumes:
-      - type: volume
-        source: core_logs
-        target: /var/log/app
-    networks:
-      homelab_internal:
-        ipv4_address: ${APP_NETWORK_IPV4}
-      core_proxy:
-        ipv4_address: ${CORE_PROXY_IPV4}
-    labels:
-      traefik.enable: "true"
-      traefik.http.routers.app-core.rule: Host(`app.domain.com`)
-      homelab.role: control-plane
-
-  worker:
-    environment:
-      WORKER_CONCURRENCY: ${WORKER_CORE_CONCURRENCY:-2}
-    networks:
-      homelab_internal:
-        ipv4_address: ${WORKER_CORE_NETWORK_IPV4}
-
-  monitoring:
-    networks:
-      homelab_internal:
-        ipv4_address: ${MONITORING_NETWORK_IPV4}
-
-networks:
-  core_proxy:
-    external: true
-    name: ${CORE_PROXY_NETWORK_NAME:-traefik_proxy}
-
-volumes:
-  core_logs:
-    name: ${CORE_LOGS_VOLUME_NAME:-core_logs}
-    driver: local
+      - "${APP_PORT:-8080}:8080"
