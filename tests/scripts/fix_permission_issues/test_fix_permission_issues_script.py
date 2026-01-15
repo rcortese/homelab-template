@@ -80,7 +80,7 @@ def test_dry_run_outputs_planned_actions(repo_copy: Path) -> None:
     assert "[*] Instance: core" in stdout
     assert f"mkdir -p {data_mount}" in stdout
     assert f"mkdir -p {backups_dir}" in stdout
-    assert f"chown {owner} {data_mount} {backups_dir}" in stdout
+    assert f"chown -R {owner} {data_mount} {backups_dir}" in stdout
 
     post_dirs_snapshot, post_files_snapshot = _snapshot_tree(repo_copy)
     assert post_dirs_snapshot == pre_dirs_snapshot
