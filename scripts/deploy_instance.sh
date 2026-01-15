@@ -20,6 +20,9 @@ source "$SCRIPT_DIR/_internal/lib/deploy_context.sh"
 # shellcheck source=_internal/lib/compose_command.sh
 source "$SCRIPT_DIR/_internal/lib/compose_command.sh"
 
+# shellcheck source=_internal/lib/env_file_chain.sh
+source "$SCRIPT_DIR/_internal/lib/env_file_chain.sh"
+
 # shellcheck source=_internal/lib/step_runner.sh
 source "$SCRIPT_DIR/_internal/lib/step_runner.sh"
 
@@ -50,6 +53,11 @@ export COMPOSE_FILES="${DEPLOY_CONTEXT[COMPOSE_FILES]}"
 export LOCAL_INSTANCE="$INSTANCE"
 COMPOSE_ROOT_FILE="$REPO_ROOT/docker-compose.yml"
 
+declare -a COMPOSE_ENV_FILES_LIST=()
+if [[ -n "${COMPOSE_ENV_FILES:-}" ]]; then
+  mapfile -t COMPOSE_ENV_FILES_LIST < <(env_file_chain__parse_list "$COMPOSE_ENV_FILES")
+fi
+
 declare -a COMPOSE_CMD=()
 if [[ $DRY_RUN -eq 1 ]]; then
   COMPOSE_CMD=(docker compose)
@@ -66,9 +74,13 @@ DATA_UID="${DEPLOY_CONTEXT[DATA_UID]}"
 DATA_GID="${DEPLOY_CONTEXT[DATA_GID]}"
 APP_DATA_UID_GID="${DEPLOY_CONTEXT[APP_DATA_UID_GID]}"
 BUILD_COMPOSE_CMD=("$REPO_ROOT/scripts/build_compose_file.sh" "$INSTANCE")
-COMPOSE_UP_CMD=("${COMPOSE_CMD[@]}" -f "$COMPOSE_ROOT_FILE" up -d)
+COMPOSE_UP_CMD=("${COMPOSE_CMD[@]}")
+for env_file in "${COMPOSE_ENV_FILES_LIST[@]}"; do
+  COMPOSE_UP_CMD+=(--env-file "$env_file")
+done
+COMPOSE_UP_CMD+=(-f "$COMPOSE_ROOT_FILE" up -d)
 
-compose_env_files_display="${COMPOSE_ENV_FILES//$'\n'/ }"
+compose_env_files_display="${COMPOSE_ENV_FILES//,/ }"
 
 cat <<SUMMARY_EOF
 [*] Instance: $INSTANCE

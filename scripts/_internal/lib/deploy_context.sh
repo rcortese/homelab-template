@@ -236,8 +236,7 @@ build_deploy_context() {
 
   local env_files_string=""
   if [[ ${#env_files_rel[@]} -gt 0 ]]; then
-    env_files_string="$(printf '%s\n' "${env_files_rel[@]}")"
-    env_files_string="${env_files_string%$'\n'}"
+    env_files_string="$(env_file_chain__join "," "${env_files_rel[@]}")"
   fi
 
   local -a persistent_dirs=("$app_data_path" "$repo_root/backups")
