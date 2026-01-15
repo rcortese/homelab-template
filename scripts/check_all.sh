@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# shellcheck source-path=SCRIPTDIR
 # Usage: scripts/check_all.sh [--with-quality-checks]
 # Runs the core validation sequence for the template.
 set -euo pipefail
@@ -38,7 +39,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=_internal/lib/compose_paths.sh
 source "$SCRIPT_DIR/_internal/lib/compose_paths.sh"
 
-if ! REPO_ROOT="$(compose_common__resolve_repo_root)"; then
+if ! REPO_ROOT="$(compose_common__resolve_repo_root "")"; then
   exit 1
 fi
 
