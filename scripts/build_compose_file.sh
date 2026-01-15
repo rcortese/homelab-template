@@ -18,13 +18,17 @@ Flags:
                         used multiple times (equivalent to COMPOSE_EXTRA_FILES).
   -e, --env-file PATH   Add an extra .env to the applied chain (equivalent to
                         COMPOSE_ENV_FILES). Can be used multiple times.
+  --env-chain PATH      Provide an explicit env chain (replaces the default
+                        env/local/common.env → env/local/<instance>.env chain).
+                        Can be used multiple times (equivalent to
+                        COMPOSE_ENV_CHAIN).
   -o, --output PATH     Output path (default: ./docker-compose.yml).
   -n, --env-output PATH Consolidated .env path (default: ./.env).
 
 Relevant environment variables:
   COMPOSE_EXTRA_FILES  Extra compose files applied after the default plan.
-  COMPOSE_ENV_FILES    Explicit env chain; replaces the chain discovered for the
-                       instance when provided.
+  COMPOSE_ENV_FILES    Extra .env files appended after the default chain.
+  COMPOSE_ENV_CHAIN    Explicit env chain; replaces the default chain when set.
   DOCKER_COMPOSE_BIN   Override the docker compose binary.
 
 The generated file can be reused by other scripts by passing
@@ -52,6 +56,7 @@ ENV_OUTPUT_FILE="$REPO_ROOT/.env"
 GENERATED_HEADER="# GENERATED FILE. DO NOT EDIT. RE-RUN SCRIPTS/BUILD_COMPOSE_FILE.SH OR SCRIPTS/DEPLOY_INSTANCE.SH."
 declare -a DECLARE_EXTRAS=()
 declare -a EXPLICIT_ENV_FILES=()
+declare -a EXPLICIT_ENV_CHAIN=()
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -74,6 +79,14 @@ while [[ $# -gt 0 ]]; do
       exit 64
     fi
     EXPLICIT_ENV_FILES+=("$1")
+    ;;
+  --env-chain)
+    shift
+    if [[ $# -eq 0 ]]; then
+      echo "Error: --env-chain requires a path." >&2
+      exit 64
+    fi
+    EXPLICIT_ENV_CHAIN+=("$1")
     ;;
   -o | --output)
     shift
@@ -163,12 +176,22 @@ fi
 
 declare -a COMPOSE_ENV_FILES_LIST=()
 declare -a COMPOSE_ENV_FILES_RESOLVED=()
+explicit_env_chain_input="${COMPOSE_ENV_CHAIN:-}"
+if ((${#EXPLICIT_ENV_CHAIN[@]} > 0)); then
+  explicit_env_chain_from_cli="$(env_file_chain__join ' ' "${EXPLICIT_ENV_CHAIN[@]}")"
+  if [[ -n "$explicit_env_chain_input" ]]; then
+    explicit_env_chain_input+=" $explicit_env_chain_from_cli"
+  else
+    explicit_env_chain_input="$explicit_env_chain_from_cli"
+  fi
+fi
 if ! compose_env_chain__resolve \
   "$REPO_ROOT" \
   "$INSTANCE_NAME" \
-  "${COMPOSE_ENV_FILES:-}" \
+  "$explicit_env_chain_input" \
   COMPOSE_ENV_FILES_LIST \
   COMPOSE_ENV_FILES_RESOLVED \
+  "${COMPOSE_ENV_FILES:-}" \
   "${EXPLICIT_ENV_FILES[@]}"; then
   exit 1
 fi
