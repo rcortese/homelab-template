@@ -30,46 +30,42 @@ This directory stores templates (`*.example.env`) and instructions for generatin
 | --- | --- | --- | --- |
 | `TZ` | Yes | Sets timezone for logs and schedules. | `docker-compose.<instance>.yml`. |
 | `APP_DATA_UID`/`APP_DATA_GID` | Optional | Adjusts the default owner of persistent volumes. | `scripts/deploy_instance.sh`, `scripts/backup.sh`, `scripts/fix_permission_issues.sh`. |
-| `APP_NETWORK_NAME` | Optional | Logical name of the network shared among applications. | `compose/docker-compose.common.yml`. |
-| `APP_NETWORK_DRIVER` | Optional | Driver used when creating the shared network (e.g., `bridge`, `macvlan`). | `compose/docker-compose.common.yml`. |
-| `APP_NETWORK_SUBNET` | Optional | Subnet reserved for internal services. | `compose/docker-compose.common.yml`. |
-| `APP_NETWORK_GATEWAY` | Optional | Gateway available to containers in the subnet above. | `compose/docker-compose.common.yml`. |
-| `APP_SHARED_DATA_VOLUME_NAME` | Optional | Customizes the persistent volume shared between applications. | `compose/docker-compose.common.yml`. |
+| `APP_EXAMPLE_MESSAGE` | Optional | Placeholder message passed into the example app container. | `compose/docker-compose.common.yml`. |
 
 <a id="placeholders-app-worker"></a>
 
-#### Example service placeholders (`app`/`worker`)
+#### Example service placeholders (`app`)
 
 | Variable | Required? | Usage | Reference |
 | --- | --- | --- | --- |
-| `APP_SECRET` | Yes | Key used to encrypt sensitive data. | `docker-compose.<instance>.yml`. |
-| `APP_RETENTION_HOURS` | Optional | Controls retention of records/processes. | `docker-compose.<instance>.yml` and runbooks. |
-| `WORKER_QUEUE_URL` | Optional | Source queue processed by the example workers. | `docker-compose.<instance>.yml`. |
+| `APP_EXAMPLE_MESSAGE` | Optional | Placeholder value injected into the example app. | `compose/docker-compose.common.yml`. |
 
-> When adapting the stack, rename or remove these placeholders to reflect your services’ real names and adjust the corresponding compose files (`docker-compose.<instance>.yml`). Keeping the generic `APP_*` names helps explain the template, but forks should align naming with the project domain (for example, `PORTAL_SECRET`, `PORTAL_RETENTION_HOURS`, `PAYMENTS_QUEUE_URL`).
+> When adapting the stack, rename or remove the placeholder above to reflect your services’ real names and adjust the corresponding compose files (`compose/docker-compose.common.yml`). Keeping the generic `APP_*` name helps explain the template, but forks should align naming with the project domain (for example, `PORTAL_GREETING`).
 
-Create a table similar to the one below for each `env/<target>.example.env` file:
+Create a table similar to the one below for each `env/<target>.example.env` file.
+
+### `env/core.example.env`
 
 | Variable | Required? | Usage | Reference |
 | --- | --- | --- | --- |
-| `APP_PUBLIC_URL` | Optional | Sets the public URL for links and cookies. | `docker-compose.<instance>.yml` (e.g., `docker-compose.core.yml`). |
-| `COMPOSE_EXTRA_FILES` | Optional | Lists additional compose files applied after the instance override (space- or comma-separated). | `scripts/deploy_instance.sh`, `scripts/validate_compose.sh`, `scripts/_internal/lib/compose_defaults.sh`. |
+| `APP_PORT` | Optional | Host port mapped to the app container. | `compose/docker-compose.core.yml`. |
 
-> Replace the table with the real fields in your stack. Use the **Reference** column to point where the variable is consumed (manifests, scripts, external infrastructure, etc.).
+### `env/media.example.env`
+
+| Variable | Required? | Usage | Reference |
+| --- | --- | --- | --- |
+| `APP_PORT` | Optional | Host port mapped to the app container. | `compose/docker-compose.media.yml`. |
+
+Create a table for any additional `env/<target>.example.env` file and document only the variables present in that instance's compose manifests. Use the **Reference** column to point where the variable is consumed (manifests, scripts, external infrastructure, etc.).
 
 `REPO_ROOT` is derived by the scripts and written to the generated root `.env`, so it should not appear in `env/*.example.env` or `env/local/*.env`.
 
-The instance templates include illustrative placeholders that should be renamed according to each fork’s real service. Use the following list as a guide when reviewing `env/core.example.env` and `env/media.example.env`:
+The instance templates include illustrative placeholders that should be renamed according to each fork’s real service. Use the following list as a guide when reviewing `env/common.example.env`, `env/core.example.env`, and `env/media.example.env`:
 
-- `APP_PUBLIC_URL` and `APP_WEBHOOK_URL` — URLs injected into the main application (see service blocks in `docker-compose.<instance>.yml`).
-- `APP_CORE_PORT` and `APP_MEDIA_PORT` — port mappings exposed by the instance compose files (`docker-compose.core.yml` and `docker-compose.media.yml`).
-- `APP_NETWORK_IPV4` — static address used by the main service on internal networks (declared alongside the service in `docker-compose.<instance>.yml`).
-- `MONITORING_NETWORK_IPV4` — IP reserved for the example monitoring service (declared in the monitoring service block of `docker-compose.<instance>.yml`).
-- `WORKER_CORE_CONCURRENCY`, `WORKER_MEDIA_CONCURRENCY`, `WORKER_CORE_NETWORK_IPV4`, and `WORKER_MEDIA_NETWORK_IPV4` — variables consumed by the worker service definitions in the instance compose files.
-- `CORE_PROXY_NETWORK_NAME`, `CORE_PROXY_IPV4`, and `CORE_LOGS_VOLUME_NAME` — shared resources defined in the `core` instance (`docker-compose.core.yml`).
-- `MEDIA_HOST_PATH` and `MEDIA_CACHE_VOLUME_NAME` — mounts and volumes specific to the `media` instance (`docker-compose.media.yml`).
+- `APP_EXAMPLE_MESSAGE` — placeholder message passed into the example app (`compose/docker-compose.common.yml`).
+- `APP_PORT` — host port mapping for the example app (`compose/docker-compose.core.yml` and `compose/docker-compose.media.yml`).
 
-Rename these identifiers to terms aligned with your domain (for example, `PORTAL_PUBLIC_URL`, `PORTAL_NETWORK_IPV4`, `ACME_PROXY_NETWORK_NAME`) and update the associated manifests to avoid leftover default values.
+Rename these identifiers to terms aligned with your domain (for example, `PORTAL_GREETING`, `PORTAL_PORT`) and update the associated manifests to avoid leftover default values.
 
 > **Note:** the main persistent directory follows the `data/<instance>/app` convention relative to the repository root. Scripts derive `REPO_ROOT` at runtime and write it to the generated root `.env` so Compose can resolve persistent mounts. Adjust `APP_DATA_UID` and `APP_DATA_GID` to align permissions.
 
