@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import sys
 from collections.abc import Mapping as MappingCollection
 from collections.abc import Sequence as SequenceCollection
 from collections.abc import Set as SetCollection
@@ -171,10 +170,8 @@ def extract_compose_variables(paths: Iterable[Path]) -> Set[str]:
             for document in yaml.safe_load_all(content):
                 for value in _iter_yaml_strings(document):
                     variables.update(_collect_substitution_variables(value))
-        except yaml.YAMLError as exc:  # pragma: no cover - defensive parsing fallback
-            print(
-                f"[!] Failed to parse YAML in {path}: {exc}. Using heuristic fallback.",
-                file=sys.stderr,
-            )
-            variables.update(_collect_variables_from_text(content))
+        except yaml.YAMLError as exc:
+            raise ComposeMetadataError(
+                f"Failed to parse YAML in {path}: {exc}"
+            ) from exc
     return variables
