@@ -170,7 +170,7 @@ Beyond the main flags (`--force`, `--skip-structure`, `--skip-validate`, `--skip
 
 ## scripts/fix_permission_issues.sh
 
-The script relies on `scripts/_internal/lib/deploy_context.sh` to calculate the persistent path under `${REPO_ROOT}/data/<instance>/app`, plus `APP_DATA_UID` and `APP_DATA_GID`. In shared environments, combine execution with `--dry-run` to review changes before applying `chown`.
+The script relies on `scripts/_internal/lib/deploy_context.sh` to calculate the persistent path under `${REPO_ROOT}/data/<instance>/app`, plus `APP_DATA_UID` and `APP_DATA_GID`. In shared environments, combine execution with `--dry-run` to review changes before applying `chown`. When coordinating with shared hosts (for example, Unraid), use `--chmod` to apply mode updates (recommended `775` for group-write access) and `--chmod-recursive` if you need to realign nested paths.
 
 ## scripts/backup.sh
 

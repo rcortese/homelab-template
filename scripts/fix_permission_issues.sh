@@ -13,8 +13,10 @@ Usage: scripts/fix_permission_issues.sh <instance> [options]
 Applies permission fixes for persistent directories tied to the instance.
 
 Available options:
-  --dry-run   Shows planned actions without running commands.
-  -h, --help  Shows this message and exits.
+  --dry-run          Shows planned actions without running commands.
+  --chmod <mode>     Applies chmod to persistent directories (e.g., 775).
+  --chmod-recursive  Applies chmod recursively.
+  -h, --help         Shows this message and exits.
 USAGE
 }
 
@@ -29,11 +31,33 @@ source "$SCRIPT_DIR/_internal/lib/step_runner.sh"
 
 INSTANCE=""
 DRY_RUN=0
+CHMOD_MODE=""
+CHMOD_RECURSIVE=0
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
   --dry-run)
     DRY_RUN=1
+    ;;
+  --chmod)
+    shift
+    if [[ -z "${1:-}" ]]; then
+      echo "[!] --chmod requires a mode (example: 775)." >&2
+      print_help >&2
+      exit 1
+    fi
+    CHMOD_MODE="$1"
+    ;;
+  --chmod=*)
+    CHMOD_MODE="${1#*=}"
+    if [[ -z "$CHMOD_MODE" ]]; then
+      echo "[!] --chmod requires a mode (example: 775)." >&2
+      print_help >&2
+      exit 1
+    fi
+    ;;
+  --chmod-recursive)
+    CHMOD_RECURSIVE=1
     ;;
   -h | --help)
     print_help
@@ -100,6 +124,13 @@ SUMMARY
 for dir in "${persistent_dirs[@]}"; do
   printf '    - %s\n' "$dir"
 done
+if [[ -n "$CHMOD_MODE" ]]; then
+  if [[ "$CHMOD_RECURSIVE" -eq 1 ]]; then
+    echo "[*] Requested chmod: ${CHMOD_MODE} (recursive)."
+  else
+    echo "[*] Requested chmod: ${CHMOD_MODE}."
+  fi
+fi
 
 if [[ "$DRY_RUN" -eq 1 ]]; then
   echo "[*] Dry-run enabled. No changes will be applied."
@@ -119,6 +150,17 @@ if [[ "$DRY_RUN" -eq 1 ]]; then
     done
     printf ' (requires privileges)\n'
   fi
+  if [[ -n "$CHMOD_MODE" ]]; then
+    if [[ "$CHMOD_RECURSIVE" -eq 1 ]]; then
+      printf '    chmod -R %q' "$CHMOD_MODE"
+    else
+      printf '    chmod %q' "$CHMOD_MODE"
+    fi
+    for dir in "${persistent_dirs[@]}"; do
+      printf ' %q' "$dir"
+    done
+    printf '\n'
+  fi
   exit 0
 fi
 
@@ -134,6 +176,23 @@ if [[ "$(id -u)" -eq 0 ]]; then
   fi
 else
   echo "[!] Warning: running without privileges. Desired owner ${target_owner} not applied." >&2
+fi
+
+if [[ -n "$CHMOD_MODE" ]]; then
+  chmod_args=()
+  if [[ "$CHMOD_RECURSIVE" -eq 1 ]]; then
+    chmod_args+=("-R")
+  fi
+  chmod_args+=("$CHMOD_MODE")
+  for dir in "${persistent_dirs[@]}"; do
+    if ! chmod "${chmod_args[@]}" "$dir"; then
+      if [[ "$(id -u)" -ne 0 ]]; then
+        echo "[!] Warning: chmod ${CHMOD_MODE} failed on ${dir}; check ownership or run as root." >&2
+      else
+        echo "[!] Warning: chmod ${CHMOD_MODE} failed on ${dir}." >&2
+      fi
+    fi
+  done
 fi
 
 for dir in "${persistent_dirs[@]}"; do
