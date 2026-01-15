@@ -16,6 +16,7 @@ Available options:
   --dry-run          Shows planned actions without running commands.
   --chmod <mode>     Applies chmod to persistent directories (e.g., 775).
   --chmod-recursive  Applies chmod recursively.
+  --non-recursive    Applies chown without recursion.
   -h, --help         Shows this message and exits.
 USAGE
 }
@@ -33,6 +34,7 @@ INSTANCE=""
 DRY_RUN=0
 CHMOD_MODE=""
 CHMOD_RECURSIVE=0
+CHOWN_RECURSIVE=1
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -58,6 +60,9 @@ while [[ $# -gt 0 ]]; do
     ;;
   --chmod-recursive)
     CHMOD_RECURSIVE=1
+    ;;
+  --non-recursive)
+    CHOWN_RECURSIVE=0
     ;;
   -h | --help)
     print_help
@@ -138,13 +143,21 @@ if [[ "$DRY_RUN" -eq 1 ]]; then
     printf '    mkdir -p %q\n' "$dir"
   done
   if [[ "$(id -u)" -eq 0 ]]; then
-    printf '    chown %s' "$target_owner"
+    if [[ "$CHOWN_RECURSIVE" -eq 1 ]]; then
+      printf '    chown -R %s' "$target_owner"
+    else
+      printf '    chown %s' "$target_owner"
+    fi
     for dir in "${persistent_dirs[@]}"; do
       printf ' %q' "$dir"
     done
     printf '\n'
   else
-    printf '    (skipped) chown %s' "$target_owner"
+    if [[ "$CHOWN_RECURSIVE" -eq 1 ]]; then
+      printf '    (skipped) chown -R %s' "$target_owner"
+    else
+      printf '    (skipped) chown %s' "$target_owner"
+    fi
     for dir in "${persistent_dirs[@]}"; do
       printf ' %q' "$dir"
     done
@@ -171,7 +184,12 @@ for dir in "${persistent_dirs[@]}"; do
 done
 
 if [[ "$(id -u)" -eq 0 ]]; then
-  if ! STEP_RUNNER_DRY_RUN=0 run_step "Applying owner ${target_owner}" chown "$target_owner" "${persistent_dirs[@]}"; then
+  chown_args=()
+  if [[ "$CHOWN_RECURSIVE" -eq 1 ]]; then
+    chown_args+=("-R")
+  fi
+  chown_args+=("$target_owner")
+  if ! STEP_RUNNER_DRY_RUN=0 run_step "Applying owner ${target_owner}" chown "${chown_args[@]}" "${persistent_dirs[@]}"; then
     exit $?
   fi
 else
