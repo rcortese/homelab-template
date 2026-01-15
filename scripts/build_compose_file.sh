@@ -224,7 +224,7 @@ else
   printf '  (none)\n'
 fi
 
-if ! compose_env_validation__check "$REPO_ROOT" compose_files_list env_loaded COMPOSE_ENV_FILES_LIST; then
+if ! compose_env_validation__check "$REPO_ROOT" compose_files_list env_loaded COMPOSE_ENV_FILES_LIST "$INSTANCE_NAME"; then
   exit 1
 fi
 
