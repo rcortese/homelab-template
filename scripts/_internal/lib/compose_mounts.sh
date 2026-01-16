@@ -11,7 +11,7 @@ compose_mounts__collect_bind_paths() {
   shift
   local -a compose_files=("$@")
 
-  if (( ${#compose_files[@]} == 0 )); then
+  if ((${#compose_files[@]} == 0)); then
     return 0
   fi
 
