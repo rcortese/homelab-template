@@ -77,6 +77,9 @@ compose_env_validation__load_env_keys() {
     [[ -z "$key" ]] && continue
     output_ref["$key"]=1
   done <"$env_file"
+
+  # Touch nameref array so shellcheck recognizes it is consumed by callers.
+  : "${output_ref[@]}"
 }
 
 compose_env_validation__check() {
