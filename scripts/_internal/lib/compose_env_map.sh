@@ -105,16 +105,8 @@ load_compose_env_map() {
   declare -A instance_filter_map=()
   if [[ -n "$instance_filter" ]]; then
     mapfile -t instance_filters < <(env_file_chain__parse_list "$instance_filter")
-    if ((${#instance_filters[@]} == 0)); then
-      echo "[!] Instance filter did not include any instances." >&2
-      return 1
-    fi
     local filter_instance
     for filter_instance in "${instance_filters[@]}"; do
-      if [[ ! -v COMPOSE_INSTANCE_FILES[$filter_instance] ]]; then
-        echo "[!] Instance '$filter_instance' not found in metadata." >&2
-        return 1
-      fi
       instance_filter_map["$filter_instance"]=1
     done
   fi

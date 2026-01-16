@@ -97,9 +97,14 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 SCRIPT_PATH = REPO_ROOT / "scripts" / "_internal" / "lib" / "compose_instances.sh"
 
 
-def run_compose_instances(repo_root: Path) -> subprocess.CompletedProcess[str]:
+def run_compose_instances(
+    repo_root: Path, instance_filter: str | None = None
+) -> subprocess.CompletedProcess[str]:
+    command = [str(SCRIPT_PATH), str(repo_root)]
+    if instance_filter:
+        command.append(instance_filter)
     return subprocess.run(
-        [str(SCRIPT_PATH), str(repo_root)],
+        command,
         capture_output=True,
         text=True,
         check=False,
@@ -265,3 +270,43 @@ def test_missing_common_env_file_causes_failure(repo_copy: Path) -> None:
     assert result.returncode != 0
     assert "Missing env/local/common.env" in result.stderr
     assert "cp env/common.example.env env/local/common.env" in result.stderr
+
+
+def test_instance_filter_skips_unselected_env_files(repo_copy: Path) -> None:
+    missing_env = repo_copy / "env" / "local" / "media.env"
+    if missing_env.exists():
+        missing_env.unlink()
+
+    result = run_compose_instances(repo_copy, "core")
+
+    assert result.returncode == 0, result.stderr
+
+    env_local_line = find_declare_line(result.stdout, "COMPOSE_INSTANCE_ENV_LOCAL")
+    env_local_map = parse_mapping(env_local_line)
+    assert env_local_map["core"] == "env/local/core.env"
+    assert env_local_map["media"] == ""
+
+
+def test_instance_filter_accepts_comma_separated_list(repo_copy: Path) -> None:
+    result = run_compose_instances(repo_copy, "core,media")
+
+    assert result.returncode == 0, result.stderr
+
+    (
+        _,
+        _,
+        expected_env_local_map,
+        expected_env_template_map,
+        expected_env_files_map,
+    ) = _collect_compose_metadata(repo_copy)
+
+    env_local_line = find_declare_line(result.stdout, "COMPOSE_INSTANCE_ENV_LOCAL")
+    env_local_map = parse_mapping(env_local_line)
+    assert env_local_map == expected_env_local_map
+
+    env_templates_line = find_declare_line(result.stdout, "COMPOSE_INSTANCE_ENV_TEMPLATES")
+    env_templates_map = parse_mapping(env_templates_line)
+    assert env_templates_map == expected_env_template_map
+
+    env_files_line = find_declare_line(result.stdout, "COMPOSE_INSTANCE_ENV_FILES")
+    assert parse_mapping(env_files_line) == expected_env_files_map
