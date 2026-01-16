@@ -26,6 +26,8 @@ USAGE
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
+# shellcheck source=_internal/lib/compose_discovery.sh
+source "$SCRIPT_DIR/_internal/lib/compose_discovery.sh"
 # shellcheck source=_internal/lib/env_file_chain.sh
 source "$SCRIPT_DIR/_internal/lib/env_file_chain.sh"
 
@@ -76,12 +78,10 @@ if [[ "$ENV_OUTPUT_FILE" != /* ]]; then
   ENV_OUTPUT_FILE="$REPO_ROOT/$ENV_OUTPUT_FILE"
 fi
 
-if ! compose_metadata="$("$SCRIPT_DIR/_internal/lib/compose_instances.sh" "$REPO_ROOT")"; then
+if ! load_compose_discovery "$REPO_ROOT"; then
   echo "Error: could not load instance metadata." >&2
   exit 1
 fi
-
-eval "$compose_metadata"
 
 if [[ -z "$INSTANCE_NAME" ]]; then
   if [[ -n "${COMPOSE_INSTANCES:-}" ]]; then
@@ -112,6 +112,13 @@ if [[ ! -v COMPOSE_INSTANCE_FILES[$INSTANCE_NAME] ]]; then
   echo "Available: ${COMPOSE_INSTANCE_NAMES[*]}" >&2
   exit 1
 fi
+
+if ! compose_metadata="$("$SCRIPT_DIR/_internal/lib/compose_instances.sh" "$REPO_ROOT" "$INSTANCE_NAME")"; then
+  echo "Error: could not load instance metadata." >&2
+  exit 1
+fi
+
+eval "$compose_metadata"
 
 env_chain_output=""
 if ! env_chain_output="$(env_file_chain__defaults "$REPO_ROOT" "$INSTANCE_NAME")"; then

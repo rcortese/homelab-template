@@ -154,7 +154,7 @@ fi
 
 declare -a compose_files_list=()
 
-if ! compose_metadata="$("$SCRIPT_DIR/_internal/lib/compose_instances.sh" "$REPO_ROOT")"; then
+if ! compose_metadata="$("$SCRIPT_DIR/_internal/lib/compose_instances.sh" "$REPO_ROOT" "$INSTANCE_NAME")"; then
   echo "Error: could not load instance metadata." >&2
   exit 1
 fi

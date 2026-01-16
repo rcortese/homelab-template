@@ -2,6 +2,8 @@
 
 # shellcheck source=scripts/_internal/lib/compose_paths.sh
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/compose_paths.sh"
+# shellcheck source=scripts/_internal/lib/env_file_chain.sh
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/env_file_chain.sh"
 
 compose_env_map__append_missing_env() {
   local -n missing_block_ref="$1"
@@ -99,6 +101,23 @@ load_compose_env_map() {
   fi
 
   local instance_filter="${2:-}"
+  local -a instance_filters=()
+  declare -A instance_filter_map=()
+  if [[ -n "$instance_filter" ]]; then
+    mapfile -t instance_filters < <(env_file_chain__parse_list "$instance_filter")
+    if ((${#instance_filters[@]} == 0)); then
+      echo "[!] Instance filter did not include any instances." >&2
+      return 1
+    fi
+    local filter_instance
+    for filter_instance in "${instance_filters[@]}"; do
+      if [[ ! -v COMPOSE_INSTANCE_FILES[$filter_instance] ]]; then
+        echo "[!] Instance '$filter_instance' not found in metadata." >&2
+        return 1
+      fi
+      instance_filter_map["$filter_instance"]=1
+    done
+  fi
 
   local env_dir_rel="env"
   local env_local_dir_rel="env/local"
@@ -132,7 +151,7 @@ load_compose_env_map() {
       return 1
     fi
 
-    if [[ -n "$instance_filter" && "$instance" != "$instance_filter" ]]; then
+    if ((${#instance_filters[@]} > 0)) && [[ -z "${instance_filter_map[$instance]:-}" ]]; then
       COMPOSE_INSTANCE_ENV_LOCAL["$instance"]=""
       COMPOSE_INSTANCE_ENV_TEMPLATES["$instance"]=""
       COMPOSE_INSTANCE_ENV_FILES["$instance"]=""
