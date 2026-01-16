@@ -53,7 +53,7 @@ else
   set --
 fi
 
-if ! compose_metadata="$("$SCRIPT_DIR/_internal/lib/compose_instances.sh" "$REPO_ROOT")"; then
+if ! compose_metadata="$("$SCRIPT_DIR/_internal/lib/compose_instances.sh" "$REPO_ROOT" "${COMPOSE_INSTANCES:-}")"; then
   echo "Error: unable to load instance metadata." >&2
   exit 1
 fi
