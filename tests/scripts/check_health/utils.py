@@ -72,6 +72,7 @@ def expected_consolidated_plan_calls(
             env_files,
             plan_files,
             "config",
+            "--no-interpolate",
             "--output",
             str(temp_output_file),
             base_cmd=base_cmd,
