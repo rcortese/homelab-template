@@ -272,7 +272,11 @@ if [[ ! -d "$compose_tmp_dir" ]]; then
 fi
 : >"$compose_tmp_file"
 
-generate_cmd=(env REPO_ROOT="$REPO_ROOT" LOCAL_INSTANCE="$INSTANCE_NAME" "${compose_cmd[@]}" config --output "$compose_tmp_file")
+generate_cmd=(
+  env REPO_ROOT="$REPO_ROOT" LOCAL_INSTANCE="$INSTANCE_NAME"
+  "${compose_cmd[@]}"
+  config --no-interpolate --output "$compose_tmp_file"
+)
 
 if ! "${generate_cmd[@]}"; then
   echo "Error: failed to generate docker-compose.yml." >&2

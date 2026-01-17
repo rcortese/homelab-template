@@ -51,7 +51,7 @@ def test_logs_fallback_through_alternative_services(
         _strip_env_and_file_flags(entry) for entry in docker_stub.read_calls()
     ]
     assert calls == [
-        ["compose", "config", "--output"],
+        ["compose", "config", "--no-interpolate", "--output"],
         ["compose", "config", "-q"],
         ["compose", "config", "--services"],
         ["compose", "ps"],
@@ -84,7 +84,7 @@ def test_logs_reports_failure_when_all_services_fail(
         _strip_env_and_file_flags(entry) for entry in docker_stub.read_calls()
     ]
     assert calls == [
-        ["compose", "config", "--output"],
+        ["compose", "config", "--no-interpolate", "--output"],
         ["compose", "config", "-q"],
         ["compose", "config", "--services"],
         ["compose", "ps"],
@@ -118,7 +118,7 @@ def test_logs_handles_comma_separated_health_services(
         _strip_env_and_file_flags(entry) for entry in docker_stub.read_calls()
     ]
     assert calls == [
-        ["compose", "config", "--output"],
+        ["compose", "config", "--no-interpolate", "--output"],
         ["compose", "config", "-q"],
         ["compose", "config", "--services"],
         ["compose", "ps"],
@@ -150,7 +150,7 @@ def test_logs_attempts_all_services_even_after_success(
         _strip_env_and_file_flags(entry) for entry in docker_stub.read_calls()
     ]
     assert calls == [
-        ["compose", "config", "--output"],
+        ["compose", "config", "--no-interpolate", "--output"],
         ["compose", "config", "-q"],
         ["compose", "config", "--services"],
         ["compose", "ps"],
@@ -178,7 +178,7 @@ def test_logs_without_targets_uses_compose_services(
         _strip_env_and_file_flags(entry) for entry in docker_stub.read_calls()
     ]
     assert calls == [
-        ["compose", "config", "--output"],
+        ["compose", "config", "--no-interpolate", "--output"],
         ["compose", "config", "-q"],
         ["compose", "config", "--services"],
         ["compose", "ps"],
@@ -206,7 +206,7 @@ def test_logs_without_targets_and_no_services_reports_error(
         _strip_env_and_file_flags(entry) for entry in docker_stub.read_calls()
     ]
     assert calls == [
-        ["compose", "config", "--output"],
+        ["compose", "config", "--no-interpolate", "--output"],
         ["compose", "config", "-q"],
         ["compose", "config", "--services"],
     ]
