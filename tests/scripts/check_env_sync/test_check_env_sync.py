@@ -18,7 +18,7 @@ from scripts._internal.lib.check_env_sync.compose_metadata import (
 )
 from scripts._internal.lib.check_env_sync.compose_variables import extract_compose_variables
 from scripts._internal.lib.check_env_sync.reporting import SyncReport, build_sync_report
-from tests.helpers.compose_instances import ComposeInstancesData
+from tests.helpers.compose_instances import ComposeInstancesData, load_compose_instances_data
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 SCRIPT_PATH = REPO_ROOT / "scripts" / "check_env_sync.sh"
@@ -50,6 +50,23 @@ def _resolve_env_template(
     if template_relative:
         return repo_root / template_relative
     return repo_root / "env" / f"{instance_name}.example.env"
+
+
+def _add_service_environment(compose_file: Path, env_lines: Sequence[str]) -> None:
+    content = compose_file.read_text(encoding="utf-8")
+    env_block = "\n".join(
+        [
+            "services:",
+            "  test-service:",
+            "    environment:",
+            *[f"      {line}" for line in env_lines],
+        ]
+    )
+    if "services: {}" in content:
+        content = content.replace("services: {}", env_block)
+    else:
+        content = "\n".join([content.rstrip(), env_block])
+    compose_file.write_text(content + "\n", encoding="utf-8")
 
 
 def run_check(repo_root: Path, extra_args: Sequence[str] | None = None) -> subprocess.CompletedProcess[str]:
@@ -100,9 +117,10 @@ def test_check_env_sync_detects_missing_variables(
 ) -> None:
     instance_name = _select_instance(compose_instances_data)
     compose_file = _resolve_compose_manifest(repo_copy, compose_instances_data, instance_name)
-    content = compose_file.read_text(encoding="utf-8")
-    content += "\n    environment:\n      CORE_MISSING_VAR: ${CORE_MISSING_VAR}"
-    compose_file.write_text(content, encoding="utf-8")
+    _add_service_environment(
+        compose_file,
+        ["CORE_MISSING_VAR: ${CORE_MISSING_VAR}"],
+    )
 
     result = run_check(repo_copy)
 
@@ -116,11 +134,13 @@ def test_check_env_sync_detects_plain_and_nested_variables(
 ) -> None:
     instance_name = _select_instance(compose_instances_data)
     compose_file = _resolve_compose_manifest(repo_copy, compose_instances_data, instance_name)
-    content = compose_file.read_text(encoding="utf-8")
-    content += "\n    environment:\n"
-    content += "      PLAIN_REFERENCE: \"$PLAIN_MISSING_VAR\"\n"
-    content += "      COMPLEX_PATH: \"${OUTER_VAR:-./${INNER_VAR:-fallback}}\""
-    compose_file.write_text(content, encoding="utf-8")
+    _add_service_environment(
+        compose_file,
+        [
+            "PLAIN_REFERENCE: \"$PLAIN_MISSING_VAR\"",
+            "COMPLEX_PATH: \"${OUTER_VAR:-./${INNER_VAR:-fallback}}\"",
+        ],
+    )
 
     result = run_check(repo_copy)
 
@@ -135,11 +155,13 @@ def test_check_env_sync_ignores_escaped_dollar_variables(
 ) -> None:
     instance_name = _select_instance(compose_instances_data)
     compose_file = _resolve_compose_manifest(repo_copy, compose_instances_data, instance_name)
-    content = compose_file.read_text(encoding="utf-8")
-    content += "\n    environment:\n"
-    content += "      ESCAPED_LITERAL: \"$$SHOULD_NOT_APPEAR\"\n"
-    content += "      ESCAPED_TEMPLATE_LITERAL: \"$$${SHOULD_NOT_APPEAR_NESTED}\""
-    compose_file.write_text(content, encoding="utf-8")
+    _add_service_environment(
+        compose_file,
+        [
+            "ESCAPED_LITERAL: \"$$SHOULD_NOT_APPEAR\"",
+            "ESCAPED_TEMPLATE_LITERAL: \"$$${SHOULD_NOT_APPEAR_NESTED}\"",
+        ],
+    )
 
     result = run_check(repo_copy)
 
@@ -153,13 +175,13 @@ def test_check_env_sync_ignores_variables_in_comments(
 ) -> None:
     instance_name = _select_instance(compose_instances_data)
     compose_file = _resolve_compose_manifest(repo_copy, compose_instances_data, instance_name)
-    content = compose_file.read_text(encoding="utf-8")
-    content += (
-        "\n    environment:\n"
-        "      # ${ONLY_IN_COMMENT}\n"
-        "      COMMENTED_ENV: ${MISSING_FROM_ENV}"
+    _add_service_environment(
+        compose_file,
+        [
+            "# ${ONLY_IN_COMMENT}",
+            "COMMENTED_ENV: ${MISSING_FROM_ENV}",
+        ],
     )
-    compose_file.write_text(content + "\n", encoding="utf-8")
 
     result = run_check(repo_copy)
 
@@ -210,9 +232,10 @@ def test_check_env_sync_instance_option_limits_validation(
     other_instance = compose_instances_data.instance_names[1]
     compose_file = _resolve_compose_manifest(repo_copy, compose_instances_data, other_instance)
     missing_variable = "ONLY_FOR_OTHER_INSTANCE"
-    content = compose_file.read_text(encoding="utf-8")
-    content += f"\n    environment:\n      FILTER_TEST_VAR: ${{{missing_variable}}}"
-    compose_file.write_text(content, encoding="utf-8")
+    _add_service_environment(
+        compose_file,
+        [f"FILTER_TEST_VAR: ${{{missing_variable}}}"],
+    )
 
     result_target = run_check(repo_copy, ["--instance", target_instance])
 
@@ -235,9 +258,10 @@ def test_check_env_sync_deduplicates_instance_arguments(
 
     compose_file = _resolve_compose_manifest(repo_copy, compose_instances_data, error_instance)
     missing_variable = "ONLY_FOR_DEDUP_TEST"
-    content = compose_file.read_text(encoding="utf-8")
-    content += f"\n    environment:\n      DEDUP_TEST_VAR: ${{{missing_variable}}}"
-    compose_file.write_text(content, encoding="utf-8")
+    _add_service_environment(
+        compose_file,
+        [f"DEDUP_TEST_VAR: ${{{missing_variable}}}"],
+    )
 
     result = run_check(
         repo_copy,
@@ -258,6 +282,13 @@ def test_check_env_sync_deduplicates_instance_arguments(
 def test_build_sync_report_uses_runtime_provided_variables(
     repo_copy: Path, monkeypatch
 ) -> None:
+    compose_instances_data = load_compose_instances_data(repo_copy)
+    instance_name = _select_instance(compose_instances_data)
+    compose_file = _resolve_compose_manifest(repo_copy, compose_instances_data, instance_name)
+    _add_service_environment(
+        compose_file,
+        ["INSTANCE_PATH: ${LOCAL_INSTANCE}"],
+    )
     metadata = load_compose_metadata(repo_copy)
 
     report = build_sync_report(repo_copy, metadata)
