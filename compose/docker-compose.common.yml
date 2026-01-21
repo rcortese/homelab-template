@@ -1,13 +1,22 @@
-# Optional base Compose file containing shared resources and base application manifests.
+# Optional base Compose file containing shared resources and infrastructure plumbing.
 
-services:
-  app:
-    image: example/app:latest
-    restart: unless-stopped
-    environment:
-      TZ: ${TZ}
-      PUID: ${APP_DATA_UID}
-      PGID: ${APP_DATA_GID}
-      APP_EXAMPLE_MESSAGE: ${APP_EXAMPLE_MESSAGE:-hello}
-    volumes:
-      - ${REPO_ROOT:-.}/data/${LOCAL_INSTANCE:-default}/app:/var/lib/app
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+x-common-env: &common-env
+  TZ: ${TZ}
+  PUID: ${PUID}
+  PGID: ${PGID}
+
+services: {}
+
+networks:
+  public: {}
+  internal:
+    internal: true
+
+volumes:
+  shared_data: {}

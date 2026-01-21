@@ -1,6 +1,4 @@
 # Instance override file for the "core" stack (extends docker-compose.common.yml).
+# Add core services here.
 
-services:
-  app:
-    ports:
-      - "${APP_PORT:-8080}:8080"
+services: {}
