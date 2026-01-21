@@ -1,6 +1,4 @@
 # Instance override file for the "media" stack (extends docker-compose.common.yml).
+# Add media services here.
 
-services:
-  app:
-    ports:
-      - "${APP_PORT:-8081}:8080"
+services: {}
